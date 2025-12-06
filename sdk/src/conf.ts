@@ -73,7 +73,7 @@ export const ipfsConfig: IpfsStorageConfig = {
     /** IPFS gateway url. */
     gatewayUrl: "https://ipfs.io/ipfs/",
     /** S3 bucket name. */
-    bucketName: "",
+    bucketName: "test-eduwallet",
     /** S3 client configuration object. */
     s3Config: {
         /** S3 API version. */
@@ -81,9 +81,9 @@ export const ipfsConfig: IpfsStorageConfig = {
         /** Authentication credentials. */
         credentials: {
             /** Access key ID. */
-            accessKeyId: "",
+            accessKeyId: "D1934AD206567E7EA744",
             /** Secret access key. */
-            secretAccessKey: "",
+            secretAccessKey: "SMqFFcoSTjS2AWWRlYHM4W4kz3l73AIrWR5QN09E",
         },
         /** S3 endpoint URL. */
         endpoint: "https://s3.filebase.com",
