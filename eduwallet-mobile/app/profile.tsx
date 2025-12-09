@@ -1,136 +1,138 @@
+// app/profile.tsx
 import React from "react";
-import { View, Text, StyleSheet, ScrollView, Pressable } from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { useStudent } from "./context/StudentContext";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Button,
+  Alert,
+} from "react-native";
+import { useStudent } from "../context/StudentContext";
+import { router } from "expo-router";
 
+/**
+ * Profile screen.
+ *
+ * Shows basic personal data and wallet information for the currently
+ * logged in student, plus a logout button that clears the StudentContext.
+ * The header and back arrow are provided by the root Stack layout.
+ */
 export default function ProfileScreen() {
-  const router = useRouter();
   const { id, sca, data, clearStudent } = useStudent();
 
-  const isLoggedIn = !!id && !!sca && !!data;
   const student = data?.student;
 
+  /**
+   * Ask for confirmation before clearing the in memory session.
+   * (On logout, the user is sent back to the login view the next time.)
+   */
   const handleLogout = () => {
-    clearStudent();
-    router.replace("/"); // back to login
+    Alert.alert(
+      "Log out",
+      "Are you sure you want to log out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Log out",
+          style: "destructive",
+          onPress: () => {
+            clearStudent();
+            router.push({
+              pathname: "/",
+            });
+          },
+        },
+      ],
+      { cancelable: true }
+    );
   };
 
-  if (!isLoggedIn || !student) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.headerRow}>
-          <Pressable onPress={() => router.back()}>
-            <Ionicons name="arrow-back-outline" size={24} color="#ffffff" />
-          </Pressable>
-          <Text style={styles.title}>Profile</Text>
-          <View style={{ width: 24 }} />
-        </View>
-
-        <Text style={styles.infoText}>
-          Please log in from the Wallet tab to see your profile.
-        </Text>
-      </View>
-    );
-  }
-
-  const fullName = `${student.name} ${student.surname}`;
-
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.headerRow}>
-        <Pressable onPress={() => router.back()}>
-          <Ionicons name="arrow-back-outline" size={24} color="#ffffff" />
-        </Pressable>
+    <ScrollView contentContainerStyle={styles.container}>
+      {!student ? (
+        <Text style={styles.muted}>
+          No student loaded. Please log in first.
+        </Text>
+      ) : (
+        <>
+          {/* Personal details card */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Personal details</Text>
+            <Text style={styles.row}>
+              <Text style={styles.label}>Name: </Text>
+              {student.name} {student.surname}
+            </Text>
+            <Text style={styles.row}>
+              <Text style={styles.label}>Birth date: </Text>
+              {student.birthDate || "-"}
+            </Text>
+            <Text style={styles.row}>
+              <Text style={styles.label}>Birth place: </Text>
+              {student.birthPlace || "-"}
+            </Text>
+            <Text style={styles.row}>
+              <Text style={styles.label}>Country: </Text>
+              {student.country || "-"}
+            </Text>
+          </View>
 
-        <Text style={styles.title}>Profile</Text>
-        <View style={{ width: 24 }} />
-      </View>
+          {/* Wallet summary card */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Wallet</Text>
+            <Text style={styles.row}>
+              <Text style={styles.label}>Smart account: </Text>
+              {sca}
+            </Text>
+            <Text style={styles.row}>
+              <Text style={styles.label}>Courses: </Text>
+              {student.results?.length ?? 0}
+            </Text>
+          </View>
 
-      <View style={styles.card}>
-        <Text style={styles.fieldLabel}>Id</Text>
-        <Text style={styles.fieldValue}>{id}</Text>
-
-        <Text style={styles.fieldLabel}>Wallet address</Text>
-        <Text style={styles.fieldValue}>{sca}</Text>
-
-        <Text style={styles.fieldLabel}>Full name</Text>
-        <Text style={styles.fieldValue}>{fullName}</Text>
-
-        <Text style={styles.fieldLabel}>Birth date</Text>
-        <Text style={styles.fieldValue}>{student.birthDate}</Text>
-
-        <Text style={styles.fieldLabel}>Birth place</Text>
-        <Text style={styles.fieldValue}>{student.birthPlace}</Text>
-
-        <Text style={styles.fieldLabel}>Country</Text>
-        <Text style={styles.fieldValue}>{student.country}</Text>
-      </View>
-
-      {/* 🔴 Logout button */}
-      <Pressable
-        onPress={handleLogout}
-        style={({ pressed }) => [
-          styles.logoutButton,
-          pressed && { opacity: 0.8 },
-        ]}
-      >
-        <Text style={styles.logoutButtonText}>Log out</Text>
-      </Pressable>
+          {/* Logout button */}
+          <View style={styles.logoutWrapper}>
+            <Button title="Log out" color="#ff6b6b" onPress={handleLogout} />
+          </View>
+        </>
+      )}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    paddingTop: 60,
+    paddingTop: 16, // Header (title + back arrow) is handled by the Stack layout
     paddingHorizontal: 16,
+    paddingBottom: 32,
     backgroundColor: "#0f1115",
+    flexGrow: 1,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#ffffff",
-    marginBottom: 20,
-  },
-  infoText: {
+  muted: {
+    color: "#888",
     fontSize: 14,
-    color: "#cccccc",
   },
   card: {
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
     backgroundColor: "#1a1d23",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
   },
-  fieldLabel: {
-    fontSize: 12,
-    color: "#9fa9ff",
-    marginTop: 10,
-  },
-  fieldValue: {
-    fontSize: 14,
-    color: "#ffffff",
-    marginTop: 2,
-  },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  logoutButton: {
-    marginTop: 24,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#ff6b6b",
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  logoutButtonText: {
-    color: "#ff6b6b",
+  cardTitle: {
+    fontSize: 16,
     fontWeight: "600",
+    color: "#ffffff",
+    marginBottom: 8,
+  },
+  row: {
+    color: "#ffffff",
     fontSize: 14,
+    marginBottom: 4,
+  },
+  label: {
+    fontWeight: "600",
+  },
+  logoutWrapper: {
+    marginTop: 16,
   },
 });

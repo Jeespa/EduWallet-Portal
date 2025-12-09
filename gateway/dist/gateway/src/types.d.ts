@@ -1,0 +1,2 @@
+export type { CourseResult, StudentPayload, CredentialsResponse, PermissionStatus, AllPermissionsForStudent, UniversityPermissionEntry, } from "../../shared/apiTypes";
+//# sourceMappingURL=types.d.ts.map

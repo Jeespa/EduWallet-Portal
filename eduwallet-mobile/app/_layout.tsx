@@ -1,6 +1,6 @@
 // app/_layout.tsx
 import { Stack } from "expo-router";
-import { StudentProvider } from "./context/StudentContext";
+import { StudentProvider } from "../context/StudentContext";
 import { View } from "react-native";
 
 export default function RootLayout() {
@@ -9,17 +9,24 @@ export default function RootLayout() {
       <View style={{ flex: 1, backgroundColor: "#0f1115" }}>
         <Stack
           screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: "#0f1115" }, // for all stack screens
+            headerStyle: { backgroundColor: "#0f1115" },
+            headerTintColor: "#ffffff",
+            headerTitleStyle: { color: "#ffffff" },
+            contentStyle: { backgroundColor: "#0f1115" },
           }}
         >
-          <Stack.Screen
-            name="(tabs)"
-            options={{ headerShown: false }}
-          />
+          {/* Main tabbed app, with its own header (usually hidden) */}
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+          {/* Course stack keeps its own layout & back button */}
+          <Stack.Screen name="course" options={{ headerShown: false }} />
+
+          {/* Profile gets a native header with back arrow */}
           <Stack.Screen
             name="profile"
-            options={{ headerShown: false }}
+            options={{
+              title: "Profile",
+            }}
           />
         </Stack>
       </View>

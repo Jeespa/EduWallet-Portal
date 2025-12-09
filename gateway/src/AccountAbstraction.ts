@@ -1,44 +1,45 @@
 import { ethers } from "ethers";
+import { ENTRY_POINT_ADDRESS, PAYMASTER_ADDRESS, CHAIN_ID } from "./config";
 
 /**
- * ---- Minimal config from env -----------------------------------
- * Re-use the same values as in the original project.
+ * Light-weight error logger used inside this module.
+ * Keeps a single place to change logging behaviour if needed later.
+ *
+ * @param msg - Human readable message describing the context
+ * @param err - Original error object
  */
-const ENTRY_POINT_ADDRESS = process.env.ENTRY_POINT_ADDRESS ?? "";
-const PAYMASTER_ADDRESS = process.env.PAYMASTER_ADDRESS ?? "";
-const CHAIN_ID = Number(process.env.CHAIN_ID ?? "31337");
-
-if (!ENTRY_POINT_ADDRESS) {
-  throw new Error("ENTRY_POINT_ADDRESS is not set in environment");
-}
-if (!PAYMASTER_ADDRESS) {
-  throw new Error("PAYMASTER_ADDRESS is not set in environment");
-}
-
 function logError(msg: string, err: unknown) {
   console.error(msg, err);
 }
 
-/** Minimal ABI for the EntryPoint contract (only what we use) */
+/** Minimal ABI for the EntryPoint contract (only the pieces we use). */
 const ENTRY_POINT_ABI = [
   "function getNonce(address sender, uint192 key) view returns (uint256)",
   "function handleOps((address sender,uint256 nonce,bytes initCode,bytes callData,bytes32 accountGasLimits,uint256 preVerificationGas,bytes32 gasFees,bytes paymasterAndData,bytes signature)[] ops, address payable beneficiary)",
-  // for verifyTransaction:
+  // For verifyTransaction:
   "event UserOperationEvent(bytes32 indexed userOpHash, address indexed sender, address indexed paymaster, uint256 nonce, bool success, uint256 actualGasCost, uint256 actualGasUsed)",
   "event UserOperationRevertReason(bytes32 indexed userOpHash, address sender, uint256 nonce, bytes revertReason)",
 ];
 
-/** Minimal ABI for the SmartAccount (only execute) */
+/** Minimal ABI for the SmartAccount contract (only the execute function). */
 const SMART_ACCOUNT_ABI = [
   "function execute(address target, uint256 value, bytes data)",
 ];
 
 /**
- * EIP-712 domain + types for ERC-4337 user ops
+ * EIP-712 domain parameters for ERC-4337 user operations.
+ * These values must match the EntryPoint implementation.
  */
 const DOMAIN_NAME = "ERC4337";
 const DOMAIN_VERSION = "1";
 
+/**
+ * Builds the EIP-712 domain for signing packed user operations.
+ *
+ * @param entryPoint - Address of the EntryPoint contract
+ * @param chainId - Current chain identifier
+ * @returns Typed data domain structure for ethers.js
+ */
 function getErc4337TypedDataDomain(
   entryPoint: string,
   chainId: number
@@ -51,6 +52,11 @@ function getErc4337TypedDataDomain(
   };
 }
 
+/**
+ * Returns the EIP-712 type definition for packed user operations.
+ *
+ * @returns Mapping from type name to list of typed fields
+ */
 function getErc4337TypedDataTypes(): {
   [type: string]: ethers.TypedDataField[];
 } {
@@ -69,7 +75,14 @@ function getErc4337TypedDataTypes(): {
 }
 
 /**
- * Packs paymaster data for the user operation.
+ * Packs paymaster details into the `paymasterAndData` field
+ * expected by the EntryPoint contract.
+ *
+ * @param paymaster - Address of the paymaster contract
+ * @param paymasterVerificationGasLimit - Gas limit for the validation phase
+ * @param postOpGasLimit - Gas limit for the post-operation phase
+ * @param paymasterData - Optional opaque payload interpreted by the paymaster
+ * @returns Encoded `paymasterAndData` byte string
  */
 function packPaymasterData(
   paymaster: string,
@@ -86,7 +99,9 @@ function packPaymasterData(
 }
 
 /**
- * Internal UserOperation shape we work with.
+ * Internal representation of a full user operation as used by this helper.
+ * Closely mirrors the ERC-4337 structure but keeps separate fields
+ * for easier manipulation before packing.
  */
 interface UserOperation {
   sender: string;
@@ -106,7 +121,9 @@ interface UserOperation {
 }
 
 /**
- * Packed user op as expected by EntryPoint.handleOps
+ * Packed representation of a user operation as expected by
+ * EntryPoint.handleOps. Several gas related fields are compressed
+ * into two 32-byte values.
  */
 interface PackedUserOperation {
   sender: string;
@@ -121,13 +138,23 @@ interface PackedUserOperation {
 }
 
 /**
- * AccountAbstraction manager, now using ONLY ethers.Contract and minimal ABIs.
+ * Helper for constructing and sending ERC-4337 user operations.
+ *
+ * This class intentionally uses minimal ABIs and plain ethers.js
+ * contracts so it stays independent from the original SDK and can be
+ * used directly by the HTTP gateway.
  */
 export class AccountAbstraction {
   private provider: ethers.Provider;
   private entryPoint: ethers.Contract;
   private signer: ethers.Wallet;
 
+  /**
+   * Creates a new account abstraction helper.
+   *
+   * @param provider - JSON-RPC provider used to query fees and send transactions
+   * @param signer - Wallet that signs user operations and pays for handleOps
+   */
   constructor(provider: ethers.Provider, signer: ethers.Wallet) {
     this.provider = provider;
     this.signer = signer;
@@ -139,7 +166,14 @@ export class AccountAbstraction {
   }
 
   /**
-   * Creates a user operation for a smart account call.
+   * Builds an unsigned user operation that calls `execute` on a student smart account.
+   *
+   * @param params.sender - Address of the smart account (student SCA)
+   * @param params.target - Contract that should be called via `execute`
+   * @param params.value - Ether value forwarded to the target
+   * @param params.data - ABI encoded function data for the target call
+   * @param params.initCode - Optional deployment code for the account (unused here)
+   * @returns Fully populated user operation with a dummy signature
    */
   async createUserOp({
     sender,
@@ -165,7 +199,8 @@ export class AccountAbstraction {
       data,
     ]);
 
-    const nonce: bigint = await this.entryPoint.getNonce(sender, 0);
+    // Cast to any to avoid strict typing issues on ABI-dynamic function
+    const nonce: bigint = await (this.entryPoint as any).getNonce(sender, 0);
 
     const feeData = await this.provider.getFeeData();
 
@@ -174,6 +209,7 @@ export class AccountAbstraction {
       nonce,
       initCode,
       callData,
+      // Static gas limits tuned for local development; can be adjusted later.
       callGasLimit: BigInt(1_000_000),
       verificationGasLimit: BigInt(5_000_000),
       preVerificationGas: BigInt(500_000),
@@ -191,7 +227,10 @@ export class AccountAbstraction {
   }
 
   /**
-   * Sign user op with EIP-712.
+   * Signs a user operation using EIP-712 typed data.
+   *
+   * @param userOp - Unsigned user operation
+   * @returns Copy of the operation with the `signature` field filled in
    */
   async signUserOp(userOp: UserOperation): Promise<UserOperation> {
     const packedUserOp = this.packUserOp(userOp);
@@ -206,7 +245,11 @@ export class AccountAbstraction {
   }
 
   /**
-   * Pack into the struct expected by EntryPoint.
+   * Packs a full user operation into the compact structure expected
+   * by the EntryPoint contract.
+   *
+   * @param userOp - Full user operation
+   * @returns Packed representation ready for `handleOps`
    */
   packUserOp(userOp: UserOperation): PackedUserOperation {
     const accountGasLimits = ethers.solidityPacked(
@@ -240,7 +283,12 @@ export class AccountAbstraction {
   }
 
   /**
-   * Execute user ops via EntryPoint.handleOps.
+   * Signs and submits one or more user operations via EntryPoint.handleOps.
+   *
+   * @param userOps - Array of user operations to include in the batch
+   * @param beneficiary - Address that will receive the collected gas fees
+   * @returns Transaction response for the handleOps call
+   * @throws Propagates any error returned by ethers.js or the EntryPoint
    */
   async executeUserOps(
     userOps: UserOperation[],
@@ -254,12 +302,10 @@ export class AccountAbstraction {
         })
       );
 
-      const ep = this.entryPoint.connect(this.signer);
-      // beneficiary cast to payable address is fine here
-      return (await ep.handleOps(
-        packedUserOps,
-        beneficiary
-      )) as ethers.TransactionResponse;
+      // Cast to any so TS does not complain about ABI-dynamic method
+      const ep = this.entryPoint.connect(this.signer) as any;
+      const tx = await ep.handleOps(packedUserOps, beneficiary);
+      return tx as ethers.TransactionResponse;
     } catch (error) {
       logError("Error sending batch user operations:", error);
       throw error;
@@ -267,7 +313,15 @@ export class AccountAbstraction {
   }
 
   /**
-   * Optional: verify transaction result (same logic as original).
+   * Verifies that a handleOps transaction succeeded and tries to decode
+   * revert reasons if it failed.
+   *
+   * This mirrors the logic from the original project and is mainly used
+   * during development and debugging.
+   *
+   * @param receipt - Transaction receipt returned by ethers.js
+   * @param targetContract - Contract interface used to parse custom errors
+   * @throws {Error} If the user operation failed or logs cannot be interpreted
    */
   verifyTransaction(
     receipt: ethers.TransactionReceipt,
@@ -279,9 +333,10 @@ export class AccountAbstraction {
       throw new Error("No receipt or logs found in transaction receipt.");
     }
 
+    // Filter logs that look like UserOperationEvent
     const userOpEvents = receipt.logs.filter((log) => {
       try {
-        const parsedLog = entryPoint.interface.parseLog(log);
+        const parsedLog = entryPoint.interface.parseLog(log as any);
         return parsedLog?.name === "UserOperationEvent";
       } catch {
         return false;
@@ -294,7 +349,11 @@ export class AccountAbstraction {
 
     let parsedUserOpEvent;
     try {
-      parsedUserOpEvent = entryPoint.interface.parseLog(userOpEvents[0]);
+      const firstUserOpLog = userOpEvents[0];
+      if (!firstUserOpLog) {
+        throw new Error("No UserOperationEvent found in transaction logs.");
+      }
+      parsedUserOpEvent = entryPoint.interface.parseLog(firstUserOpLog as any);
     } catch (e) {
       throw new Error(
         "Failed to parse UserOperationEvent log: " +
@@ -309,9 +368,10 @@ export class AccountAbstraction {
     const success = parsedUserOpEvent.args.success;
 
     if (!success) {
+      // Look for revert reason events
       const revertEvents = receipt.logs.filter((log) => {
         try {
-          const parsedLog = entryPoint.interface.parseLog(log);
+          const parsedLog = entryPoint.interface.parseLog(log as any);
           return parsedLog?.name === "UserOperationRevertReason";
         } catch {
           return false;
@@ -326,7 +386,13 @@ export class AccountAbstraction {
 
       let parsedRevertEvent;
       try {
-        parsedRevertEvent = entryPoint.interface.parseLog(revertEvents[0]);
+        const firstRevertLog = revertEvents[0];
+        if (!firstRevertLog) {
+          throw new Error(
+            "UserOperation failed but no UserOperationRevertReason found in logs."
+          );
+        }
+        parsedRevertEvent = entryPoint.interface.parseLog(firstRevertLog as any);
       } catch (e) {
         throw new Error(
           "Failed to parse UserOperationRevertReason log: " +

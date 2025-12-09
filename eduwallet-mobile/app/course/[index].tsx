@@ -1,15 +1,22 @@
 // app/course/[index].tsx
 import React from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useStudent } from "../context/StudentContext";
+import { useLocalSearchParams } from "expo-router";
+import { useStudent } from "../../context/StudentContext";
 
+/**
+ * Detail screen for a single course.
+ *
+ * The route is `/course/[index]`, where `index` is the 0-based index
+ * into `student.results` from the login payload. The screen reads the
+ * index from the URL, looks up the corresponding result in the
+ * StudentContext, and renders a read-only view.
+ */
 export default function CourseDetailsScreen() {
-  const router = useRouter();
   const { index } = useLocalSearchParams<{ index?: string }>();
   const { data } = useStudent();
 
-  // No student data at all
+  // No student data at all – show a simple error message
   if (!data || !data.student || !data.student.results) {
     return (
       <View style={styles.container}>
@@ -18,10 +25,11 @@ export default function CourseDetailsScreen() {
     );
   }
 
-  // Parse course index
+  // Parse the dynamic route segment `[index]` into a number
   const courseIndex = index ? parseInt(index, 10) : NaN;
   const results = data.student.results;
 
+  // Guard against malformed or out-of-range indices
   if (
     Number.isNaN(courseIndex) ||
     courseIndex < 0 ||
@@ -35,6 +43,13 @@ export default function CourseDetailsScreen() {
   }
 
   const course = results[courseIndex];
+
+  // Only show grade / evaluation date if we actually have non-empty values
+  const hasGrade =
+    typeof course.grade === "string" && course.grade.trim().length > 0;
+  const hasEvaluationDate =
+    typeof course.evaluationDate === "string" &&
+    course.evaluationDate.trim().length > 0;
 
   return (
     <ScrollView style={styles.container}>
@@ -50,11 +65,19 @@ export default function CourseDetailsScreen() {
         <Text style={styles.label}>ECTS</Text>
         <Text style={styles.value}>{course.ects.toFixed(1)}</Text>
 
-        <Text style={styles.label}>Grade</Text>
-        <Text style={styles.value}>{course.grade ?? "-"}</Text>
+        {hasGrade && (
+          <>
+            <Text style={styles.label}>Grade</Text>
+            <Text style={styles.value}>{course.grade}</Text>
+          </>
+        )}
 
-        <Text style={styles.label}>Evaluation date</Text>
-        <Text style={styles.value}>{course.evaluationDate ?? "-"}</Text>
+        {hasEvaluationDate && (
+          <>
+            <Text style={styles.label}>Evaluation date</Text>
+            <Text style={styles.value}>{course.evaluationDate}</Text>
+          </>
+        )}
 
         <Text style={styles.label}>University</Text>
         <Text style={styles.value}>{course.university.name}</Text>
@@ -86,7 +109,8 @@ const styles = StyleSheet.create({
   },
   card: {
     borderRadius: 16,
-    paddingVertical: 16,
+    paddingTop: 4,
+    paddingBottom: 16,
     paddingHorizontal: 16,
     backgroundColor: "#1a1d23",
   },

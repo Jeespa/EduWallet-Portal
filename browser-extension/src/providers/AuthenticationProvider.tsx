@@ -1,7 +1,7 @@
 import { createContext, useContext, useState } from "react";
 import type { JSX } from "react";
 import { Credentials, StudentModel } from "../models/student";
-import { logIn } from "../API"
+import { logIn } from "../lib/gatewayAdapter"
 import { useNavigate } from "react-router-dom";
 import { MessageType, useMessages } from "./MessagesProvider";
 

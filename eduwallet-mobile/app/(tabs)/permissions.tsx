@@ -4,171 +4,360 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   ActivityIndicator,
+  Button,
+  Modal,
+  TextInput,
   Pressable,
+  ScrollView,
 } from "react-native";
-import { useStudent } from "../context/StudentContext";
-import type { PermissionStatus } from "../types";
-import { getPermissions } from "./index";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useStudent } from "../../context/StudentContext";
+import {
+  getPermissions,
+  revokePermission,
+  grantPermission,
+} from "../../lib/api";
+import type { PermissionStatus } from "../../types";
 
+/**
+ * Local representation of which permission action is waiting
+ * for password confirmation in the modal.
+ */
+type PendingAction = "revoke" | "grant-read" | "grant-write" | null;
+
+/**
+ * Permissions screen in the mobile app.
+ *
+ * Shows a multi university view of:
+ *  - current read and write access for each university
+ *  - pending read and write requests
+ *
+ * Any change (grant or revoke) is done via the gateway and
+ * requires the student password, which is collected in a modal.
+ */
 export default function PermissionsScreen() {
-  const router = useRouter();
+  // Credentials and login payload from the global student context
   const { id, sca, data } = useStudent();
 
-  const [permissions, setPermissions] = useState<PermissionStatus | null>(null);
+  // List of per university permissions
+  const [perms, setPerms] = useState<PermissionStatus[]>([]);
   const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const isLoggedIn = !!id && !!sca && !!data;
+  // State for the confirmation modal
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [password, setPassword] = useState("");
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [submitting, setSubmitting] = useState(false);
 
+  // The university that the user is currently acting on
+  const [selectedPerm, setSelectedPerm] = useState<PermissionStatus | null>(
+    null
+  );
+
+  /**
+   * Helper to convert the gateway multi university payload into the
+   * PermissionStatus structure that the UI expects.
+   */
+  const mapPermissionsToStatuses = (all: {
+    studentSca: string;
+    permissions: {
+      universityAddress: string;
+      read: boolean;
+      write: boolean;
+      readRequested: boolean;
+      writeRequested: boolean;
+      universityName?: string;
+      universityCountry?: string;
+      universityShortName?: string;
+    }[];
+  }): PermissionStatus[] => {
+    return all.permissions.map((entry) => {
+      const read = !!entry.read;
+      const write = !!entry.write;
+
+      // Keep a bit mask level for compatibility with the browser extension
+      let level: 0 | 1 | 2 | 3 = 0;
+      if (read) level = (level | 1) as 0 | 1 | 2 | 3;
+      if (write) level = (level | 2) as 0 | 1 | 2 | 3;
+
+      return {
+        studentSca: all.studentSca,
+        universitySmartAccount: entry.universityAddress,
+        universityName: entry.universityName ?? "",
+        universityCountry: entry.universityCountry ?? "",
+        universityShortName: entry.universityShortName ?? "",
+        read,
+        write,
+        readRequested: !!entry.readRequested,
+        writeRequested: !!entry.writeRequested,
+        level,
+      };
+    });
+  };
+
+  /**
+   * On login, the gateway already returns an "allPermissions" snapshot.
+   * Use that snapshot to populate the screen immediately, without
+   * prompting for the password.
+   */
   useEffect(() => {
-    if (!isLoggedIn || !sca) return;
+    if (!data?.allPermissions) return;
+    const mapped = mapPermissionsToStatuses(data.allPermissions);
+    setPerms(mapped);
+  }, [data?.allPermissions]);
 
-    const load = async () => {
-      try {
-        setLoading(true);
-        setErr(null);
-        const p = await getPermissions(sca);
-        setPermissions(p);
-      } catch (e: any) {
-        setErr(e.message ?? "Failed to load permissions");
-        setPermissions(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+  /**
+   * Open the password confirmation modal for a given action.
+   */
+  const openModal = (action: PendingAction, perm: PermissionStatus | null) => {
+    setPendingAction(action);
+    setSelectedPerm(perm);
+    setPassword("");
+    setPasswordModalVisible(true);
+  };
 
-    load();
-  }, [isLoggedIn, sca]);
+  /**
+   * Close the password modal.
+   * While a request is in flight we ignore close to avoid odd states.
+   */
+  const closeModal = () => {
+    if (submitting) return;
+    setPasswordModalVisible(false);
+    setPendingAction(null);
+    setSelectedPerm(null);
+    setPassword("");
+  };
 
-  const handleRevoke = async () => {
+  /**
+   * Reload the full permissions list from the gateway.
+   * Used after a grant or revoke operation, when the student has
+   * just provided the password.
+   */
+  const refreshPermissions = async (id: string, password: string) => {
     if (!sca) return;
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setErr(null);
-
-      const res = await fetch(
-        `http://192.168.1.12:3000/students/${sca}/permissions/revoke`,
-        { method: "POST" }
-      );
-
-      if (!res.ok) {
-        const j = await res.json().catch(() => null);
-        throw new Error(
-          j?.error || `Failed to revoke permission (${res.status})`
-        );
-      }
-
-      // Refresh permissions after revoke
-      const refreshed = await getPermissions(sca);
-      setPermissions(refreshed);
+      const permissions = await getPermissions(sca, id, password);
+      const mapped = mapPermissionsToStatuses(permissions);
+      setPerms(mapped);
     } catch (e: any) {
-      setErr(e.message ?? "Failed to revoke permission");
+      setError(e.message || "Failed to load permissions");
     } finally {
       setLoading(false);
     }
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // NOT LOGGED IN VIEW
-  // ─────────────────────────────────────────────────────────────
-  if (!isLoggedIn) {
+  /**
+   * Execute the selected action (grant or revoke) once the user has
+   * confirmed with their password in the modal.
+   */
+  const confirmAction = async () => {
+    if (!sca || !id || !pendingAction || !password) return;
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      if (!selectedPerm) {
+        throw new Error("No permission selected");
+      }
+
+      const targetUni = selectedPerm.universitySmartAccount;
+
+      if (pendingAction === "revoke") {
+        await revokePermission(sca, id, password, targetUni);
+      } else if (pendingAction === "grant-read") {
+        await grantPermission(sca, id, password, "read", targetUni);
+      } else {
+        await grantPermission(sca, id, password, "write", targetUni);
+      }
+
+      // After changing something, reload the full list from the chain
+      await refreshPermissions(id, password);
+      closeModal();
+    } catch (e: any) {
+      setError(e.message || "Action failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // If there is no authenticated student context, show a simple message
+  if (!sca || !id) {
     return (
       <View style={styles.container}>
-        <View style={styles.headerRow}>
-          <Text style={styles.title}>Permissions</Text>
-          {/* no profile icon before login, just a spacer */}
-          <View style={{ width: 24 }} />
-        </View>
-        <Text style={styles.infoText}>
-          Please log in from the Wallet tab to see and manage permissions.
-        </Text>
+        <Text style={styles.error}>You must log in first.</Text>
       </View>
     );
   }
 
-  // figure out a nice university label
-  let universityName: string | undefined = permissions?.universityName;
-  let universityShort: string | undefined =
-    permissions?.universityShortName;
-
-  // fallback to first course's university (like the browser extension)
-  if ((!universityName || !universityShort) && data?.student?.results?.length) {
-    const uni = data.student.results[0].university;
-    if (!universityName) universityName = uni.name;
-    if (!universityShort) universityShort = uni.shortName;
-  }
-
-  const universityLabel = universityName
-    ? `${universityName}${universityShort ? ` (${universityShort})` : ""}`
-    : "Unknown university";
-
-  // ─────────────────────────────────────────────────────────────
-  // LOGGED IN VIEW
-  // ─────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      {/* Header row: title + profile icon (only when logged in) */}
-      <View style={styles.headerRow}>
-        <Text style={styles.title}>Permissions</Text>
-        <Pressable onPress={() => router.push("/profile")}>
-          <Ionicons name="person-outline" size={24} color="#ffffff" />
-        </Pressable>
-      </View>
+      <Text style={styles.title}>Permissions</Text>
 
-      {loading && !permissions && (
-        <ActivityIndicator size="small" color="#ffffff" />
+      {loading && <ActivityIndicator />}
+
+      {error && <Text style={styles.error}>{error}</Text>}
+
+      {perms.length === 0 && !loading && !error && (
+        <Text style={styles.mutedLabel}>
+          No permissions or requests found for this student.
+        </Text>
       )}
 
-      {err && <Text style={styles.error}>{err}</Text>}
+      <ScrollView style={{ marginTop: 8 }}>
+        {perms.map((perm) => {
+          // Contract semantics: write implies read
+          const effectiveRead = perm.read || perm.write;
+          const effectiveWrite = perm.write;
 
-      {!loading && permissions && (
-        <ScrollView style={styles.scroll}>
-          <View style={styles.card}>
-            <Text style={styles.universityName}>{universityLabel}</Text>
+          const hasPermission = effectiveRead || effectiveWrite;
+          const hasReadRequest = perm.readRequested && !effectiveRead;
+          const hasWriteRequest = perm.writeRequested && !effectiveWrite;
 
-            <View style={styles.badgeRow}>
-              <Text style={styles.badge}>
-                {permissions.level === 0 && "No access"}
-                {permissions.level === 1 && "Read access"}
-                {permissions.level === 2 && "Write access"}
-                {permissions.level === 3 && "Read & Write"}
+          // Prefer human readable university name, then shortName, then address
+          const universityLabel =
+            perm.universityName ||
+            perm.universityShortName ||
+            perm.universitySmartAccount
+              ? perm.universityName && perm.universityShortName
+                ? `${perm.universityName} (${perm.universityShortName})`
+                : perm.universityShortName ||
+                  perm.universityName ||
+                  perm.universitySmartAccount
+              : "Unknown / N/A";
+
+          const smartAccountLabel =
+            perm.universitySmartAccount || "Unknown / N/A";
+          const countryLabel = perm.universityCountry || null;
+
+          return (
+            <View style={styles.card} key={perm.universitySmartAccount}>
+              <Text style={styles.cardTitle}>{universityLabel}</Text>
+              <Text style={styles.mutedLabel}>
+                Smart account: {smartAccountLabel}
               </Text>
+              {countryLabel && (
+                <Text style={styles.mutedLabel}>Country: {countryLabel}</Text>
+              )}
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Current access</Text>
+                <Text style={styles.row}>
+                  Read access:{" "}
+                  <Text style={styles.value}>
+                    {effectiveRead ? "Yes" : "No"}
+                  </Text>
+                </Text>
+                <Text style={styles.row}>
+                  Write access:{" "}
+                  <Text style={styles.value}>
+                    {effectiveWrite ? "Yes" : "No"}
+                  </Text>
+                </Text>
+              </View>
+
+              {/* Requests section only if there is a request */}
+              {(hasReadRequest || hasWriteRequest) && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>Requests</Text>
+                  {hasReadRequest && (
+                    <Text style={styles.row}>
+                      Read request: <Text style={styles.value}>Pending</Text>
+                    </Text>
+                  )}
+                  {hasWriteRequest && (
+                    <Text style={styles.row}>
+                      Write request: <Text style={styles.value}>Pending</Text>
+                    </Text>
+                  )}
+                </View>
+              )}
+
+              <View style={styles.buttons}>
+                {hasPermission && (
+                  <View style={styles.buttonWrapper}>
+                    <Button
+                      title="Revoke access"
+                      color="#ff6b6b"
+                      onPress={() => openModal("revoke", perm)}
+                    />
+                  </View>
+                )}
+
+                {hasReadRequest && (
+                  <View style={styles.buttonWrapper}>
+                    <Button
+                      title="Accept read request"
+                      onPress={() => openModal("grant-read", perm)}
+                    />
+                  </View>
+                )}
+
+                {hasWriteRequest && (
+                  <View style={styles.buttonWrapper}>
+                    <Button
+                      title="Accept write request"
+                      onPress={() => openModal("grant-write", perm)}
+                    />
+                  </View>
+                )}
+
+                {!hasPermission && !hasReadRequest && !hasWriteRequest && (
+                  <Text style={styles.mutedLabel}>
+                    There are no permissions or pending requests for this
+                    university.
+                  </Text>
+                )}
+              </View>
             </View>
+          );
+        })}
+      </ScrollView>
 
-            {(permissions.readRequested || permissions.writeRequested) && (
-              <Text style={styles.pendingText}>
-                Pending requests:
-                {permissions.readRequested && " read"}
-                {permissions.writeRequested && " write"}
-              </Text>
-            )}
-
-            {!permissions.readRequested && !permissions.writeRequested && (
-              <Text style={styles.pendingText}>
-                No pending permission requests.
-              </Text>
-            )}
-
-            <Pressable
-              onPress={handleRevoke}
-              style={({ pressed }) => [
-                styles.revokeButton,
-                pressed && { opacity: 0.8 },
-              ]}
-            >
-              <Text style={styles.revokeButtonText}>Revoke access</Text>
-            </Pressable>
+      {/* Password modal, shown only when the student wants to change permissions */}
+      <Modal
+        visible={passwordModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Confirm with password</Text>
+            <Text style={styles.modalText}>
+              Please enter your password to continue.
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Password"
+              placeholderTextColor="#777"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+            <View style={styles.modalButtonsRow}>
+              <Pressable
+                style={styles.modalButton}
+                onPress={closeModal}
+                disabled={submitting}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.modalButton, styles.modalButtonPrimary]}
+                onPress={confirmAction}
+                disabled={submitting || !password}
+              >
+                <Text style={styles.modalButtonPrimaryText}>
+                  {submitting ? "Working..." : "Confirm"}
+                </Text>
+              </Pressable>
+            </View>
           </View>
-        </ScrollView>
-      )}
-
-      {!loading && !permissions && !err && (
-        <Text style={styles.infoText}>No permission data available.</Text>
-      )}
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -180,69 +369,106 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: "#0f1115",
   },
-  headerRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
   title: {
     fontSize: 22,
     fontWeight: "bold",
     color: "#ffffff",
-  },
-  scroll: {
-    marginTop: 8,
-  },
-  card: {
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-    backgroundColor: "#1a1d23",
-  },
-  universityName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#ffffff",
-    marginBottom: 8,
-  },
-  badgeRow: {
-    flexDirection: "row",
-    marginTop: 6,
-    marginBottom: 6,
-  },
-  badge: {
-    fontSize: 12,
-    color: "#0f1115",
-    backgroundColor: "#9fa9ff",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  pendingText: {
-    fontSize: 12,
-    color: "#cccccc",
-    marginTop: 8,
-  },
-  revokeButton: {
-    marginTop: 16,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: "#ff6b6b",
-    paddingVertical: 10,
-    alignItems: "center",
-  },
-  revokeButtonText: {
-    color: "#ff6b6b",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  infoText: {
-    fontSize: 14,
-    color: "#cccccc",
+    marginBottom: 16,
   },
   error: {
     color: "#ff6b6b",
-    marginBottom: 10,
+  },
+  mutedLabel: {
+    fontSize: 12,
+    color: "#888",
+    marginBottom: 4,
+  },
+  card: {
+    backgroundColor: "#1a1d23",
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#ffffff",
+    marginBottom: 4,
+  },
+  section: {
+    marginTop: 8,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#ffffff",
+    marginBottom: 4,
+  },
+  row: {
+    fontSize: 13,
+    color: "#ddd",
+    marginBottom: 2,
+  },
+  value: {
+    fontWeight: "600",
+  },
+  buttons: {
+    marginTop: 16,
+  },
+  buttonWrapper: {
+    marginBottom: 8,
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalCard: {
+    width: "85%",
+    backgroundColor: "#1a1d23",
+    borderRadius: 12,
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#ffffff",
+    marginBottom: 8,
+  },
+  modalText: {
+    fontSize: 13,
+    color: "#ccc",
+    marginBottom: 12,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: "#444",
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 12,
+    color: "#ffffff",
+  },
+  modalButtonsRow: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    gap: 12,
+  },
+  modalButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  modalButtonText: {
+    color: "#ccc",
+  },
+  modalButtonPrimary: {
+    backgroundColor: "#3b3ff0",
+    borderRadius: 8,
+  },
+  modalButtonPrimaryText: {
+    color: "#fff",
+    fontWeight: "600",
   },
 });

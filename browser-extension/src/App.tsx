@@ -10,7 +10,7 @@ import CoursePage from './pages/CoursePageComponent';
 import AuthenticationProvider from './providers/AuthenticationProvider';
 import PrivateRoute from './components/PrivateRoute';
 import UniversitiesProvider from './providers/UniversitiesProvider';
-import PermissionsPage from './pages/PermissionsPageComponents';
+import PermissionsPage from './pages/PermissionsPageComponent';
 import Layout from './components/LayoutComponent';
 import PermissionsProvider from './providers/PermissionsProvider';
 import MessagesProvider from './providers/MessagesProvider';

@@ -1,3 +1,4 @@
+// app/(tabs)/index.tsx
 import React, { useState } from "react";
 import {
   StyleSheet,
@@ -9,41 +10,55 @@ import {
   Linking,
   Pressable,
 } from "react-native";
-import { useStudent } from "../context/StudentContext";
-import type { CredentialsResponse, PermissionStatus } from "../types";
+import { useStudent } from "../../context/StudentContext";
+import type { CredentialsResponse } from "../../types";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { login } from "../../lib/api";
 
-const API_BASE_URL = "http://192.168.1.12:3000";
-
-// Still export this so the Permissions tab can call it
-export async function getPermissions(
-  studentSca: string
-): Promise<PermissionStatus> {
-  const res = await fetch(`${API_BASE_URL}/students/${studentSca}/permissions`);
-
-  if (!res.ok) {
-    throw new Error("Failed to fetch permissions");
-  }
-
-  return res.json();
-}
-
+/**
+ * Main tab screen.
+ *
+ * This screen has two modes:
+ *  - Login view: shows ID and password fields and calls the gateway login endpoint.
+ *  - Wallet view: once logged in, shows a summary of the student's credits,
+ *    main university, and a list of courses with certificate links.
+ */
 export default function HomeScreen() {
   const router = useRouter();
   const { id: ctxId, sca: ctxSca, data: ctxData, setStudent } = useStudent();
 
+  // Pre fill the login ID if we already have a session in context
   const [loginId, setLoginId] = useState(ctxId ?? "");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Local copy of the latest credentials response
   const [data, setData] = useState<CredentialsResponse | null>(ctxData ?? null);
 
   const isLoggedIn = !!ctxSca && !!ctxId && !!data;
 
+  // Sum ECTS credits across all courses that have a numeric ects field
   const totalEcts =
-    data?.student?.results?.reduce((sum, r) => sum + (r.ects || 0), 0) ?? 0;
+    data?.student?.results?.reduce((sum, r) => {
+      const ects = typeof r.ects === "number" ? r.ects : 0;
+      return sum + ects;
+    }, 0) ?? 0;
 
+  // Label for the "main" or origin university.
+  // For now this is simply taken from the first result, if any.
+  const mainUniversityLabel =
+    data?.student?.results && data.student.results.length > 0
+      ? data.student.results[0].university.shortName ||
+        data.student.results[0].university.name ||
+        "Unknown"
+      : null;
+
+  /**
+   * Perform login via the gateway and populate both local state
+   * and the global StudentContext.
+   */
   const loginAndLoadWallet = async () => {
     if (!loginId || !password) {
       setError("Please enter ID and password");
@@ -54,27 +69,10 @@ export default function HomeScreen() {
     setError(null);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: loginId, password }),
-      });
-      const loginJson: any = await res.json();
-      if (!res.ok) {
-        throw new Error(loginJson.error || `Login failed (${res.status})`);
-      }
-
-      const studentSca: string = loginJson.studentSca;
-      const id: string = loginJson.id;
-      const student = loginJson.student;
-
-      const creds: CredentialsResponse = {
-        studentAddress: studentSca,
-        student,
-      };
+      const creds = await login(loginId, password);
 
       setData(creds);
-      setStudent(id, studentSca, creds);
+      setStudent(creds.id, creds.studentSca, creds);
       setPassword("");
     } catch (e: any) {
       setError(e.message || "Login failed");
@@ -86,7 +84,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header row: title + profile icon */}
+      {/* Header row: app title and profile icon if logged in */}
       <View style={styles.headerRow}>
         <Text style={styles.appTitle}>EduWallet</Text>
         {isLoggedIn ? (
@@ -94,12 +92,13 @@ export default function HomeScreen() {
             <Ionicons name="person-outline" size={24} color="#ffffff" />
           </Pressable>
         ) : (
+          // Reserve the same width when not logged in to avoid layout jumps
           <View style={{ width: 24 }} />
         )}
       </View>
 
       {!isLoggedIn || !data ? (
-        // 🔐 LOGIN VIEW
+        // LOGIN VIEW
         <>
           <Text style={styles.label}>ID</Text>
           <TextInput
@@ -127,7 +126,7 @@ export default function HomeScreen() {
           {error && <Text style={styles.error}>{error}</Text>}
         </>
       ) : (
-        // 👛 WALLET VIEW
+        // WALLET VIEW
         <>
           {error && <Text style={styles.error}>{error}</Text>}
 
@@ -136,10 +135,16 @@ export default function HomeScreen() {
               Hello <Text style={styles.greetingName}>{data.student.name}</Text>
             </Text>
 
+            {/* Total ECTS "balance" card */}
             <View style={styles.ectsCard}>
               <Text style={styles.ectsLabel}>Total credits balance</Text>
               <Text style={styles.ectsValue}>{totalEcts.toFixed(1)} ECTS</Text>
             </View>
+
+            {/* Simple origin university label under the balance */}
+            {mainUniversityLabel && (
+              <Text style={styles.mainUniversity}>{mainUniversityLabel}</Text>
+            )}
 
             <Text style={styles.sectionTitle}>Courses</Text>
 
@@ -176,8 +181,12 @@ export default function HomeScreen() {
                       )}
                     </View>
                     <View style={styles.courseRight}>
-                      <Text style={styles.courseGrade}>{r.grade ?? "-"}</Text>
-                      <Text style={styles.courseEcts}>{r.ects.toFixed(1)}</Text>
+                      <Text style={styles.courseGrade}>
+                        {r.grade && r.grade.trim().length > 0 ? r.grade : "-"}
+                      </Text>
+                      <Text style={styles.courseEcts}>
+                        {typeof r.ects === "number" ? r.ects.toFixed(1) : "0.0"}
+                      </Text>
                     </View>
                   </View>
                 </Pressable>
@@ -242,7 +251,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    marginBottom: 20,
+    marginBottom: 12,
     backgroundColor: "#3b3ff0",
   },
   ectsLabel: {
@@ -254,6 +263,15 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 22,
     fontWeight: "bold",
+  },
+  mainUniversity: {
+    alignSelf: "center",
+    marginBottom: 16,
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "600",
+    textDecorationLine: "underline",
+    letterSpacing: 0.5,
   },
   sectionTitle: {
     fontSize: 16,

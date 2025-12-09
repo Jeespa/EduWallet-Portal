@@ -1,6 +1,10 @@
-// gateway/src/contracts/studentsRegisterAbi.ts
+// gateway/src/contracts/studentsRegisterContract.ts
 
-export const studentsRegisterAbi = [
+/**
+ * Minimal ABI for the StudentsRegister contract,
+ * only with the functions the gateway actually needs.
+ */
+export const STUDENTS_REGISTER_ABI = [
   {
     inputs: [],
     name: "getStudentAccount",

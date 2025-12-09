@@ -1,19 +1,63 @@
+// gateway/src/index.ts
+
+/**
+ * EduWallet HTTP gateway entry point.
+ *
+ * This module sets up an Express server that exposes a small REST API
+ * on top of the EduWallet smart contracts. It delegates all blockchain
+ * interactions to `EduWalletClient`, so that browser and mobile clients
+ * can use a simple JSON interface instead of embedding the SDK.
+ */
+
 import express from "express";
 import cors from "cors";
 import { EduWalletClient } from "./eduwalletClient";
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+// shared types
+import type { CredentialsResponse } from "./types";
+import { GATEWAY_PORT } from "./config";
 
+const app = express();
+const PORT = GATEWAY_PORT || 3000;
+
+// Global middleware
 app.use(cors());
 app.use(express.json());
 
+/**
+ * Single shared instance of the EduWallet blockchain client.
+ * All HTTP handlers use this object to talk to the contracts.
+ */
 const client = new EduWalletClient();
 
+/**
+ * Simple health check endpoint for monitoring and local debugging.
+ * Returns a JSON object with a status field and a service identifier.
+ */
 app.get("/health", (_req, res) => {
   res.json({ status: "ok", service: "eduwallet-gateway" });
 });
 
+// ---------------------------------------------------------------------------
+// Auth
+// ---------------------------------------------------------------------------
+
+/**
+ * POST /auth/login
+ *
+ * Authenticates a student by ID and password, reconstructs their smart account,
+ * and returns a `CredentialsResponse` payload. On success, it also tries to
+ * attach a full multi university permissions snapshot as `allPermissions`.
+ *
+ * Request body:
+ *   {
+ *     "id": "student-id",
+ *     "password": "secret"
+ *   }
+ *
+ * Response body on success:
+ *   CredentialsResponse (+ optional allPermissions)
+ */
 app.post("/auth/login", async (req, res) => {
   try {
     const { id, password } = req.body || {};
@@ -22,13 +66,27 @@ app.post("/auth/login", async (req, res) => {
       return res.status(400).json({ error: "Missing id or password" });
     }
 
-    const { studentSca, student } = await client.loginStudent(id, password);
-
-    res.json({
+    // First: normal student login
+    const payload: CredentialsResponse = await client.loginStudent(
       id,
-      studentSca,
-      student,
-    });
+      password
+    );
+
+    // Attach all permissions for this student once at login time.
+    // Clients may still refresh this later via /students/:sca/permissions.
+    try {
+      const allPermissions = await client.getAllPermissionsAsStudent(
+        id,
+        password,
+        payload.studentSca
+      );
+      (payload as any).allPermissions = allPermissions;
+    } catch (permErr) {
+      console.error("Failed to load all permissions at login:", permErr);
+      // The permissions snapshot is optional. The core login response is still valid.
+    }
+
+    res.json(payload);
   } catch (err: any) {
     console.error("Error in /auth/login:", err);
     const msg = err?.message || String(err);
@@ -41,179 +99,185 @@ app.post("/auth/login", async (req, res) => {
   }
 });
 
-app.get("/students/:studentSca/permissions", async (req, res) => {
+// ---------------------------------------------------------------------------
+// Permissions: multi university view and student actions
+// ---------------------------------------------------------------------------
+
+/**
+ * POST /students/:studentSca/permissions
+ *
+ * Returns a full multi university permissions view for a given student.
+ * The gateway reconstructs the student wallet from the provided credentials
+ * and queries all role based permission lists via the student smart account.
+ *
+ * Request params:
+ *   :studentSca  Student smart account address
+ *
+ * Request body:
+ *   {
+ *     "id": "student-id",
+ *     "password": "secret"
+ *   }
+ *
+ * Response body on success:
+ *   AllPermissionsForStudent
+ */
+app.post("/students/:studentSca/permissions", async (req, res) => {
   try {
     const { studentSca } = req.params;
+    const { id, password } = (req.body || {}) as {
+      id?: string;
+      password?: string;
+    };
 
     if (!studentSca) {
       return res.status(400).json({ error: "studentSca is required" });
     }
-
-    const permissions = await client.getStudentPermissions(studentSca);
-    res.json(permissions);
-  } catch (err) {
-    console.error("Failed to get permissions", err);
-    res.status(500).json({ error: "Failed to get permissions" });
-  }
-});
-
-app.post(
-  "/students/:studentSca/permissions/revoke",
-  async (req, res) => {
-    try {
-      const { studentSca } = req.params;
-      const { id, password } = req.body as {
-        id?: string;
-        password?: string;
-      };
-
-      if (!id || !password) {
-        return res
-          .status(400)
-          .json({ error: "id and password are required to revoke permission" });
-      }
-
-      await client.revokePermissionAsStudent(id, password, studentSca);
-
-      // After revoking, return the updated permission status
-      const updated = await client.getStudentPermissions(studentSca);
-      res.json(updated);
-    } catch (err: any) {
-      console.error("Failed to revoke permission", err);
-      res
-        .status(500)
-        .json({ error: err?.message || "Failed to revoke permission" });
-    }
-  }
-);
-
-// Generic student endpoint
-app.get("/students/:sca/credentials", async (req, res) => {
-  try {
-    const { sca } = req.params;
-
-    if (!sca) {
-      return res.status(400).json({ error: "Missing student SCA address" });
+    if (!id || !password) {
+      return res.status(400).json({ error: "id and password are required" });
     }
 
-    const student = await client.getStudentWithResults(sca);
+    const payload = await client.getAllPermissionsAsStudent(
+      id,
+      password,
+      studentSca
+    );
 
-    // Optionally: shape the response a bit so clients get a clean structure
-    res.json({
-      studentAddress: sca,
-      student,
+    res.json(payload);
+  } catch (err: any) {
+    console.error("Failed to get ALL permissions", err);
+    res.status(500).json({
+      error: err?.message || "Failed to get complete permission information",
     });
-  } catch (err) {
-    console.error("Error fetching student credentials:", err);
-    res.status(500).json({ error: "Failed to fetch credentials" });
   }
 });
 
-// Keep /me as a thin wrapper (for now uses env, later will use auth)
-app.get("/me/credentials", async (_req, res) => {
+/**
+ * POST /students/:studentSca/permissions/revoke
+ *
+ * Revokes a specific university's permission on the student smart account.
+ * The gateway acts as the student by reconstructing the owner wallet from
+ * ID and password and then submitting an account abstraction user operation.
+ *
+ * Request params:
+ *   :studentSca  Student smart account address
+ *
+ * Request body:
+ *   {
+ *     "id": "student-id",
+ *     "password": "secret",
+ *     "universityAddress": "0x..."
+ *   }
+ *
+ * Response body on success:
+ *   { "status": "ok" }
+ *
+ * Frontends are expected to refresh the full permissions list afterwards.
+ */
+app.post("/students/:studentSca/permissions/revoke", async (req, res) => {
   try {
-    const studentSCA = process.env.STUDENT_SCA_ADDRESS;
-    if (!studentSCA) {
-      return res
-        .status(500)
-        .json({ error: "STUDENT_SCA_ADDRESS not configured" });
+    const { studentSca } = req.params;
+    const { id, password, universityAddress } = req.body as {
+      id?: string;
+      password?: string;
+      universityAddress?: string;
+    };
+
+    if (!studentSca) {
+      return res.status(400).json({ error: "studentSca is required" });
     }
-
-    const student = await client.getStudentWithResults(studentSCA);
-
-    res.json({
-      studentAddress: studentSCA,
-      student,
-    });
-  } catch (err) {
-    console.error("Error fetching student credentials:", err);
-    res.status(500).json({ error: "Failed to fetch credentials" });
-  }
-});
-
-app.get("/students/:sca/permissions", async (req, res) => {
-  try {
-    const { sca } = req.params;
-
-    if (!sca) {
-      return res.status(400).json({ error: "Missing student SCA address" });
-    }
-
-    const permission = await client.verifyPermission(sca);
-
-    res.json({
-      studentAddress: sca,
-      permission, // could be 'Read', 'Write', or null
-    });
-  } catch (err) {
-    console.error("Error verifying permission:", err);
-    res.status(500).json({ error: "Failed to verify permission" });
-  }
-});
-
-// enroll a student in one or more courses
-app.post("/students/:sca/enroll", async (req, res) => {
-  try {
-    const { sca } = req.params;
-    const { courses } = req.body;
-
-    if (!sca) {
-      return res.status(400).json({ error: "Missing student SCA address" });
-    }
-    if (!Array.isArray(courses) || courses.length === 0) {
+    if (!id || !password) {
       return res
         .status(400)
-        .json({ error: "Body must include non-empty 'courses' array" });
+        .json({ error: "id and password are required to revoke permission" });
     }
 
-    await client.enrollStudent(sca, courses);
+    await client.revokePermissionAsStudent(
+      id,
+      password,
+      studentSca,
+      universityAddress
+    );
 
-    res.status(201).json({
-      status: "enrolled",
-      studentAddress: sca,
-      coursesCount: courses.length,
-    });
+    // Frontends re-fetch permissions via /students/:sca/permissions, so we just acknowledge.
+    res.json({ status: "ok" });
   } catch (err: any) {
-    console.error("Error enrolling student:", err);
-    res.status(500).json({
-      error: "Failed to enroll student",
-      details: err?.message || String(err),
-    });
+    console.error("Failed to revoke permission", err);
+    res
+      .status(500)
+      .json({ error: err?.message || "Failed to revoke permission" });
   }
 });
 
-// Record evaluations for a student
-app.post("/students/:sca/evaluate", async (req, res) => {
+/**
+ * POST /students/:studentSca/permissions/grant
+ *
+ * Accepts a pending permission request or grants a new permission
+ * for a university on the student smart account. The gateway acts
+ * as the student and submits a `grantPermission` call via account abstraction.
+ *
+ * Request params:
+ *   :studentSca  Student smart account address
+ *
+ * Request body:
+ *   {
+ *     "id": "student-id",
+ *     "password": "secret",
+ *     "type": "read" | "write",
+ *     "universityAddress": "0x..."
+ *   }
+ *
+ * Response body on success:
+ *   { "status": "ok" }
+ *
+ * Frontends are expected to refresh the full permissions list afterwards.
+ */
+app.post("/students/:studentSca/permissions/grant", async (req, res) => {
   try {
-    const { sca } = req.params;
-    const { evaluations } = req.body;
+    const { studentSca } = req.params;
+    const { id, password, type, universityAddress } = req.body as {
+      id?: string;
+      password?: string;
+      type?: "read" | "write";
+      universityAddress?: string;
+    };
 
-    if (!sca) {
-      return res.status(400).json({ error: "Missing student SCA address" });
+    if (!studentSca) {
+      return res.status(400).json({ error: "studentSca is required" });
     }
-    if (!Array.isArray(evaluations) || evaluations.length === 0) {
+    if (!id || !password) {
       return res
         .status(400)
-        .json({ error: "Body must include non-empty 'evaluations' array" });
+        .json({ error: "id and password are required to grant permission" });
     }
 
-    await client.evaluateStudent(sca, evaluations);
+    if (type !== "read" && type !== "write") {
+      return res
+        .status(400)
+        .json({ error: "type must be 'read' or 'write'" });
+    }
 
-    res.status(201).json({
-      status: "evaluated",
-      studentAddress: sca,
-      evaluationsCount: evaluations.length,
-    });
+    await client.grantPermissionAsStudent(
+      id,
+      password,
+      studentSca,
+      type,
+      universityAddress
+    );
+
+    // Frontends re-fetch permissions via /students/:sca/permissions, so we just acknowledge.
+    res.json({ status: "ok" });
   } catch (err: any) {
-    console.error("Error evaluating student:", err);
-    res.status(500).json({
-      error: "Failed to evaluate student",
-      details: err?.message || String(err),
-    });
+    console.error("Failed to grant permission", err);
+    res
+      .status(500)
+      .json({ error: err?.message || "Failed to grant permission" });
   }
 });
 
-
+/**
+ * Starts the HTTP server on the configured port.
+ */
 app.listen(PORT, () => {
   console.log(`Gateway running on http://localhost:${PORT}`);
 });

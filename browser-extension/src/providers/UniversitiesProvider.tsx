@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import type { JSX } from "react";
 import { useAuth } from "./AuthenticationProvider";
 import UniversityModel from "../models/university";
-import { getUniversities } from "../API";
+import { getUniversities } from "../lib/gatewayAdapter";
 import { MessageType, useMessages } from "./MessagesProvider";
 
 /**
