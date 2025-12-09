@@ -252,6 +252,7 @@ respective `package.json` files.)
 
 3. Open the app with an Android emulator, iOS simulator, or a physical device
    using the Expo Go client.
+   > This app has only been tested using Android. iOS support is therefore not guaranteed.
 
 ---
 
