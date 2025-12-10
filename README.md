@@ -369,7 +369,3 @@ These steps prepare the whole monorepo for development.
    therefore not guaranteed.
 
 ---
-
-For more detailed, step-by-step instructions (including how to register
-universities and students via the CLI, and how to issue new course
-certificates), see the individual READMEs in each subdirectory.
