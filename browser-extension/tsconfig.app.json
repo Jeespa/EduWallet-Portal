@@ -23,7 +23,10 @@
     "noUncheckedSideEffectImports": true,
 
     /* Force only these global type libs */
-    "types": ["vite/client"]
+    "types": ["vite/client"],
+
+    /* Look for global type libs here */
+    "typeRoots": ["./types", "./node_modules/@types"]
   },
   "include": ["src"]
 }
