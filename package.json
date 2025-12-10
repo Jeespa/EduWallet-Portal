@@ -5,9 +5,16 @@
   "scripts": {
   "cli": "cd cli && npx hardhat run dist/index.js --network localhost",
   "build-cli": "cd cli && npm run build",
-  "build-sdk": "cd sdk && npm run build && cd .. && npm run build-cli",
-  "bootstrap": "cd sdk && npm install && cd ../cli && npm install && cd ../browser-extension && npm install && cd ../gateway && npm install && cd ../eduwallet-mobile && npm install && cd ..",
-  "build": "npx hardhat compile && cd sdk && npm run build && npm link && cd ../cli && npm link eduwallet-sdk && npm run build && cd ../browser-extension && npm run build"
+  "build-sdk": "cd sdk && npm run build",
+  "deps:root": "npm install",
+  "deps:sdk": "cd sdk && npm install",
+  "deps:cli": "cd cli && npm install",
+  "deps:ext": "cd browser-extension && npm install",
+  "deps:gateway": "cd gateway && npm install",
+  "deps:mobile": "cd eduwallet-mobile && npm install",
+  "deps:all": "npm run deps:sdk && npm run deps:cli && npm run deps:ext && npm run deps:gateway && npm run deps:mobile",
+
+  "build": "npx hardhat compile &&npm run build-sdk && npm run build-cli && cd browser-extension && npm run build && cd ../gateway && npm run build && cd .."
 },
   "repository": {
     "type": "git",

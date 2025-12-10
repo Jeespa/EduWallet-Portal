@@ -1,5 +1,3 @@
-// gateway/src/eduwalletClient.ts
-
 /**
  * EduWalletClient
  *
@@ -9,7 +7,13 @@
  * smart account, and performs permission changes via account abstraction.
  */
 
-import { JsonRpcProvider, Wallet, Contract, id } from "ethers";
+import {
+  JsonRpcProvider,
+  Wallet,
+  Contract,
+  id,
+  isCallException,
+} from "ethers";
 import { pbkdf2Sync } from "node:crypto";
 import { STUDENTS_REGISTER_ABI } from "./contracts/studentsRegisterContract";
 import { AccountAbstraction } from "./AccountAbstraction";
@@ -89,6 +93,19 @@ const roleCodes = {
 };
 
 type PermissionGrantKind = "read" | "write";
+
+/**
+ * Error used when credentials are invalid or refer to a non-existent student.
+ * This lets the HTTP layer distinguish bad logins from internal failures.
+ */
+export class InvalidCredentialsError extends Error {
+  constructor(
+    message = "Invalid ID or password, or student is not registered"
+  ) {
+    super(message);
+    this.name = "InvalidCredentialsError";
+  }
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -484,15 +501,29 @@ export class EduWalletClient {
       provider
     );
 
-    const contractAddress: string = await (
-      localStudentsRegister.connect(studentWallet) as any
-    ).getStudentAccount();
+    let contractAddress: string;
+    try {
+      contractAddress = await (
+        localStudentsRegister.connect(studentWallet) as any
+      ).getStudentAccount();
+    } catch (err) {
+      // A reverted StudentsRegister.getStudentAccount() for this derived wallet
+      // almost certainly means "no such student" -> treat as bad credentials.
+      if (isCallException(err)) {
+        console.warn(
+          "StudentsRegister.getStudentAccount reverted for derived student wallet; treating as invalid credentials"
+        );
+        throw new InvalidCredentialsError();
+      }
+      throw err;
+    }
 
     if (
       !contractAddress ||
       contractAddress === "0x0000000000000000000000000000000000000000"
     ) {
-      throw new Error("Student contract address not found");
+      // Deterministically derived wallet, but no Student contract -> invalid creds / not registered.
+      throw new InvalidCredentialsError();
     }
 
     // 3) Read student info via the student smart account (as owner)

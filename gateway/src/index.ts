@@ -1,5 +1,3 @@
-// gateway/src/index.ts
-
 /**
  * EduWallet HTTP gateway entry point.
  *
@@ -11,7 +9,7 @@
 
 import express from "express";
 import cors from "cors";
-import { EduWalletClient } from "./eduwalletClient";
+import { EduWalletClient, InvalidCredentialsError } from "./eduwalletClient";
 
 // shared types
 import type { CredentialsResponse } from "./types";
@@ -89,13 +87,17 @@ app.post("/auth/login", async (req, res) => {
     res.json(payload);
   } catch (err: any) {
     console.error("Error in /auth/login:", err);
-    const msg = err?.message || String(err);
-    if (msg.includes("StudentNotPresent")) {
-      return res
-        .status(401)
-        .json({ error: "Authentication failed. Check your credentials." });
+
+    if (err instanceof InvalidCredentialsError) {
+      return res.status(401).json({
+        error: "Invalid ID or password, or student is not registered",
+      });
     }
-    return res.status(500).json({ error: msg });
+
+    // Hide internal details from clients; keep them in logs only.
+    return res.status(500).json({
+      error: "Login failed due to an internal error. Please try again later.",
+    });
   }
 });
 
