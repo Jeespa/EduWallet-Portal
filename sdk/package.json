@@ -1,39 +1,42 @@
 {
-  "compilerOptions": {
-    "outDir": "dist",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "module": "ESNext",
-    "moduleResolution": "Node",
-    "target": "ES2020",
-    "lib": [
-      "ES2020"
-    ],
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "baseUrl": ".",
-    "rootDirs": [
-      "src",
-      "../typechain-types"
-    ],
-    "paths": {
-      "@typechain/*": [
-        "../typechain-types/*"
-      ],
-      "ethers": ["../node_modules/ethers"]
-    },
-    "resolveJsonModule": true
+  "name": "eduwallet-sdk",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsup",
+    "generate-docs": "jsdoc2md --configure jsdoc2md.json --files src/types.ts > README.md",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix"
   },
-  "include": [
-    "src/**/*",
-    "../typechain-types/**/*"
-  ],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.test.ts"
-  ]
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.9",
+    "@babel/preset-typescript": "^7.27.0",
+    "@eslint/js": "^9.21.0",
+    "@types/node": "^22.14.1",
+    "@typescript-eslint/eslint-plugin": "^8.26.0",
+    "@typescript-eslint/parser": "^8.26.0",
+    "eslint": "^9.21.0",
+    "globals": "^16.0.0",
+    "jsdoc": "^4.0.4",
+    "jsdoc-babel": "^0.5.0",
+    "jsdoc-to-markdown": "^9.1.1",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.26.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.772.0",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.4.7"
+  },
+   "peerDependencies": {
+    "ethers": "^6.13.5"
+  }
 }
