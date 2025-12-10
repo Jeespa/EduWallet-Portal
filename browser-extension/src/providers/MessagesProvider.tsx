@@ -45,7 +45,7 @@ export default function MessagesProvider({ children }: { children: React.ReactNo
     // State for the current message type (affects styling)
     const [messageType, setMessageType] = useState<MessageType | undefined>();
     // State for tracking the timeout that auto-hides messages
-    const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>();
+    const [timeoutId, setTimeoutId] = useState<ReturnType<typeof setTimeout> | null>(null);
 
     /**
      * Hides the currently displayed message and clears any active timeout.
