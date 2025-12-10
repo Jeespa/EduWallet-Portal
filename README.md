@@ -165,6 +165,27 @@ respective `package.json` files.)
 - Optional: a [Filebase](https://filebase.com) or other IPFS pinning service
   account if you want to issue and pin new certificates. Existing certificates
   can be read through any public IPFS gateway.
+  
+### Initial project setup
+
+These steps prepare the whole monorepo (equivalent to the original prototype’s
+initial installation steps).
+
+1. **Clone the repository**
+   
+   ~~~bash
+   git clone \<this-repo-url\>  
+   cd eduwallet
+   ~~~
+   
+3. **Install dependencies in all component directories**
+
+   From the project root run:
+   ~~~
+   npm run dependencies
+   ~~~
+   This installs dependencies for the SDK, CLI, gateway, browser extension and
+   mobile app.
 
 ### Run a local blockchain and deploy contracts
 
