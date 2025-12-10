@@ -3,19 +3,18 @@
   "version": "1.0.0",
   "description": "The project aims to revolutionize university credit management by storing students' academic information on the blockchain. Through EduWallet APIs, universities can easily synchronize grades and credits, simplifying the transfer of academic records between institutions. EduWallet ensures secure, efficient record-keeping and easy credit transferability across institutions.",
   "scripts": {
-  "cli": "cd cli && npx hardhat run dist/index.js --network localhost",
-  "build-cli": "cd cli && npm run build",
-  "build-sdk": "cd sdk && npm run build",
-  "deps:root": "npm install",
-  "deps:sdk": "cd sdk && npm install",
-  "deps:cli": "cd cli && npm install",
-  "deps:ext": "cd browser-extension && npm install",
-  "deps:gateway": "cd gateway && npm install",
-  "deps:mobile": "cd eduwallet-mobile && npm install",
-  "deps:all": "npm run deps:sdk && npm run deps:cli && npm run deps:ext && npm run deps:gateway && npm run deps:mobile",
-
-  "build": "npx hardhat compile &&npm run build-sdk && npm run build-cli && cd browser-extension && npm run build && cd ../gateway && npm run build && cd .."
-},
+    "cli": "cd cli && npx hardhat run dist/index.js --network localhost",
+    "build-cli": "cd cli && npm run build",
+    "build-sdk": "cd sdk && npm run build",
+    "deps:root": "npm install",
+    "deps:sdk": "cd sdk && npm install",
+    "deps:cli": "cd cli && npm install",
+    "deps:ext": "cd browser-extension && npm install",
+    "deps:gateway": "cd gateway && npm install",
+    "deps:mobile": "cd eduwallet-mobile && npm install",
+    "deps:all": "npm run deps:sdk && npm run deps:cli && npm run deps:ext && npm run deps:gateway && npm run deps:mobile",
+    "build": "npx hardhat compile &&npm run build-sdk && npm run build-cli && cd browser-extension && npm run build && cd ../gateway && npm run build && cd .."
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/NTNU-IDI/eduwallet-eduwalletdiego.git"
