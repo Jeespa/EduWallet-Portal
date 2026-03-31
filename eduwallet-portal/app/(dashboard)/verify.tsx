@@ -1,0 +1,320 @@
+import { useEffect, useState } from "react";
+import { useLocalSearchParams } from "expo-router";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { PORTAL_COLORS as COLORS } from "../constants/portalTheme";
+import type { VerifyResult } from "../types/portal";
+import { mockVerifyCertificate } from "../lib/mockPortalVerify";
+
+export default function VerifyPage() {
+  const params = useLocalSearchParams<{
+    studentId?: string;
+    studentSca?: string;
+  }>();
+
+  const [studentId, setStudentId] = useState("");
+  const [studentSca, setStudentSca] = useState("");
+  const [certificateCid, setCertificateCid] = useState("");
+  const [courseCode, setCourseCode] = useState("");
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<VerifyResult | null>(null);
+
+  useEffect(() => {
+    if (typeof params.studentId === "string" && params.studentId.trim()) {
+      setStudentId(params.studentId);
+    }
+
+    if (typeof params.studentSca === "string" && params.studentSca.trim()) {
+      setStudentSca(params.studentSca);
+    }
+  }, [params.studentId, params.studentSca]);
+
+  const handleVerify = () => {
+    setError("");
+    setResult(null);
+
+    if (!studentSca.trim()) {
+      setError("Please enter the student smart-account address.");
+      return;
+    }
+
+    const verifyResult = mockVerifyCertificate({
+      studentSca: studentSca.trim(),
+      certificateCid: certificateCid.trim() || undefined,
+      courseCode: courseCode.trim() || undefined,
+    });
+
+    setResult(verifyResult);
+  };
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <Text style={styles.title}>Verify</Text>
+      <Text style={styles.subtitle}>
+        Verify a certificate or academic result using student and credential data.
+      </Text>
+
+      <View style={styles.card}>
+        <Text style={styles.cardTitle}>Verification input</Text>
+
+        {studentId || studentSca ? (
+          <View style={styles.selectedStudentBox}>
+            <Text style={styles.selectedStudentTitle}>Selected student</Text>
+
+            {studentId ? (
+              <Text style={styles.selectedStudentText}>
+                Student ID: {studentId}
+              </Text>
+            ) : null}
+
+            {studentSca ? (
+              <Text style={styles.selectedStudentText}>
+                Smart-account: {studentSca}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Student smart-account address</Text>
+          <TextInput
+            value={studentSca}
+            onChangeText={setStudentSca}
+            placeholder="0x..."
+            placeholderTextColor={COLORS.muted}
+            style={styles.input}
+            autoCapitalize="none"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Certificate CID (optional)</Text>
+          <TextInput
+            value={certificateCid}
+            onChangeText={setCertificateCid}
+            placeholder="bafy..."
+            placeholderTextColor={COLORS.muted}
+            style={styles.input}
+            autoCapitalize="none"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Course code (optional)</Text>
+          <TextInput
+            value={courseCode}
+            onChangeText={setCourseCode}
+            placeholder="IDATT2104"
+            placeholderTextColor={COLORS.muted}
+            style={styles.input}
+            autoCapitalize="characters"
+          />
+        </View>
+
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        <Pressable style={styles.verifyButton} onPress={handleVerify}>
+          <Text style={styles.verifyButtonText}>Verify</Text>
+        </Pressable>
+      </View>
+
+      {result ? (
+        <View style={styles.card}>
+          <View style={styles.resultHeader}>
+            <Text style={styles.cardTitle}>Verification result</Text>
+            <View
+              style={[
+                styles.resultBadge,
+                result.valid ? styles.resultValid : styles.resultInvalid,
+              ]}
+            >
+              <Text style={styles.resultBadgeText}>
+                {result.valid ? "Valid" : "Invalid"}
+              </Text>
+            </View>
+          </View>
+
+          <Text style={styles.resultMessage}>{result.message}</Text>
+
+          <View style={styles.resultBlock}>
+            <Text style={styles.resultLabel}>Issuer</Text>
+            <Text style={styles.resultValue}>{result.issuerName || "-"}</Text>
+          </View>
+
+          <View style={styles.resultBlock}>
+            <Text style={styles.resultLabel}>Course</Text>
+            <Text style={styles.resultValue}>{result.courseName || "-"}</Text>
+          </View>
+
+          <View style={styles.resultBlock}>
+            <Text style={styles.resultLabel}>Course code</Text>
+            <Text style={styles.resultValue}>{result.courseCode || "-"}</Text>
+          </View>
+
+          <View style={styles.resultBlock}>
+            <Text style={styles.resultLabel}>Grade</Text>
+            <Text style={styles.resultValue}>{result.grade || "-"}</Text>
+          </View>
+
+          <View style={styles.resultBlock}>
+            <Text style={styles.resultLabel}>Certificate CID</Text>
+            <Text style={styles.resultValue}>
+              {result.certificateCid || "-"}
+            </Text>
+          </View>
+
+          <View style={styles.resultBlock}>
+            <Text style={styles.resultLabel}>On-chain match</Text>
+            <Text style={styles.resultValue}>
+              {result.onChainMatch ? "Yes" : "No"}
+            </Text>
+          </View>
+
+          <View style={styles.resultBlock}>
+            <Text style={styles.resultLabel}>IPFS reachable</Text>
+            <Text style={styles.resultValue}>
+              {result.ipfsReachable ? "Yes" : "No"}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  content: {
+    paddingBottom: 32,
+  },
+  title: {
+    color: COLORS.text,
+    fontSize: 30,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+  subtitle: {
+    color: COLORS.muted,
+    fontSize: 16,
+    marginBottom: 24,
+  },
+  card: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 20,
+  },
+  cardTitle: {
+    color: COLORS.text,
+    fontSize: 20,
+    fontWeight: "700",
+    marginBottom: 18,
+  },
+  selectedStudentBox: {
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 18,
+  },
+  selectedStudentTitle: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  selectedStudentText: {
+    color: COLORS.muted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  inputGroup: {
+    marginBottom: 18,
+  },
+  label: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "600",
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    color: COLORS.text,
+    fontSize: 15,
+  },
+  error: {
+    color: COLORS.danger,
+    marginBottom: 14,
+    fontSize: 14,
+  },
+  verifyButton: {
+    marginTop: 8,
+    backgroundColor: COLORS.accent,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    maxWidth: 220,
+  },
+  verifyButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  resultHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 14,
+  },
+  resultBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  resultValid: {
+    backgroundColor: "#1E5A3A",
+  },
+  resultInvalid: {
+    backgroundColor: "#6A2A2A",
+  },
+  resultBadgeText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  resultMessage: {
+    color: COLORS.text,
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 18,
+  },
+  resultBlock: {
+    marginBottom: 12,
+  },
+  resultLabel: {
+    color: COLORS.muted,
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  resultValue: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+});
