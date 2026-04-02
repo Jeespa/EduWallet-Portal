@@ -1,0 +1,137 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Organization {
+  id                 String   @id @default(cuid())
+  name               String
+  organizationNumber String   @unique
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  memberships        OrganizationMembership[]
+  requestLogs        PermissionRequestLog[]
+  verificationLogs   VerificationLog[]
+  issuanceDrafts     IssuanceDraft[]
+}
+
+model PortalUser {
+  id                      String   @id @default(cuid())
+  name                    String
+  email                   String   @unique
+  passwordHash            String
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  memberships             OrganizationMembership[]
+  createdRequestLogs      PermissionRequestLog[]
+  createdVerificationLogs VerificationLog[]
+  createdIssuanceDrafts   IssuanceDraft[]
+}
+
+model OrganizationMembership {
+  id             String   @id @default(cuid())
+  role           PortalRole
+  createdAt      DateTime @default(now())
+
+  organizationId String
+  userId         String
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           PortalUser   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+}
+
+enum PortalRole {
+  ADMIN
+  REQUESTER
+  VERIFIER
+  ISSUER
+}
+
+model PermissionRequestLog {
+  id               String   @id @default(cuid())
+  studentId        String?
+  studentSca       String
+  permissionType   RequestPermissionType
+  status           RequestStatus @default(PENDING)
+  reason           String
+  txHash           String?
+  createdAt        DateTime @default(now())
+
+  organizationId   String
+  createdByUserId  String
+
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdByUser    PortalUser   @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+}
+
+enum RequestPermissionType {
+  READ
+  WRITE
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model VerificationLog {
+  id               String   @id @default(cuid())
+  verificationType VerificationType
+  studentId        String?
+  studentSca       String
+  certificateCid   String?
+  courseCode       String?
+  valid            Boolean
+  message          String
+  createdAt        DateTime @default(now())
+
+  organizationId   String
+  createdByUserId  String
+
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdByUser    PortalUser   @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+}
+
+enum VerificationType {
+  ACADEMIC
+  IDENTITY
+}
+
+model IssuanceDraft {
+  id               String   @id @default(cuid())
+  studentId        String?
+  studentSca       String
+  courseCode       String
+  courseName       String
+  degreeCourse     String?
+  ects             String
+  grade            String
+  evaluationDate   String
+  certificateCid   String?
+  status           IssuanceDraftStatus @default(DRAFT)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organizationId   String
+  createdByUserId  String
+
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdByUser    PortalUser   @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+}
+
+enum IssuanceDraftStatus {
+  DRAFT
+  READY
+  SUBMITTED
+  FAILED
+}
