@@ -1,8 +1,8 @@
-import { MockStudentSource } from "./mockStudentSource";
+import { DemoStudentSource } from "./demoStudentSource";
 import { GatewayStudentSource } from "./gatewayStudentSource";
 import type { StudentSource } from "./studentSource";
 
-const sourceType = process.env.STUDENT_SOURCE ?? "mock";
+const sourceType = process.env.STUDENT_SOURCE ?? "demo";
 const gatewayBaseUrl = process.env.GATEWAY_BASE_URL ?? "http://localhost:3001";
 
 function createStudentSource(): StudentSource {
@@ -11,9 +11,11 @@ function createStudentSource(): StudentSource {
       return new GatewayStudentSource({
         baseUrl: gatewayBaseUrl,
       });
+
+    case "demo":
     case "mock":
     default:
-      return new MockStudentSource();
+      return new DemoStudentSource();
   }
 }
 

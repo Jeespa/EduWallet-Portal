@@ -3,16 +3,15 @@ import path from "node:path";
 import type { PortalStudentReference } from "../../../shared/portalApiTypes";
 import type { FindStudentInput, StudentSource } from "./studentSource";
 
-const FALLBACK_STUDENTS: PortalStudentReference[] = [
-  {
-    studentId: "s123456",
-    studentSca: "0x7A1B2C3D4E5F6789012345678901234567890ABC",
-    name: "Anna Berg",
-    homeInstitution: "NTNU University",
-    permissionStatus: "write",
-  },
-];
-
+/**
+ * Demo student source for local end-to-end testing.
+ *
+ * This does not store academic records. It only loads generated student metadata
+ * such as student ID and smart account address from bootstrapPortalDemo.ts.
+ *
+ * Actual academic data, grades, permissions, and course results are read from
+ * and written to EduWallet through the SDK/contracts.
+ */
 type DemoBlockchainFile = {
   students?: Array<{
     studentId: string;
@@ -36,31 +35,36 @@ function loadDemoStudents(): PortalStudentReference[] {
     );
   }
 
+  let parsed: DemoBlockchainFile;
+
   try {
-    const parsed = JSON.parse(
-      readFileSync(filePath, "utf-8"),
-    ) as DemoBlockchainFile;
-
-    const students = parsed.students ?? [];
-
-    if (students.length === 0) {
-      return FALLBACK_STUDENTS;
-    }
-
-    return students.map((student) => ({
-      studentId: student.studentId,
-      studentSca: student.studentSca,
-      name: student.name,
-      homeInstitution: student.homeInstitution,
-      permissionStatus: student.permissionStatus ?? "none",
-    }));
+    parsed = JSON.parse(readFileSync(filePath, "utf-8")) as DemoBlockchainFile;
   } catch (error) {
-    console.warn("Could not load generated portal demo students:", error);
-    return FALLBACK_STUDENTS;
+    throw new Error(
+      `Could not read or parse demo student file: ${filePath}. Original error: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
+
+  const students = parsed.students ?? [];
+
+  if (students.length === 0) {
+    throw new Error(
+      `Demo student file contains no students: ${filePath}. Rerun bootstrapPortalDemo.ts.`,
+    );
+  }
+
+  return students.map((student) => ({
+    studentId: student.studentId,
+    studentSca: student.studentSca,
+    name: student.name,
+    homeInstitution: student.homeInstitution,
+    permissionStatus: student.permissionStatus ?? "none",
+  }));
 }
 
-export class MockStudentSource implements StudentSource {
+export class DemoStudentSource implements StudentSource {
   async search(query?: string): Promise<PortalStudentReference[]> {
     const q = (query ?? "").trim().toLowerCase();
     const students = loadDemoStudents();
