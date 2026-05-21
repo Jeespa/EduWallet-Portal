@@ -199,23 +199,21 @@ contract Student is SmartAccount, AccessControlEnumerable {
      * @param _evaluations Array of evaluation information for completed courses
      */
     function evaluate(
-        EvaluationInfo[] calldata _evaluations
+    EvaluationInfo[] calldata _evaluations
     ) external onlyRole(WRITER_ROLE) {
         for (uint i = 0; i < _evaluations.length; ++i) {
-            // Find the right course to evaluate by matching code and university
-            for (uint j; j < studentInfo.results.length; ++j) {
-                // Different universities may use the same course code, so check both code and university address
+            for (uint j = 0; j < studentInfo.results.length; ++j) {
                 if (
                     keccak256(bytes(studentInfo.results[j].code)) ==
-                    keccak256(bytes(_evaluations[j].code)) &&
+                    keccak256(bytes(_evaluations[i].code)) &&
                     studentInfo.results[j].university == _msgSender()
                 ) {
-                    // Update the result record with evaluation data
                     studentInfo.results[j].grade = _evaluations[i].grade;
                     studentInfo.results[j].date = _evaluations[i].date;
                     studentInfo.results[j].certificateHash = _evaluations[i]
                         .certificateHash;
-                    continue;
+
+                    break;
                 }
             }
         }

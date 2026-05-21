@@ -1,6 +1,8 @@
 import { prisma } from "../lib/prisma";
-import { studentSource } from "../students";
-import { canReadStudent } from "./accessService";
+import {
+  getOnChainPermissionStatus,
+  readOnChainStudent,
+} from "../eduwallet/portalEduWalletClient";
 import type {
   CreateVerificationBody,
   CreateVerificationResponse,
@@ -25,7 +27,7 @@ type VerificationResult =
       verification: CreateVerificationResponse["verification"];
     }
   | {
-      statusCode: 404;
+      statusCode: 403 | 404;
       verification: CreateVerificationResponse["verification"];
     };
 
@@ -54,14 +56,14 @@ function mapVerificationDto(verification: {
 }
 
 export async function createAcademicVerification(
-  input: CreateAcademicVerificationInput
+  input: CreateAcademicVerificationInput,
 ): Promise<VerificationResult> {
-  const matchedStudent = await studentSource.findByIdOrSca({
-    studentId: input.studentId,
+  const permission = await getOnChainPermissionStatus({
+    organizationId: input.organizationId,
     studentSca: input.studentSca,
   });
 
-  if (!matchedStudent) {
+  if (permission !== "read" && permission !== "write") {
     const log = await prisma.verificationLog.create({
       data: {
         verificationType: "ACADEMIC",
@@ -70,7 +72,42 @@ export async function createAcademicVerification(
         certificateCid: input.certificateCid || null,
         courseCode: input.courseCode || null,
         valid: false,
-        message: "Student not found.",
+        message: "Organization does not have read access for this student.",
+        organizationId: input.organizationId,
+        createdByUserId: input.createdByUserId,
+      },
+    });
+
+    return {
+      statusCode: 403,
+      verification: {
+        id: log.id,
+        valid: false,
+        message: log.message,
+        studentId: input.studentId || null,
+        studentSca: input.studentSca,
+        courseCode: input.courseCode || null,
+        certificateCid: input.certificateCid || null,
+      },
+    };
+  }
+
+  let student;
+  try {
+    student = await readOnChainStudent({
+      organizationId: input.organizationId,
+      studentSca: input.studentSca,
+    });
+  } catch {
+    const log = await prisma.verificationLog.create({
+      data: {
+        verificationType: "ACADEMIC",
+        studentId: input.studentId || null,
+        studentSca: input.studentSca,
+        certificateCid: input.certificateCid || null,
+        courseCode: input.courseCode || null,
+        valid: false,
+        message: "Could not read student record from EduWallet.",
         organizationId: input.organizationId,
         createdByUserId: input.createdByUserId,
       },
@@ -81,15 +118,42 @@ export async function createAcademicVerification(
       verification: {
         id: log.id,
         valid: false,
-        message: "Student not found.",
+        message: log.message,
+        studentId: input.studentId || null,
+        studentSca: input.studentSca,
+        courseCode: input.courseCode || null,
+        certificateCid: input.certificateCid || null,
       },
     };
   }
 
-  const valid = canReadStudent(matchedStudent);
-  const message = valid
-    ? "Verification completed successfully."
-    : "Organization does not have read access for this student.";
+  const requestedCourseCode = input.courseCode?.trim();
+
+  type EduWalletAcademicResult = {
+    code: string;
+    name?: string;
+    grade?: string;
+    evaluationDate?: string;
+    ects?: number;
+  };
+
+  const results =
+    (student as { results?: EduWalletAcademicResult[] }).results ?? [];
+
+  const matchingCourse = requestedCourseCode
+    ? results.find(
+        (result: EduWalletAcademicResult) =>
+          result.code.toLowerCase() === requestedCourseCode.toLowerCase(),
+      )
+    : undefined;
+
+  const valid = requestedCourseCode ? Boolean(matchingCourse) : true;
+
+  const message = requestedCourseCode
+    ? valid
+      ? `Course ${requestedCourseCode} was found in the student's EduWallet record.`
+      : `Course ${requestedCourseCode} was not found in the student's EduWallet record.`
+    : "Student academic record was read successfully from EduWallet.";
 
   const log = await prisma.verificationLog.create({
     data: {
@@ -111,8 +175,8 @@ export async function createAcademicVerification(
       id: log.id,
       valid,
       message,
-      studentId: matchedStudent.studentId,
-      studentSca: matchedStudent.studentSca,
+      studentId: input.studentId || null,
+      studentSca: input.studentSca,
       courseCode: input.courseCode || null,
       certificateCid: input.certificateCid || null,
     },
@@ -120,7 +184,7 @@ export async function createAcademicVerification(
 }
 
 export async function listVerifications(
-  input: ListVerificationsInput
+  input: ListVerificationsInput,
 ): Promise<VerificationListResponse> {
   const q = (input.q ?? "").trim();
   const verificationType = (input.verificationType ?? "").trim().toUpperCase();

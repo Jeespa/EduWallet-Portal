@@ -19,6 +19,7 @@
       "src",
       "../typechain-types"
     ],
+    "rootDir": "src",
     "paths": {
       "@typechain/*": [
         "../typechain-types/*"

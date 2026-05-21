@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
+import { requestOnChainPermission } from "../eduwallet/portalEduWalletClient";
 import type {
   CreatePermissionRequestBody,
-  CreatePermissionRequestResponse,
   PermissionRequestDto,
   PermissionRequestListResponse,
 } from "../../../shared/portalApiTypes";
@@ -40,7 +40,15 @@ function mapPermissionRequestDto(request: {
 
 export async function createPermissionRequest(
   input: CreateRequestInput
-): Promise<CreatePermissionRequestResponse["request"]> {
+): Promise<PermissionRequestDto> {
+  // 1. Submit the actual EduWallet permission request on-chain.
+  await requestOnChainPermission({
+    organizationId: input.organizationId,
+    studentSca: input.studentSca,
+    permissionType: input.permissionType,
+  });
+
+  // 2. Store portal-side log after successful blockchain submission.
   const created = await prisma.permissionRequestLog.create({
     data: {
       studentId: input.studentId || null,

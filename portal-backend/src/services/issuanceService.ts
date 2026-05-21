@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { studentSource } from "../students";
 import { canWriteStudent } from "./accessService";
+import { submitOnChainCourseResult } from "../eduwallet/portalEduWalletClient";
 import type {
   CreateIssuanceDraftBody,
   CreateIssuanceDraftResponse,
@@ -164,9 +165,7 @@ export async function listIssuanceDrafts(
   };
 }
 
-export async function submitIssuanceDraft(
-  input: SubmitIssuanceDraftInput
-): Promise<SubmitIssuanceDraftSuccessResult | IssuanceErrorResult> {
+export async function submitIssuanceDraft(input: SubmitIssuanceDraftInput) {
   const draft = await prisma.issuanceDraft.findFirst({
     where: {
       id: input.draftId,
@@ -176,29 +175,62 @@ export async function submitIssuanceDraft(
 
   if (!draft) {
     return {
-      statusCode: 404,
+      statusCode: 404 as const,
       error: "Issuance draft not found.",
     };
   }
 
   if (draft.status !== "DRAFT") {
     return {
-      statusCode: 400,
+      statusCode: 400 as const,
       error: "Only drafts in DRAFT state can be submitted.",
     };
   }
 
-  const updated = await prisma.issuanceDraft.update({
-    where: { id: draft.id },
-    data: { status: "READY" },
-  });
+  try {
+    await submitOnChainCourseResult({
+      organizationId: input.organizationId,
+      studentSca: draft.studentSca,
+      courseCode: draft.courseCode,
+      courseName: draft.courseName,
+      degreeCourse: draft.degreeCourse,
+      ects: draft.ects,
+      grade: draft.grade,
+      evaluationDate: draft.evaluationDate,
+    });
 
-  return {
-    statusCode: 200,
-    draft: {
-      id: updated.id,
-      status: updated.status.toLowerCase(),
-      updatedAt: updated.updatedAt,
-    },
-  };
+    const updated = await prisma.issuanceDraft.update({
+      where: {
+        id: draft.id,
+      },
+      data: {
+        status: "SUBMITTED",
+      },
+    });
+
+    return {
+      statusCode: 200 as const,
+      draft: {
+        id: updated.id,
+        status: updated.status.toLowerCase(),
+        updatedAt: updated.updatedAt,
+      },
+    };
+  } catch (error) {
+    console.error("Failed to submit issuance draft to EduWallet:", error);
+
+    await prisma.issuanceDraft.update({
+      where: {
+        id: draft.id,
+      },
+      data: {
+        status: "FAILED",
+      },
+    });
+
+    return {
+      statusCode: 500 as const,
+      error: "Failed to submit issuance draft to EduWallet.",
+    };
+  }
 }

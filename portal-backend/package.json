@@ -27,6 +27,8 @@
     "argon2": "^0.44.0",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
+    "eduwallet-sdk": "file:../sdk",
+    "ethers": "^6.13.5",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.20.0",
