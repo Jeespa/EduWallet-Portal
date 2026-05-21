@@ -14,7 +14,7 @@ The backend currently supports:
 - issuance draft creation, listing, and submission
 - PostgreSQL persistence for portal data
 
-The current student data source is mocked, while portal-side data such as users, requests, verifications, and drafts are stored in PostgreSQL.
+In the end-to-end demo configuration, the portal backend uses a generated demo student metadata file to find the student's ID and smart account address. Academic records and permissions are read from and written to EduWallet through the SDK/contracts. PostgreSQL is used only for portal-side data such as users, organizations, request logs, verification logs, and issuance drafts.
 
 ## Tech stack
 

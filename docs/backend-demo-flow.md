@@ -5,14 +5,14 @@
 ### Terminal 1: Start local blockchain
 
 ```cmd
-cd C:\Users\jespe\Documents\Skole\Master\EduWallet-V3.0
+cd <repo-root>
 npx hardhat node
 ```
 
 ### Terminal 2: Bootstrap EduWallet demo blockchain data
 
 ```cmd
-cd C:\Users\jespe\Documents\Skole\Master\EduWallet-V3.0
+cd <repo-root>
 npx hardhat run scripts\bootstrapPortalDemo.ts --network localhost
 ```
 
@@ -27,7 +27,7 @@ gateway\.env.demo-chain
 ### Terminal 3: Start student gateway
 
 ```cmd
-cd C:\Users\jespe\Documents\Skole\Master\EduWallet-V3.0\gateway
+cd <repo-root>\gateway
 copy .env.demo-chain .env
 npm run dev
 ```
@@ -41,7 +41,7 @@ http://localhost:3001
 ### Terminal 4: Start portal backend
 
 ```cmd
-cd C:\Users\jespe\Documents\Skole\Master\EduWallet-V3.0\portal-backend
+cd <repo-root>\portal-backend
 npm run seed
 npm run dev
 ```

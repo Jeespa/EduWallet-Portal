@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { studentSource } from "../students";
-import { canWriteStudent } from "./accessService";
 import { submitOnChainCourseResult } from "../eduwallet/portalEduWalletClient";
+import { getOnChainPermissionStatus } from "../eduwallet/portalEduWalletClient";
 import type {
   CreateIssuanceDraftBody,
   CreateIssuanceDraftResponse,
@@ -74,7 +74,7 @@ function mapIssuanceDraftDto(draft: {
 }
 
 export async function createIssuanceDraft(
-  input: CreateIssuanceDraftInput
+  input: CreateIssuanceDraftInput,
 ): Promise<CreateIssuanceDraftSuccessResult | IssuanceErrorResult> {
   const matchedStudent = await studentSource.findByIdOrSca({
     studentId: input.studentId,
@@ -88,10 +88,16 @@ export async function createIssuanceDraft(
     };
   }
 
-  if (!canWriteStudent(matchedStudent)) {
+  const permission = await getOnChainPermissionStatus({
+    organizationId: input.organizationId,
+    studentSca: input.studentSca,
+  });
+
+  if (permission !== "write") {
     return {
       statusCode: 403,
-      error: "This organization does not have write access for the selected student.",
+      error:
+        "This organization does not have write access for the selected student.",
     };
   }
 
@@ -131,7 +137,7 @@ export async function createIssuanceDraft(
 }
 
 export async function listIssuanceDrafts(
-  input: ListIssuanceDraftsInput
+  input: ListIssuanceDraftsInput,
 ): Promise<IssuanceDraftListResponse> {
   const q = (input.q ?? "").trim();
   const status = (input.status ?? "").trim().toUpperCase();

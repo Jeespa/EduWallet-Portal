@@ -98,7 +98,8 @@ export async function createAcademicVerification(
       organizationId: input.organizationId,
       studentSca: input.studentSca,
     });
-  } catch {
+  } catch (error) {
+    console.error("Failed to read student record from EduWallet:", error);
     const log = await prisma.verificationLog.create({
       data: {
         verificationType: "ACADEMIC",

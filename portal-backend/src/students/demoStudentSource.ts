@@ -31,13 +31,14 @@ function loadDemoStudents(): PortalStudentReference[] {
   const filePath = path.resolve(process.cwd(), relativeFile);
 
   if (!existsSync(filePath)) {
-    console.warn("Demo student file not found:", filePath);
-    return FALLBACK_STUDENTS;
+    throw new Error(
+      `Demo student file not found: ${filePath}. Run bootstrapPortalDemo.ts before starting the portal backend.`,
+    );
   }
 
   try {
     const parsed = JSON.parse(
-      readFileSync(filePath, "utf-8")
+      readFileSync(filePath, "utf-8"),
     ) as DemoBlockchainFile;
 
     const students = parsed.students ?? [];
@@ -77,7 +78,7 @@ export class MockStudentSource implements StudentSource {
   }
 
   async findByIdOrSca(
-    input: FindStudentInput
+    input: FindStudentInput,
   ): Promise<PortalStudentReference | null> {
     const studentId = input.studentId?.trim();
     const studentSca = input.studentSca?.trim().toLowerCase();

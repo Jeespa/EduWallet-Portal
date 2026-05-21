@@ -108,6 +108,14 @@ interface PackedUserOperation {
   signature: BytesLike;
 }
 
+/**
+ * Local nonce cache used to avoid repeated transaction nonces when several
+ * EduWallet account-abstraction operations are submitted quickly from the same
+ * organization wallet on Hardhat.
+ *
+ * This is mainly a development/demo workaround. A production deployment should
+ * use a more robust transaction queue or signer/relayer strategy.
+ */
 const nextTxNonceByAddress = new Map<string, number>();
 
 /**
