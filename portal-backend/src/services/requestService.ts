@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { requestOnChainPermission } from "../eduwallet/portalEduWalletClient";
+import { getOnChainPermissionStatus } from "../eduwallet/portalEduWalletClient";
 import type {
   CreatePermissionRequestBody,
   PermissionRequestDto,
@@ -18,28 +19,31 @@ type ListRequestsInput = {
   permissionType?: string;
 };
 
-function mapPermissionRequestDto(request: {
-  id: string;
-  studentId: string | null;
-  studentSca: string;
-  permissionType: { toLowerCase(): string };
-  status: { toLowerCase(): string };
-  reason: string;
-  createdAt: Date;
-}): PermissionRequestDto {
+function mapPermissionRequestDto(
+  request: {
+    id: string;
+    studentId: string | null;
+    studentSca: string;
+    permissionType: { toLowerCase(): string };
+    status: { toLowerCase(): string };
+    reason: string;
+    createdAt: Date;
+  },
+  statusOverride?: "pending" | "approved" | "rejected",
+): PermissionRequestDto {
   return {
     id: request.id,
     studentId: request.studentId,
     studentSca: request.studentSca,
     permissionType: request.permissionType.toLowerCase(),
-    status: request.status.toLowerCase(),
+    status: statusOverride ?? request.status.toLowerCase(),
     reason: request.reason,
     createdAt: request.createdAt,
   };
 }
 
 export async function createPermissionRequest(
-  input: CreateRequestInput
+  input: CreateRequestInput,
 ): Promise<PermissionRequestDto> {
   // 1. Submit the actual EduWallet permission request on-chain.
   await requestOnChainPermission({
@@ -64,7 +68,7 @@ export async function createPermissionRequest(
 }
 
 export async function listPermissionRequests(
-  input: ListRequestsInput
+  input: ListRequestsInput,
 ): Promise<PermissionRequestListResponse> {
   const q = (input.q ?? "").trim();
   const status = (input.status ?? "").trim().toUpperCase();
@@ -94,8 +98,41 @@ export async function listPermissionRequests(
     },
   });
 
+  const requestDtos = await Promise.all(
+    requests.map(async (request) => {
+      let computedStatus = request.status.toLowerCase() as
+        | "pending"
+        | "approved"
+        | "rejected";
+
+      if (computedStatus === "pending") {
+        try {
+          const permission = await getOnChainPermissionStatus({
+            organizationId: input.organizationId,
+            studentSca: request.studentSca,
+          });
+
+          if (
+            request.permissionType === "READ" &&
+            (permission === "read" || permission === "write")
+          ) {
+            computedStatus = "approved";
+          }
+
+          if (request.permissionType === "WRITE" && permission === "write") {
+            computedStatus = "approved";
+          }
+        } catch (error) {
+          console.error("Failed to sync request status from EduWallet:", error);
+        }
+      }
+
+      return mapPermissionRequestDto(request, computedStatus);
+    }),
+  );
+
   return {
-    requests: requests.map(mapPermissionRequestDto),
-    count: requests.length,
+    requests: requestDtos,
+    count: requestDtos.length,
   };
 }
