@@ -133,9 +133,13 @@ export async function createAcademicVerification(
   type EduWalletAcademicResult = {
     code: string;
     name?: string;
+    degreeCourse?: string;
+    ects?: number | string;
     grade?: string;
     evaluationDate?: string;
-    ects?: number;
+    date?: string;
+    certificateHash?: string;
+    certificateCid?: string;
   };
 
   const results =
@@ -180,6 +184,22 @@ export async function createAcademicVerification(
       studentSca: input.studentSca,
       courseCode: input.courseCode || null,
       certificateCid: input.certificateCid || null,
+
+      course: matchingCourse
+        ? {
+            code: matchingCourse.code,
+            name: matchingCourse.name,
+            degreeCourse: matchingCourse.degreeCourse,
+            ects: matchingCourse.ects,
+            grade: matchingCourse.grade,
+            evaluationDate:
+              matchingCourse.evaluationDate ?? matchingCourse.date ?? null,
+            certificateHash:
+              matchingCourse.certificateHash ??
+              matchingCourse.certificateCid ??
+              null,
+          }
+        : null,
     },
   };
 }

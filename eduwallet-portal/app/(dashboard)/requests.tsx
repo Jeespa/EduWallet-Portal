@@ -8,10 +8,10 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { PORTAL_COLORS as COLORS } from "../constants/portalTheme";
-import { usePortalAuth } from "../context/PortalAuthContext";
-import type { PermissionType, PortalRequest } from "../types/portal";
-import { MOCK_REQUESTS, createMockRequest } from "../lib/mockPortalRequests";
+import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
+import { usePortalAuth } from "../../src/context/PortalAuthContext";
+import type { PermissionType, PortalRequest } from "../../src/types/portal";
+import { MOCK_REQUESTS, createMockRequest } from "../../src/lib/mockPortalRequests";
 
 type RequestStatusFilter = "all" | "pending" | "approved" | "rejected";
 type RequestPermissionFilter = "all" | PermissionType;

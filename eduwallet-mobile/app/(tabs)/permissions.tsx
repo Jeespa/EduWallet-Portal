@@ -23,7 +23,7 @@ import type { PermissionStatus } from "../../types";
  * Local representation of which permission action is waiting
  * for password confirmation in the modal.
  */
-type PendingAction = "revoke" | "grant-read" | "grant-write" | null;
+type PendingAction = "revoke" | "grant-read" | "grant-write" | "refresh" | null;
 
 /**
  * Permissions screen in the mobile app.
@@ -52,7 +52,7 @@ export default function PermissionsScreen() {
 
   // The university that the user is currently acting on
   const [selectedPerm, setSelectedPerm] = useState<PermissionStatus | null>(
-    null
+    null,
   );
 
   /**
@@ -159,21 +159,26 @@ export default function PermissionsScreen() {
     setError(null);
 
     try {
+      if (pendingAction === "refresh") {
+        await refreshPermissions(id, password);
+        closeModal();
+        return;
+      }
+
       if (!selectedPerm) {
         throw new Error("No permission selected");
       }
 
-      const targetUni = selectedPerm.universitySmartAccount;
+      const targetOrg = selectedPerm.universitySmartAccount;
 
       if (pendingAction === "revoke") {
-        await revokePermission(sca, id, password, targetUni);
+        await revokePermission(sca, id, password, targetOrg);
       } else if (pendingAction === "grant-read") {
-        await grantPermission(sca, id, password, "read", targetUni);
+        await grantPermission(sca, id, password, "read", targetOrg);
       } else {
-        await grantPermission(sca, id, password, "write", targetUni);
+        await grantPermission(sca, id, password, "write", targetOrg);
       }
 
-      // After changing something, reload the full list from the chain
       await refreshPermissions(id, password);
       closeModal();
     } catch (e: any) {
@@ -195,14 +200,19 @@ export default function PermissionsScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Permissions</Text>
-
+      <View style={styles.buttonWrapper}>
+        <Button
+          title="Refresh permissions"
+          onPress={() => openModal("refresh", null)}
+        />
+      </View>
       {loading && <ActivityIndicator />}
 
       {error && <Text style={styles.error}>{error}</Text>}
 
       {perms.length === 0 && !loading && !error && (
         <Text style={styles.mutedLabel}>
-          No permissions or requests found for this student.
+          No organization permissions or requests found for this student.
         </Text>
       )}
 
@@ -236,7 +246,7 @@ export default function PermissionsScreen() {
             <View style={styles.card} key={perm.universitySmartAccount}>
               <Text style={styles.cardTitle}>{universityLabel}</Text>
               <Text style={styles.mutedLabel}>
-                Smart account: {smartAccountLabel}
+                Organization smart account: {smartAccountLabel}
               </Text>
               {countryLabel && (
                 <Text style={styles.mutedLabel}>Country: {countryLabel}</Text>
@@ -307,7 +317,7 @@ export default function PermissionsScreen() {
                 {!hasPermission && !hasReadRequest && !hasWriteRequest && (
                   <Text style={styles.mutedLabel}>
                     There are no permissions or pending requests for this
-                    university.
+                    organization.
                   </Text>
                 )}
               </View>
@@ -327,7 +337,9 @@ export default function PermissionsScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Confirm with password</Text>
             <Text style={styles.modalText}>
-              Please enter your password to continue.
+              {pendingAction === "refresh"
+                ? "Enter your password to refresh your permissions from EduWallet."
+                : "Please enter your password to continue."}
             </Text>
             <TextInput
               style={styles.modalInput}

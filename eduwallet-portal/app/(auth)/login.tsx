@@ -9,8 +9,8 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { usePortalAuth } from "../context/PortalAuthContext";
-import { mockLogin } from "../lib/mockPortalAuth";
+import { usePortalAuth } from "../../src/context/PortalAuthContext";
+import { loginPortal } from "../../src/lib/portalBackendApi";
 
 const COLORS = {
   background: "#0B1220",
@@ -31,7 +31,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError("");
 
     if (!email.trim() || !password.trim()) {
@@ -40,7 +40,7 @@ export default function LoginScreen() {
     }
 
     try {
-      const session = mockLogin(email, password);
+      const session = await loginPortal(email, password);
       signIn(session.token, session.user, session.organization);
       router.replace("/dashboard");
     } catch (err: any) {
@@ -57,14 +57,17 @@ export default function LoginScreen() {
         <View style={styles.card}>
           <Text style={styles.title}>EduWallet Portal</Text>
           <Text style={styles.subtitle}>
-            Sign in with your personal portal account to request and verify student data.
+            Sign in with your personal portal account to request and verify
+            student data.
           </Text>
 
           <View style={styles.helperBox}>
-            <Text style={styles.helperTitle}>Mock accounts</Text>
+            <Text style={styles.helperTitle}>Demo accounts</Text>
+            <Text style={styles.helperText}>lars@ntnu.no / password123</Text>
             <Text style={styles.helperText}>ingrid@ntnu.no / password123</Text>
-            <Text style={styles.helperText}>marius@ntnu.no / password123</Text>
-            <Text style={styles.helperText}>eva@nordichiring.no / password123</Text>
+            <Text style={styles.helperText}>
+              emma@nordichiring.no / password123
+            </Text>
           </View>
 
           <View style={styles.inputGroup}>

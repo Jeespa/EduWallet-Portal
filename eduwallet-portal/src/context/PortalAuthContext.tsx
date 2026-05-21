@@ -9,13 +9,13 @@ type PortalAuthContextValue = {
   signIn: (
     token: string,
     user: PortalUser,
-    organization: Organization
+    organization: Organization,
   ) => void;
   signOut: () => void;
 };
 
 const PortalAuthContext = createContext<PortalAuthContextValue | undefined>(
-  undefined
+  undefined,
 );
 
 export function PortalAuthProvider({
@@ -30,7 +30,7 @@ export function PortalAuthProvider({
   const signIn = (
     newToken: string,
     newUser: PortalUser,
-    newOrganization: Organization
+    newOrganization: Organization,
   ) => {
     setToken(newToken);
     setUser(newUser);
@@ -48,11 +48,11 @@ export function PortalAuthProvider({
       token,
       user,
       organization,
-      isAuthenticated: !!token && !!user && !!organization,
+      isAuthenticated: Boolean(token && user && organization),
       signIn,
       signOut,
     }),
-    [token, user, organization]
+    [token, user, organization],
   );
 
   return (
@@ -64,8 +64,10 @@ export function PortalAuthProvider({
 
 export function usePortalAuth() {
   const context = useContext(PortalAuthContext);
+
   if (!context) {
     throw new Error("usePortalAuth must be used within a PortalAuthProvider");
   }
+
   return context;
 }

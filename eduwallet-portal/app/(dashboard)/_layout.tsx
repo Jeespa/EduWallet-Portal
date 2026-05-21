@@ -1,6 +1,6 @@
 import { Redirect, Slot } from "expo-router";
-import { usePortalAuth } from "../context/PortalAuthContext";
-import { PortalShell } from "../components/PortalShell";
+import { usePortalAuth } from "../../src/context/PortalAuthContext";
+import { PortalShell } from "../../src/components/PortalShell";
 
 export default function DashboardLayout() {
   const { isAuthenticated } = usePortalAuth();

@@ -8,9 +8,9 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { PORTAL_COLORS as COLORS } from "../constants/portalTheme";
-import { usePortalAuth } from "../context/PortalAuthContext";
-import { MOCK_STUDENT_REFERENCES } from "../lib/mockPortalStudents";
+import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
+import { usePortalAuth } from "../../src/context/PortalAuthContext";
+import { MOCK_STUDENT_REFERENCES } from "../../src/lib/mockPortalStudents";
 
 export default function IssuePage() {
   const { user, organization } = usePortalAuth();

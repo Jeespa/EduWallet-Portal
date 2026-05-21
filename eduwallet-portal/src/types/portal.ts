@@ -24,7 +24,10 @@ export type VerifyResult = {
   issuerName?: string;
   courseName?: string;
   courseCode?: string;
+  degreeCourse?: string;
+  ects?: string | number;
   grade?: string;
+  evaluationDate?: string;
   certificateCid?: string;
   onChainMatch?: boolean;
   ipfsReachable?: boolean;

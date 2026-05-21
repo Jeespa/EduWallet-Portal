@@ -1,9 +1,9 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router } from "expo-router";
-import { PORTAL_COLORS as COLORS } from "../constants/portalTheme";
-import { usePortalAuth } from "../context/PortalAuthContext";
-import { MOCK_REQUESTS } from "../lib/mockPortalRequests";
-import { getDashboardSummary } from "../lib/mockPortalDashboard";
+import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
+import { usePortalAuth } from "../../src/context/PortalAuthContext";
+import { MOCK_REQUESTS } from "../../src/lib/mockPortalRequests";
+import { getDashboardSummary } from "../../src/lib/mockPortalDashboard";
 
 export default function DashboardHome() {
   const { user, organization } = usePortalAuth();

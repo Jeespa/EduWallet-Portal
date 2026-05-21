@@ -8,11 +8,13 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { PORTAL_COLORS as COLORS } from "../constants/portalTheme";
-import type { VerifyResult } from "../types/portal";
-import { mockVerifyCertificate } from "../lib/mockPortalVerify";
+import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
+import type { VerifyResult } from "../../src/types/portal";
+import { verifyAcademicRecord } from "../../src/lib/portalBackendApi";
+import { usePortalAuth } from "../../src/context/PortalAuthContext";
 
 export default function VerifyPage() {
+  const { token } = usePortalAuth();
   const params = useLocalSearchParams<{
     studentId?: string;
     studentSca?: string;
@@ -35,29 +37,40 @@ export default function VerifyPage() {
     }
   }, [params.studentId, params.studentSca]);
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     setError("");
     setResult(null);
 
-    if (!studentSca.trim()) {
-      setError("Please enter the student smart-account address.");
+    if (!token) {
+      setError("You must be logged in to verify records.");
       return;
     }
 
-    const verifyResult = mockVerifyCertificate({
-      studentSca: studentSca.trim(),
-      certificateCid: certificateCid.trim() || undefined,
-      courseCode: courseCode.trim() || undefined,
-    });
+    if (!studentSca.trim()) {
+      setError("Please enter a student smart account address.");
+      return;
+    }
 
-    setResult(verifyResult);
+    try {
+      const verification = await verifyAcademicRecord(token, {
+        studentId: studentId.trim() || undefined,
+        studentSca: studentSca.trim(),
+        courseCode: courseCode.trim() || undefined,
+        certificateCid: certificateCid.trim() || undefined,
+      });
+
+      setResult(verification);
+    } catch (err: any) {
+      setError(err?.message || "Verification failed.");
+    }
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Verify</Text>
       <Text style={styles.subtitle}>
-        Verify a certificate or academic result using student and credential data.
+        Verify whether a student record or course exists in EduWallet. The
+        result below only shows data returned by the portal backend.
       </Text>
 
       <View style={styles.card}>
@@ -142,32 +155,19 @@ export default function VerifyPage() {
 
           <Text style={styles.resultMessage}>{result.message}</Text>
 
-          <View style={styles.resultBlock}>
-            <Text style={styles.resultLabel}>Issuer</Text>
-            <Text style={styles.resultValue}>{result.issuerName || "-"}</Text>
-          </View>
+          {result.courseCode ? (
+            <View style={styles.resultBlock}>
+              <Text style={styles.resultLabel}>Course code</Text>
+              <Text style={styles.resultValue}>{result.courseCode}</Text>
+            </View>
+          ) : null}
 
-          <View style={styles.resultBlock}>
-            <Text style={styles.resultLabel}>Course</Text>
-            <Text style={styles.resultValue}>{result.courseName || "-"}</Text>
-          </View>
-
-          <View style={styles.resultBlock}>
-            <Text style={styles.resultLabel}>Course code</Text>
-            <Text style={styles.resultValue}>{result.courseCode || "-"}</Text>
-          </View>
-
-          <View style={styles.resultBlock}>
-            <Text style={styles.resultLabel}>Grade</Text>
-            <Text style={styles.resultValue}>{result.grade || "-"}</Text>
-          </View>
-
-          <View style={styles.resultBlock}>
-            <Text style={styles.resultLabel}>Certificate CID</Text>
-            <Text style={styles.resultValue}>
-              {result.certificateCid || "-"}
-            </Text>
-          </View>
+          {result.certificateCid ? (
+            <View style={styles.resultBlock}>
+              <Text style={styles.resultLabel}>Certificate CID</Text>
+              <Text style={styles.resultValue}>{result.certificateCid}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.resultBlock}>
             <Text style={styles.resultLabel}>On-chain match</Text>
@@ -175,13 +175,40 @@ export default function VerifyPage() {
               {result.onChainMatch ? "Yes" : "No"}
             </Text>
           </View>
+          {result.courseName ? (
+            <View style={styles.resultBlock}>
+              <Text style={styles.resultLabel}>Course</Text>
+              <Text style={styles.resultValue}>{result.courseName}</Text>
+            </View>
+          ) : null}
 
-          <View style={styles.resultBlock}>
-            <Text style={styles.resultLabel}>IPFS reachable</Text>
-            <Text style={styles.resultValue}>
-              {result.ipfsReachable ? "Yes" : "No"}
-            </Text>
-          </View>
+          {result.courseCode ? (
+            <View style={styles.resultBlock}>
+              <Text style={styles.resultLabel}>Course code</Text>
+              <Text style={styles.resultValue}>{result.courseCode}</Text>
+            </View>
+          ) : null}
+
+          {result.grade ? (
+            <View style={styles.resultBlock}>
+              <Text style={styles.resultLabel}>Grade</Text>
+              <Text style={styles.resultValue}>{result.grade}</Text>
+            </View>
+          ) : null}
+
+          {result.ects ? (
+            <View style={styles.resultBlock}>
+              <Text style={styles.resultLabel}>ECTS</Text>
+              <Text style={styles.resultValue}>{result.ects}</Text>
+            </View>
+          ) : null}
+
+          {result.evaluationDate ? (
+            <View style={styles.resultBlock}>
+              <Text style={styles.resultLabel}>Evaluation date</Text>
+              <Text style={styles.resultValue}>{result.evaluationDate}</Text>
+            </View>
+          ) : null}
         </View>
       ) : null}
     </ScrollView>
@@ -316,5 +343,11 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 15,
     fontWeight: "600",
+  },
+  noteText: {
+    color: COLORS.muted,
+    fontSize: 13,
+    lineHeight: 19,
+    marginTop: 8,
   },
 });

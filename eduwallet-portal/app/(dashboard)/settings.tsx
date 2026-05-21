@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import { PORTAL_COLORS as COLORS } from "../constants/portalTheme";
-import { usePortalAuth } from "../context/PortalAuthContext";
+import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
+import { usePortalAuth } from "../../src/context/PortalAuthContext";
 
 export default function SettingsPage() {
   const { user, organization } = usePortalAuth();

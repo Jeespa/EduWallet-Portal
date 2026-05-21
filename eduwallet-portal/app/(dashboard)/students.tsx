@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { router } from "expo-router";
 import {
   Pressable,
@@ -8,11 +8,20 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { PORTAL_COLORS as COLORS } from "../constants/portalTheme";
+import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
 import {
-  MOCK_STUDENT_REFERENCES,
-  type PermissionStatus,
-} from "../lib/mockPortalStudents";
+  searchPortalStudents,
+  type PortalStudentReference,
+} from "../../src/lib/portalBackendApi";
+import { usePortalAuth } from "../../src/context/PortalAuthContext";
+
+type PermissionStatus =
+  | "none"
+  | "pending-read"
+  | "pending-write"
+  | "read"
+  | "write";
+
 type PermissionFilter = "all" | PermissionStatus;
 
 const FILTER_OPTIONS: Array<{ value: PermissionFilter; label: string }> = [
@@ -23,24 +32,72 @@ const FILTER_OPTIONS: Array<{ value: PermissionFilter; label: string }> = [
   { value: "pending-write", label: "Pending Write" },
   { value: "none", label: "No Access" },
 ];
+
 export default function StudentsPage() {
+  const { token } = usePortalAuth();
+
+  const [students, setStudents] = useState<PortalStudentReference[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [query, setQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] = useState<PermissionFilter>("all");
+  const [selectedFilter, setSelectedFilter] =
+    useState<PermissionFilter>("all");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadStudents() {
+      if (!token) return;
+
+      setLoading(true);
+      setLoadError("");
+
+      try {
+        const results = await searchPortalStudents(token, query);
+
+        if (!cancelled) {
+          setStudents(results);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setLoadError(err?.message || "Failed to load students.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    const timeout = setTimeout(loadStudents, 250);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+    };
+  }, [token, query]);
+
   const filteredStudents = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return MOCK_STUDENT_REFERENCES.filter((student) => {
-      const matchesQuery =
-        !normalized ||
-        student.studentId.toLowerCase().includes(normalized) ||
-        student.studentSca.toLowerCase().includes(normalized) ||
-        (student.name?.toLowerCase().includes(normalized) ?? false) ||
-        (student.homeInstitution?.toLowerCase().includes(normalized) ?? false);
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return students.filter((student) => {
       const status = student.permissionStatus ?? "none";
-      const matchesFilter =
-        selectedFilter === "all" ? true : status === selectedFilter;
-      return matchesQuery && matchesFilter;
+
+      const matchesQuery =
+        !normalizedQuery ||
+        student.studentId.toLowerCase().includes(normalizedQuery) ||
+        student.studentSca.toLowerCase().includes(normalizedQuery) ||
+        (student.name?.toLowerCase().includes(normalizedQuery) ?? false) ||
+        (student.homeInstitution?.toLowerCase().includes(normalizedQuery) ??
+          false);
+
+      const matchesStatus =
+        selectedFilter === "all" || status === selectedFilter;
+
+      return matchesQuery && matchesStatus;
     });
-  }, [query, selectedFilter]);
+  }, [students, query, selectedFilter]);
+
   const renderPermissionLabel = (status?: PermissionStatus) => {
     switch (status) {
       case "pending-read":
@@ -56,6 +113,7 @@ export default function StudentsPage() {
         return "No Access";
     }
   };
+
   const getBadgeStyle = (status?: PermissionStatus) => {
     switch (status) {
       case "read":
@@ -69,6 +127,7 @@ export default function StudentsPage() {
         return styles.badgeNeutral;
     }
   };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Students</Text>
@@ -76,9 +135,10 @@ export default function StudentsPage() {
         Look up existing EduWallet students by student ID or smart-account
         address.
       </Text>
+
       <View style={styles.card}>
-        {" "}
-        <Text style={styles.cardTitle}>Student lookup</Text>{" "}
+        <Text style={styles.cardTitle}>Student lookup</Text>
+
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -86,124 +146,97 @@ export default function StudentsPage() {
           placeholderTextColor={COLORS.muted}
           style={styles.input}
           autoCapitalize="none"
-        />{" "}
-        <Text style={styles.filterLabel}>Permission filter</Text>{" "}
+        />
+
+        <Text style={styles.filterLabel}>Permission filter</Text>
+
         <View style={styles.filterRow}>
-          {" "}
           {FILTER_OPTIONS.map((option) => {
             const isActive = selectedFilter === option.value;
+
             return (
               <Pressable
                 key={option.value}
                 style={[styles.filterChip, isActive && styles.filterChipActive]}
                 onPress={() => setSelectedFilter(option.value)}
               >
-                {" "}
                 <Text
                   style={[
                     styles.filterChipText,
                     isActive && styles.filterChipTextActive,
                   ]}
                 >
-                  {" "}
-                  {option.label}{" "}
-                </Text>{" "}
+                  {option.label}
+                </Text>
               </Pressable>
             );
-          })}{" "}
-        </View>{" "}
-      </View>{" "}
+          })}
+        </View>
+      </View>
+
       <View style={styles.card}>
-        {" "}
         <View style={styles.resultsHeader}>
-          {" "}
-          <Text style={styles.cardTitle}>Results</Text>{" "}
+          <Text style={styles.cardTitle}>Results</Text>
           <Text style={styles.resultsCount}>
             {filteredStudents.length} result
             {filteredStudents.length === 1 ? "" : "s"}
           </Text>
-        </View>{" "}
-        {filteredStudents.length === 0 ? (
+        </View>
+
+        {loading ? (
+          <Text style={styles.emptyText}>Loading students...</Text>
+        ) : null}
+
+        {loadError ? <Text style={styles.error}>{loadError}</Text> : null}
+
+        {!loading && !loadError && filteredStudents.length === 0 ? (
           <Text style={styles.emptyText}>No matching students found.</Text>
-        ) : (
-          filteredStudents.map((student) => {
-            const canIssueResult = student.permissionStatus === "write";
-            return (
-              <View key={student.studentId} style={styles.studentCard}>
-                {" "}
-                <View style={styles.studentHeader}>
-                  {" "}
-                  <View style={styles.studentHeaderText}>
-                    <Text style={styles.studentName}>
-                      {student.name || "Unknown student"}
-                    </Text>
-                    <Text style={styles.studentId}>
-                      Student ID: {student.studentId}
+        ) : null}
+
+        {!loading && !loadError
+          ? filteredStudents.map((student) => {
+              const permissionStatus = student.permissionStatus ?? "none";
+              const canIssueResult = permissionStatus === "write";
+
+              return (
+                <View key={student.studentId} style={styles.studentCard}>
+                  <View style={styles.studentHeader}>
+                    <View style={styles.studentHeaderText}>
+                      <Text style={styles.studentName}>
+                        {student.name || "Unknown student"}
+                      </Text>
+                      <Text style={styles.studentId}>
+                        Student ID: {student.studentId}
+                      </Text>
+                    </View>
+
+                    <View
+                      style={[styles.badge, getBadgeStyle(permissionStatus)]}
+                    >
+                      <Text style={styles.badgeText}>
+                        {renderPermissionLabel(permissionStatus)}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.infoBlock}>
+                    <Text style={styles.label}>Smart-account</Text>
+                    <Text style={styles.value}>{student.studentSca}</Text>
+                  </View>
+
+                  <View style={styles.infoBlock}>
+                    <Text style={styles.label}>Home institution</Text>
+                    <Text style={styles.value}>
+                      {student.homeInstitution || "-"}
                     </Text>
                   </View>
-                  <View
-                    style={[
-                      styles.badge,
-                      getBadgeStyle(student.permissionStatus),
-                    ]}
-                  >
-                    {" "}
-                    <Text style={styles.badgeText}>
-                      {" "}
-                      {renderPermissionLabel(student.permissionStatus)}{" "}
-                    </Text>{" "}
-                  </View>{" "}
-                </View>{" "}
-                <View style={styles.infoBlock}>
-                  <Text style={styles.label}>Smart-account</Text>
-                  <Text style={styles.value}>{student.studentSca}</Text>
-                </View>
-                <View style={styles.infoBlock}>
-                  <Text style={styles.label}>Home institution</Text>
-                  <Text style={styles.value}>
-                    {student.homeInstitution || "-"}
-                  </Text>
-                </View>
-                <View style={styles.actionsRow}>
-                  {" "}
-                  <Pressable
-                    style={styles.primaryButton}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/requests",
-                        params: {
-                          studentId: student.studentId,
-                          studentSca: student.studentSca,
-                        },
-                      })
-                    }
-                  >
-                    {" "}
-                    <Text style={styles.primaryButtonText}>
-                      Request access
-                    </Text>{" "}
-                  </Pressable>{" "}
-                  <Pressable
-                    style={styles.secondaryButton}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/verify",
-                        params: {
-                          studentId: student.studentId,
-                          studentSca: student.studentSca,
-                        },
-                      })
-                    }
-                  >
-                    {" "}
-                    <Text style={styles.secondaryButtonText}>Verify</Text>{" "}
-                  </Pressable>{" "}
-                  {canIssueResult ? (
+
+                  <View style={styles.actionsRow}>
                     <Pressable
-                      style={styles.secondaryButton}
+                      style={styles.primaryButton}
                       onPress={() =>
                         router.push({
-                          pathname: "/issue",
+                          pathname: "/requests",
                           params: {
                             studentId: student.studentId,
                             studentSca: student.studentSca,
@@ -211,22 +244,54 @@ export default function StudentsPage() {
                         })
                       }
                     >
-                      {" "}
-                      <Text style={styles.secondaryButtonText}>
-                        {" "}
-                        Issue result{" "}
-                      </Text>{" "}
+                      <Text style={styles.primaryButtonText}>
+                        Request access
+                      </Text>
                     </Pressable>
-                  ) : null}{" "}
-                </View>{" "}
-              </View>
-            );
-          })
-        )}{" "}
-      </View>{" "}
+
+                    <Pressable
+                      style={styles.secondaryButton}
+                      onPress={() =>
+                        router.push({
+                          pathname: "/verify",
+                          params: {
+                            studentId: student.studentId,
+                            studentSca: student.studentSca,
+                          },
+                        })
+                      }
+                    >
+                      <Text style={styles.secondaryButtonText}>Verify</Text>
+                    </Pressable>
+
+                    {canIssueResult ? (
+                      <Pressable
+                        style={styles.secondaryButton}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/issue",
+                            params: {
+                              studentId: student.studentId,
+                              studentSca: student.studentSca,
+                            },
+                          })
+                        }
+                      >
+                        <Text style={styles.secondaryButtonText}>
+                          Issue result
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
+                </View>
+              );
+            })
+          : null}
+      </View>
     </ScrollView>
   );
 }
+
 const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { paddingBottom: 32 },
@@ -291,6 +356,11 @@ const styles = StyleSheet.create({
   },
   resultsCount: { color: COLORS.muted, fontSize: 13, fontWeight: "600" },
   emptyText: { color: COLORS.muted, fontSize: 15 },
+  error: {
+    color: COLORS.danger,
+    marginBottom: 14,
+    fontSize: 14,
+  },
   studentCard: {
     backgroundColor: COLORS.surfaceAlt,
     borderWidth: 1,
