@@ -12,7 +12,9 @@ async function main() {
     where: {
       organizationNumber: "974767880",
     },
-    update: {},
+    update: {
+      name: "NTNU University",
+    },
     create: {
       name: "NTNU University",
       organizationNumber: "974767880",
@@ -23,7 +25,9 @@ async function main() {
     where: {
       organizationNumber: "999888777",
     },
-    update: {},
+    update: {
+      name: "Nordic Hiring AS",
+    },
     create: {
       name: "Nordic Hiring AS",
       organizationNumber: "999888777",
@@ -37,7 +41,10 @@ async function main() {
     where: {
       email: "ingrid@ntnu.no",
     },
-    update: {},
+    update: {
+      name: "Ingrid Hansen",
+      passwordHash: defaultPasswordHash,
+    },
     create: {
       name: "Ingrid Hansen",
       email: "ingrid@ntnu.no",
@@ -49,7 +56,10 @@ async function main() {
     where: {
       email: "marius@ntnu.no",
     },
-    update: {},
+    update: {
+      name: "Marius Olsen",
+      passwordHash: defaultPasswordHash,
+    },
     create: {
       name: "Marius Olsen",
       email: "marius@ntnu.no",
@@ -61,7 +71,10 @@ async function main() {
     where: {
       email: "sofie@ntnu.no",
     },
-    update: {},
+    update: {
+      name: "Sofie Berg",
+      passwordHash: defaultPasswordHash,
+    },
     create: {
       name: "Sofie Berg",
       email: "sofie@ntnu.no",
@@ -73,7 +86,10 @@ async function main() {
     where: {
       email: "lars@ntnu.no",
     },
-    update: {},
+    update: {
+      name: "Lars Nilsen",
+      passwordHash: defaultPasswordHash,
+    },
     create: {
       name: "Lars Nilsen",
       email: "lars@ntnu.no",
@@ -85,7 +101,10 @@ async function main() {
     where: {
       email: "emma@nordichiring.no",
     },
-    update: {},
+    update: {
+      name: "Emma Johansen",
+      passwordHash: defaultPasswordHash,
+    },
     create: {
       name: "Emma Johansen",
       email: "emma@nordichiring.no",
@@ -97,7 +116,10 @@ async function main() {
     where: {
       email: "oliver@nordichiring.no",
     },
-    update: {},
+    update: {
+      name: "Oliver Strand",
+      passwordHash: defaultPasswordHash,
+    },
     create: {
       name: "Oliver Strand",
       email: "oliver@nordichiring.no",
@@ -115,7 +137,9 @@ async function main() {
         userId: ingrid.id,
       },
     },
-    update: {},
+    update: {
+      role: "ADMIN",
+    },
     create: {
       organizationId: ntnu.id,
       userId: ingrid.id,
@@ -130,7 +154,9 @@ async function main() {
         userId: marius.id,
       },
     },
-    update: {},
+    update: {
+      role: "REQUESTER",
+    },
     create: {
       organizationId: ntnu.id,
       userId: marius.id,
@@ -145,7 +171,9 @@ async function main() {
         userId: sofie.id,
       },
     },
-    update: {},
+    update: {
+      role: "VERIFIER",
+    },
     create: {
       organizationId: ntnu.id,
       userId: sofie.id,
@@ -160,7 +188,9 @@ async function main() {
         userId: lars.id,
       },
     },
-    update: {},
+    update: {
+      role: "ISSUER",
+    },
     create: {
       organizationId: ntnu.id,
       userId: lars.id,
@@ -178,7 +208,9 @@ async function main() {
         userId: emma.id,
       },
     },
-    update: {},
+    update: {
+      role: "ADMIN",
+    },
     create: {
       organizationId: nordicHiring.id,
       userId: emma.id,
@@ -193,7 +225,9 @@ async function main() {
         userId: oliver.id,
       },
     },
-    update: {},
+    update: {
+      role: "VERIFIER",
+    },
     create: {
       organizationId: nordicHiring.id,
       userId: oliver.id,
@@ -202,8 +236,12 @@ async function main() {
   });
 
   // -------------------------
-  // Reset demo data per org
+  // Reset portal-side demo logs
   // -------------------------
+  // These records are generated during actual portal use.
+  // Do not seed static request/verification/issuance data here, because local
+  // Hardhat student smart-account addresses change whenever the demo blockchain
+  // is bootstrapped.
   await prisma.permissionRequestLog.deleteMany({
     where: {
       organizationId: {
@@ -228,119 +266,9 @@ async function main() {
     },
   });
 
-  // -------------------------
-  // Permission requests
-  // -------------------------
-  await prisma.permissionRequestLog.createMany({
-    data: [
-      {
-        studentId: "s123456",
-        studentSca: "0x7A1B2C3D4E5F6789012345678901234567890ABC",
-        permissionType: "READ",
-        status: "PENDING",
-        reason: "Need access to verify academic records for recruitment.",
-        organizationId: ntnu.id,
-        createdByUserId: marius.id,
-      },
-      {
-        studentId: "s654321",
-        studentSca: "0x1234567890ABCDEF1234567890ABCDEF12345678",
-        permissionType: "WRITE",
-        status: "APPROVED",
-        reason: "Need write access to register a new academic result.",
-        organizationId: ntnu.id,
-        createdByUserId: ingrid.id,
-      },
-      {
-        studentId: "s654321",
-        studentSca: "0x1234567890ABCDEF1234567890ABCDEF12345678",
-        permissionType: "READ",
-        status: "PENDING",
-        reason: "Need access to review candidate transcript.",
-        organizationId: nordicHiring.id,
-        createdByUserId: emma.id,
-      },
-    ],
-  });
-
-  // -------------------------
-  // Verification logs
-  // -------------------------
-  await prisma.verificationLog.createMany({
-    data: [
-      {
-        verificationType: "ACADEMIC",
-        studentId: "s654321",
-        studentSca: "0x1234567890ABCDEF1234567890ABCDEF12345678",
-        certificateCid: "bafy-demo-certificate-001",
-        courseCode: "IDATT2104",
-        valid: true,
-        message: "Verification completed successfully.",
-        organizationId: ntnu.id,
-        createdByUserId: sofie.id,
-      },
-      {
-        verificationType: "ACADEMIC",
-        studentId: "s777888",
-        studentSca: "0xABCDEF1234567890ABCDEF1234567890ABCDEF12",
-        certificateCid: "bafy-demo-certificate-002",
-        courseCode: "TDT4100",
-        valid: false,
-        message: "Organization does not have read access for this student.",
-        organizationId: ntnu.id,
-        createdByUserId: sofie.id,
-      },
-      {
-        verificationType: "ACADEMIC",
-        studentId: "s654321",
-        studentSca: "0x1234567890ABCDEF1234567890ABCDEF12345678",
-        certificateCid: "bafy-demo-certificate-003",
-        courseCode: "TDT4136",
-        valid: true,
-        message: "Verification completed successfully.",
-        organizationId: nordicHiring.id,
-        createdByUserId: oliver.id,
-      },
-    ],
-  });
-
-  // -------------------------
-  // Issuance drafts
-  // -------------------------
-  await prisma.issuanceDraft.createMany({
-    data: [
-      {
-        studentId: "s123456",
-        studentSca: "0x7A1B2C3D4E5F6789012345678901234567890ABC",
-        courseCode: "IDATT2104",
-        courseName: "Distributed Systems",
-        degreeCourse: "Computer Science",
-        ects: "7.5",
-        grade: "A",
-        evaluationDate: "2026-05-20",
-        certificateCid: "bafy-demo-issuance-001",
-        status: "DRAFT",
-        organizationId: ntnu.id,
-        createdByUserId: lars.id,
-      },
-      {
-        studentId: "s123456",
-        studentSca: "0x7A1B2C3D4E5F6789012345678901234567890ABC",
-        courseCode: "TDT4136",
-        courseName: "Introduction to Artificial Intelligence",
-        degreeCourse: "Computer Science",
-        ects: "7.5",
-        grade: "B",
-        evaluationDate: "2026-06-10",
-        certificateCid: "bafy-demo-issuance-002",
-        status: "READY",
-        organizationId: ntnu.id,
-        createdByUserId: lars.id,
-      },
-    ],
-  });
-
   console.log("Seed complete");
+  console.log("");
+  console.log("Portal users:");
   console.log("");
   console.log("NTNU users:");
   console.log("  ingrid@ntnu.no / password123   (ADMIN)");
@@ -351,6 +279,13 @@ async function main() {
   console.log("Nordic Hiring users:");
   console.log("  emma@nordichiring.no / password123    (ADMIN)");
   console.log("  oliver@nordichiring.no / password123  (VERIFIER)");
+  console.log("");
+  console.log(
+    "Portal-side request, verification, and issuance logs were cleared.",
+  );
+  console.log(
+    "Student metadata is loaded from portalDemoBlockchain.json, while course data and permissions come from EduWallet.",
+  );
 }
 
 main()

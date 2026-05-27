@@ -11,7 +11,16 @@ studentRoutes.get(
   requireRole(["ADMIN", "REQUESTER", "VERIFIER", "ISSUER"]),
   async (req, res) => {
     try {
-      const result = await searchStudents(String(req.query.q ?? ""));
+      if (!req.auth) {
+        return res.status(401).json({
+          error: "Missing auth context.",
+        });
+      }
+
+      const result = await searchStudents(
+        String(req.query.q ?? ""),
+        req.auth.organizationId,
+      );
 
       return res.json(result);
     } catch (err) {
@@ -20,5 +29,5 @@ studentRoutes.get(
         error: "Internal server error.",
       });
     }
-  }
+  },
 );

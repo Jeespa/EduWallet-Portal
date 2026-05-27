@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import {
   Pressable,
@@ -11,7 +11,10 @@ import {
 import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
 import { usePortalAuth } from "../../src/context/PortalAuthContext";
 import type { PermissionType, PortalRequest } from "../../src/types/portal";
-import { MOCK_REQUESTS, createMockRequest } from "../../src/lib/mockPortalRequests";
+import {
+  createPortalPermissionRequest,
+  listPortalRequests,
+} from "../../src/lib/portalBackendApi";
 
 type RequestStatusFilter = "all" | "pending" | "approved" | "rejected";
 type RequestPermissionFilter = "all" | PermissionType;
@@ -35,37 +38,104 @@ const PERMISSION_FILTER_OPTIONS: Array<{
   { value: "write", label: "Write" },
 ];
 
+function formatStatus(status: PortalRequest["status"]) {
+  switch (status) {
+    case "approved":
+      return "Approved";
+    case "rejected":
+      return "Rejected";
+    case "pending":
+    default:
+      return "Pending";
+  }
+}
+
+function formatPermission(permissionType: PermissionType) {
+  return permissionType === "write" ? "Write access" : "Read access";
+}
+
+function getRequestTitle(request: PortalRequest) {
+  if (request.studentId) {
+    return `Request for student ${request.studentId}`;
+  }
+
+  return "Access request";
+}
+
+function normalizePermissionType(value?: string | string[]): PermissionType {
+  return value === "write" ? "write" : "read";
+}
+
 export default function RequestsPage() {
-  const { organization } = usePortalAuth();
+  const { token } = usePortalAuth();
 
   const params = useLocalSearchParams<{
     studentId?: string;
     studentSca?: string;
+    permissionType?: string;
   }>();
 
   const [studentId, setStudentId] = useState("");
   const [studentSca, setStudentSca] = useState("");
-  const [permissionType, setPermissionType] =
-    useState<PermissionType>("read");
+  const [permissionType, setPermissionType] = useState<PermissionType>("read");
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
-  const [requests, setRequests] = useState<PortalRequest[]>(MOCK_REQUESTS);
+  const [successMessage, setSuccessMessage] = useState("");
+  const [requests, setRequests] = useState<PortalRequest[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [showNewRequestForm, setShowNewRequestForm] = useState(false);
+  const [openedFromStudentCard, setOpenedFromStudentCard] = useState(false);
 
   const [requestQuery, setRequestQuery] = useState("");
   const [statusFilter, setStatusFilter] =
-    useState<RequestStatusFilter>("all");
+    useState<RequestStatusFilter>("pending");
   const [permissionFilter, setPermissionFilter] =
     useState<RequestPermissionFilter>("all");
 
   useEffect(() => {
-    if (typeof params.studentId === "string" && params.studentId.trim()) {
-      setStudentId(params.studentId);
+    const hasStudentId =
+      typeof params.studentId === "string" && params.studentId.trim();
+    const hasStudentSca =
+      typeof params.studentSca === "string" && params.studentSca.trim();
+
+    if (hasStudentId) {
+      setStudentId(params.studentId as string);
     }
 
-    if (typeof params.studentSca === "string" && params.studentSca.trim()) {
-      setStudentSca(params.studentSca);
+    if (hasStudentSca) {
+      setStudentSca(params.studentSca as string);
     }
-  }, [params.studentId, params.studentSca]);
+
+    if (typeof params.permissionType === "string") {
+      setPermissionType(normalizePermissionType(params.permissionType));
+    }
+
+    if (hasStudentId || hasStudentSca) {
+      setShowNewRequestForm(true);
+      setOpenedFromStudentCard(true);
+    }
+  }, [params.studentId, params.studentSca, params.permissionType]);
+
+  const loadRequests = useCallback(async () => {
+    if (!token) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const result = await listPortalRequests(token);
+      setRequests(result);
+    } catch (err: any) {
+      setError(err?.message || "Failed to load requests.");
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    loadRequests();
+  }, [loadRequests]);
 
   const displayedRequests = useMemo(() => {
     const normalized = requestQuery.trim().toLowerCase();
@@ -74,7 +144,7 @@ export default function RequestsPage() {
       const matchesQuery =
         !normalized ||
         request.studentSca.toLowerCase().includes(normalized) ||
-        request.requesterOrgName.toLowerCase().includes(normalized) ||
+        (request.studentId?.toLowerCase().includes(normalized) ?? false) ||
         request.reason.toLowerCase().includes(normalized) ||
         request.createdAt.toLowerCase().includes(normalized);
 
@@ -90,8 +160,24 @@ export default function RequestsPage() {
     });
   }, [requests, requestQuery, statusFilter, permissionFilter]);
 
-  const handleCreateRequest = () => {
+  const resetForm = () => {
+    setStudentId("");
+    setStudentSca("");
+    setReason("");
+    setPermissionType("read");
     setError("");
+    setSuccessMessage("");
+    setOpenedFromStudentCard(false);
+  };
+
+  const handleCreateRequest = async () => {
+    setError("");
+    setSuccessMessage("");
+
+    if (!token) {
+      setError("You must be logged in to create a request.");
+      return;
+    }
 
     if (!studentSca.trim()) {
       setError("Please enter the student smart-account address.");
@@ -103,194 +189,284 @@ export default function RequestsPage() {
       return;
     }
 
-    const newRequest = createMockRequest({
-      studentSca: studentSca.trim(),
-      requesterOrgName: organization?.name ?? "Unknown Organization",
-      permissionType,
-      reason: reason.trim(),
-    });
+    setCreating(true);
 
-    setRequests((prev) => [newRequest, ...prev]);
-    setReason("");
-    setPermissionType("read");
-    setStatusFilter("all");
-    setPermissionFilter("all");
-    setRequestQuery("");
+    try {
+      await createPortalPermissionRequest(token, {
+        studentId: studentId.trim() || undefined,
+        studentSca: studentSca.trim(),
+        permissionType,
+        reason: reason.trim(),
+      });
+
+      setSuccessMessage(
+        "Request submitted. The student must approve it from the EduWallet mobile app.",
+      );
+      setReason("");
+      setPermissionType("read");
+      setStatusFilter("pending");
+      setPermissionFilter("all");
+      setRequestQuery("");
+      setShowNewRequestForm(false);
+      setOpenedFromStudentCard(false);
+
+      await loadRequests();
+    } catch (err: any) {
+      setError(err?.message || "Failed to create request.");
+    } finally {
+      setCreating(false);
+    }
   };
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Requests</Text>
-      <Text style={styles.subtitle}>
-        Create and track permission requests sent to students.
-      </Text>
-
-      <View style={styles.card}>
+  const newRequestForm = showNewRequestForm ? (
+    <View style={styles.card}>
+      <View style={styles.formHeader}>
         <Text style={styles.cardTitle}>New request</Text>
 
-        {studentId || studentSca ? (
-          <View style={styles.selectedStudentBox}>
-            <Text style={styles.selectedStudentTitle}>Selected student</Text>
-
-            {studentId ? (
-              <Text style={styles.selectedStudentText}>
-                Student ID: {studentId}
-              </Text>
-            ) : null}
-
-            {studentSca ? (
-              <Text style={styles.selectedStudentText}>
-                Smart-account: {studentSca}
-              </Text>
-            ) : null}
-          </View>
-        ) : null}
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Student smart-account address</Text>
-          <TextInput
-            value={studentSca}
-            onChangeText={setStudentSca}
-            placeholder="0x..."
-            placeholderTextColor={COLORS.muted}
-            style={styles.input}
-            autoCapitalize="none"
-          />
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Permission type</Text>
-
-          <View style={styles.permissionRow}>
-            <Pressable
-              style={[
-                styles.permissionButton,
-                permissionType === "read" && styles.permissionButtonActive,
-              ]}
-              onPress={() => setPermissionType("read")}
-            >
-              <Text
-                style={[
-                  styles.permissionButtonText,
-                  permissionType === "read" && styles.permissionButtonTextActive,
-                ]}
-              >
-                Read
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={[
-                styles.permissionButton,
-                permissionType === "write" && styles.permissionButtonActive,
-              ]}
-              onPress={() => setPermissionType("write")}
-            >
-              <Text
-                style={[
-                  styles.permissionButtonText,
-                  permissionType === "write" &&
-                    styles.permissionButtonTextActive,
-                ]}
-              >
-                Write
-              </Text>
-            </Pressable>
-          </View>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Reason</Text>
-          <TextInput
-            value={reason}
-            onChangeText={setReason}
-            placeholder="Explain why this organization needs access"
-            placeholderTextColor={COLORS.muted}
-            style={[styles.input, styles.textArea]}
-            multiline
-          />
-        </View>
-
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-
-        <Pressable style={styles.createButton} onPress={handleCreateRequest}>
-          <Text style={styles.createButtonText}>Create request</Text>
+        <Pressable
+          style={styles.clearButton}
+          onPress={() => {
+            resetForm();
+            setShowNewRequestForm(false);
+          }}
+        >
+          <Text style={styles.clearButtonText}>Cancel</Text>
         </Pressable>
       </View>
 
-      <View style={styles.card}>
-        <View style={styles.resultsHeader}>
-          <Text style={styles.cardTitle}>Recent requests</Text>
-          <Text style={styles.resultsCount}>
-            {displayedRequests.length} result
-            {displayedRequests.length === 1 ? "" : "s"}
-          </Text>
-        </View>
+      {studentId || studentSca ? (
+        <View style={styles.selectedStudentBox}>
+          <Text style={styles.selectedStudentTitle}>Selected student</Text>
 
+          {studentId ? (
+            <Text style={styles.selectedStudentText}>
+              Student ID: {studentId}
+            </Text>
+          ) : null}
+
+          {studentSca ? (
+            <Text style={styles.selectedStudentText}>
+              Smart-account: {studentSca}
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Student ID</Text>
         <TextInput
-          value={requestQuery}
-          onChangeText={setRequestQuery}
-          placeholder="Search by student, organization, reason, or date"
+          value={studentId}
+          onChangeText={setStudentId}
+          placeholder="Generated student ID"
           placeholderTextColor={COLORS.muted}
           style={styles.input}
           autoCapitalize="none"
         />
+      </View>
 
-        <Text style={styles.filterLabel}>Status</Text>
-        <View style={styles.filterRow}>
-          {STATUS_FILTER_OPTIONS.map((option) => {
-            const isActive = statusFilter === option.value;
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Student smart-account address</Text>
+        <TextInput
+          value={studentSca}
+          onChangeText={setStudentSca}
+          placeholder="0x..."
+          placeholderTextColor={COLORS.muted}
+          style={styles.input}
+          autoCapitalize="none"
+        />
+      </View>
 
-            return (
-              <Pressable
-                key={option.value}
-                style={[styles.filterChip, isActive && styles.filterChipActive]}
-                onPress={() => setStatusFilter(option.value)}
-              >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    isActive && styles.filterChipTextActive,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Permission type</Text>
+
+        <View style={styles.permissionRow}>
+          <Pressable
+            style={[
+              styles.permissionButton,
+              permissionType === "read" && styles.permissionButtonActive,
+            ]}
+            onPress={() => setPermissionType("read")}
+          >
+            <Text
+              style={[
+                styles.permissionButtonText,
+                permissionType === "read" && styles.permissionButtonTextActive,
+              ]}
+            >
+              Read
+            </Text>
+            <Text
+              style={[
+                styles.permissionHint,
+                permissionType === "read" && styles.permissionHintActive,
+              ]}
+            >
+              Verify records
+            </Text>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.permissionButton,
+              permissionType === "write" && styles.permissionButtonActive,
+            ]}
+            onPress={() => setPermissionType("write")}
+          >
+            <Text
+              style={[
+                styles.permissionButtonText,
+                permissionType === "write" && styles.permissionButtonTextActive,
+              ]}
+            >
+              Write
+            </Text>
+            <Text
+              style={[
+                styles.permissionHint,
+                permissionType === "write" && styles.permissionHintActive,
+              ]}
+            >
+              Submit results
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Reason</Text>
+        <TextInput
+          value={reason}
+          onChangeText={setReason}
+          placeholder="Explain why access is needed"
+          placeholderTextColor={COLORS.muted}
+          style={[styles.input, styles.textArea]}
+          multiline
+        />
+      </View>
+
+      {error ? <Text style={styles.error}>{error}</Text> : null}
+
+      <Pressable
+        style={[styles.createButton, creating && styles.createButtonDisabled]}
+        onPress={handleCreateRequest}
+        disabled={creating}
+      >
+        <Text style={styles.createButtonText}>
+          {creating ? "Creating request..." : "Create request"}
+        </Text>
+      </Pressable>
+    </View>
+  ) : null;
+
+  const requestsList = (
+    <View style={styles.card}>
+      <View style={styles.resultsHeader}>
+        <View style={styles.resultsHeaderText}>
+          <Text style={styles.cardTitle}>Requests</Text>
+          <Text style={styles.cardSubtitle}>
+            Track pending, approved, and rejected access requests.
+          </Text>
         </View>
 
-        <Text style={styles.filterLabel}>Permission type</Text>
-        <View style={styles.filterRow}>
-          {PERMISSION_FILTER_OPTIONS.map((option) => {
-            const isActive = permissionFilter === option.value;
+        <Pressable
+          style={styles.newRequestButtonLarge}
+          onPress={() => {
+            setError("");
+            setSuccessMessage("");
+            setOpenedFromStudentCard(false);
+            setShowNewRequestForm((current) => !current);
+          }}
+        >
+          <Text style={styles.newRequestButtonLargeText}>
+            {showNewRequestForm ? "Close form" : "+ New request"}
+          </Text>
+        </Pressable>
+      </View>
 
-            return (
-              <Pressable
-                key={option.value}
-                style={[styles.filterChip, isActive && styles.filterChipActive]}
-                onPress={() => setPermissionFilter(option.value)}
+      <View style={styles.listToolbar}>
+        <Text style={styles.resultsCount}>
+          {displayedRequests.length} result
+          {displayedRequests.length === 1 ? "" : "s"}
+        </Text>
+
+        <Pressable style={styles.refreshButton} onPress={loadRequests}>
+          <Text style={styles.refreshButtonText}>Refresh</Text>
+        </Pressable>
+      </View>
+
+      <TextInput
+        value={requestQuery}
+        onChangeText={setRequestQuery}
+        placeholder="Search by student, reason, or date"
+        placeholderTextColor={COLORS.muted}
+        style={styles.input}
+        autoCapitalize="none"
+      />
+
+      <Text style={styles.filterLabel}>Status</Text>
+      <View style={styles.filterRow}>
+        {STATUS_FILTER_OPTIONS.map((option) => {
+          const isActive = statusFilter === option.value;
+
+          return (
+            <Pressable
+              key={option.value}
+              style={[styles.filterChip, isActive && styles.filterChipActive]}
+              onPress={() => setStatusFilter(option.value)}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  isActive && styles.filterChipTextActive,
+                ]}
               >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    isActive && styles.filterChipTextActive,
-                  ]}
-                >
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
-        {displayedRequests.length === 0 ? (
-          <Text style={styles.emptyText}>No matching requests found.</Text>
-        ) : (
-          displayedRequests.map((request) => (
+      <Text style={styles.filterLabel}>Permission type</Text>
+      <View style={styles.filterRow}>
+        {PERMISSION_FILTER_OPTIONS.map((option) => {
+          const isActive = permissionFilter === option.value;
+
+          return (
+            <Pressable
+              key={option.value}
+              style={[styles.filterChip, isActive && styles.filterChipActive]}
+              onPress={() => setPermissionFilter(option.value)}
+            >
+              <Text
+                style={[
+                  styles.filterChipText,
+                  isActive && styles.filterChipTextActive,
+                ]}
+              >
+                {option.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {loading ? (
+        <Text style={styles.emptyText}>Loading requests...</Text>
+      ) : null}
+
+      {!loading && displayedRequests.length === 0 ? (
+        <Text style={styles.emptyText}>No matching requests found.</Text>
+      ) : null}
+
+      {!loading
+        ? displayedRequests.map((request) => (
             <View key={request.id} style={styles.requestItem}>
               <View style={styles.requestHeader}>
-                <Text style={styles.requestOrg}>{request.requesterOrgName}</Text>
+                <Text style={styles.requestTitle}>
+                  {getRequestTitle(request)}
+                </Text>
+
                 <View
                   style={[
                     styles.badge,
@@ -301,22 +477,65 @@ export default function RequestsPage() {
                       : styles.badgePending,
                   ]}
                 >
-                  <Text style={styles.badgeText}>{request.status}</Text>
+                  <Text style={styles.badgeText}>
+                    {formatStatus(request.status)}
+                  </Text>
                 </View>
               </View>
 
+              {request.studentId ? (
+                <Text style={styles.requestMeta}>
+                  Student ID: {request.studentId}
+                </Text>
+              ) : null}
+
               <Text style={styles.requestMeta}>
-                Student: {request.studentSca}
+                Smart-account: {request.studentSca}
               </Text>
+
               <Text style={styles.requestMeta}>
-                Permission: {request.permissionType}
+                Permission: {formatPermission(request.permissionType)}
               </Text>
-              <Text style={styles.requestMeta}>Created: {request.createdAt}</Text>
+
+              <Text style={styles.requestMeta}>
+                Created: {request.createdAt}
+              </Text>
+
               <Text style={styles.requestReason}>{request.reason}</Text>
+
+              {request.status === "pending" ? (
+                <Text style={styles.pendingNote}>
+                  Waiting for the student to approve this request in the mobile
+                  app.
+                </Text>
+              ) : null}
             </View>
           ))
-        )}
-      </View>
+        : null}
+    </View>
+  );
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.title}>Access requests</Text>
+      <Text style={styles.subtitle}>
+        Review access requests and create new read/write requests.
+      </Text>
+
+      {successMessage ? (
+        <View style={styles.successBox}>
+          <Text style={styles.successTitle}>Request created</Text>
+          <Text style={styles.successText}>{successMessage}</Text>
+        </View>
+      ) : null}
+
+      {openedFromStudentCard ? newRequestForm : null}
+      {requestsList}
+      {!openedFromStudentCard ? newRequestForm : null}
     </ScrollView>
   );
 }
@@ -351,7 +570,36 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 20,
     fontWeight: "700",
+  },
+  cardSubtitle: {
+    color: COLORS.muted,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
+  },
+  resultsHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 16,
+    gap: 12,
+  },
+  resultsHeaderText: {
+    flex: 1,
+  },
+  listToolbar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+    gap: 12,
+  },
+  formHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 18,
+    gap: 12,
   },
   selectedStudentBox: {
     backgroundColor: COLORS.surfaceAlt,
@@ -414,15 +662,40 @@ const styles = StyleSheet.create({
   },
   permissionButtonText: {
     color: COLORS.text,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   permissionButtonTextActive: {
+    color: "#FFFFFF",
+  },
+  permissionHint: {
+    color: COLORS.muted,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  permissionHintActive: {
     color: "#FFFFFF",
   },
   error: {
     color: COLORS.danger,
     marginBottom: 14,
     fontSize: 14,
+  },
+  successBox: {
+    backgroundColor: COLORS.success,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 18,
+  },
+  successTitle: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+    marginBottom: 6,
+  },
+  successText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    lineHeight: 18,
   },
   createButton: {
     marginTop: 8,
@@ -432,21 +705,57 @@ const styles = StyleSheet.create({
     alignItems: "center",
     maxWidth: 220,
   },
+  createButtonDisabled: {
+    opacity: 0.65,
+  },
   createButtonText: {
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "700",
   },
-  resultsHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 18,
-  },
   resultsCount: {
     color: COLORS.muted,
     fontSize: 13,
     fontWeight: "600",
+  },
+  refreshButton: {
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  refreshButtonText: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  newRequestButtonLarge: {
+    backgroundColor: COLORS.accent,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+  },
+  newRequestButtonLargeText: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  clearButton: {
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+  },
+  clearButtonText: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "700",
   },
   filterLabel: {
     color: COLORS.text,
@@ -499,13 +808,13 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
+    gap: 12,
   },
-  requestOrg: {
+  requestTitle: {
     color: COLORS.text,
     fontSize: 16,
     fontWeight: "700",
     flex: 1,
-    marginRight: 12,
   },
   requestMeta: {
     color: COLORS.muted,
@@ -518,24 +827,29 @@ const styles = StyleSheet.create({
     marginTop: 10,
     lineHeight: 20,
   },
+  pendingNote: {
+    color: COLORS.muted,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 12,
+  },
   badge: {
     borderRadius: 999,
     paddingHorizontal: 10,
     paddingVertical: 5,
   },
   badgePending: {
-    backgroundColor: "#5B4A1F",
+    backgroundColor: COLORS.warning,
   },
   badgeApproved: {
-    backgroundColor: "#1E5A3A",
+    backgroundColor: COLORS.success,
   },
   badgeRejected: {
-    backgroundColor: "#6A2A2A",
+    backgroundColor: COLORS.dangerDark,
   },
   badgeText: {
     color: "#FFFFFF",
     fontSize: 12,
     fontWeight: "700",
-    textTransform: "capitalize",
   },
 });

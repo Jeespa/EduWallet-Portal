@@ -123,7 +123,9 @@ export async function listPermissionRequests(
             computedStatus = "approved";
           }
         } catch (error) {
-          console.error("Failed to sync request status from EduWallet:", error);
+          console.warn(
+            `Could not sync request ${request.id} with EduWallet. Keeping stored status.`,
+          );
         }
       }
 

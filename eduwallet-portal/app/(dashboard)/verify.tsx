@@ -15,6 +15,7 @@ import { usePortalAuth } from "../../src/context/PortalAuthContext";
 
 export default function VerifyPage() {
   const { token } = usePortalAuth();
+
   const params = useLocalSearchParams<{
     studentId?: string;
     studentSca?: string;
@@ -26,6 +27,7 @@ export default function VerifyPage() {
   const [courseCode, setCourseCode] = useState("");
   const [error, setError] = useState("");
   const [result, setResult] = useState<VerifyResult | null>(null);
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     if (typeof params.studentId === "string" && params.studentId.trim()) {
@@ -47,9 +49,11 @@ export default function VerifyPage() {
     }
 
     if (!studentSca.trim()) {
-      setError("Please enter a student smart account address.");
+      setError("Please enter a student smart-account address.");
       return;
     }
+
+    setVerifying(true);
 
     try {
       const verification = await verifyAcademicRecord(token, {
@@ -62,15 +66,16 @@ export default function VerifyPage() {
       setResult(verification);
     } catch (err: any) {
       setError(err?.message || "Verification failed.");
+    } finally {
+      setVerifying(false);
     }
   };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Verify</Text>
+      <Text style={styles.title}>Verify record</Text>
       <Text style={styles.subtitle}>
-        Verify whether a student record or course exists in EduWallet. The
-        result below only shows data returned by the portal backend.
+        Verify whether a student record or course exists in EduWallet.
       </Text>
 
       <View style={styles.card}>
@@ -95,6 +100,18 @@ export default function VerifyPage() {
         ) : null}
 
         <View style={styles.inputGroup}>
+          <Text style={styles.label}>Student ID</Text>
+          <TextInput
+            value={studentId}
+            onChangeText={setStudentId}
+            placeholder="Generated student ID"
+            placeholderTextColor={COLORS.muted}
+            style={styles.input}
+            autoCapitalize="none"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
           <Text style={styles.label}>Student smart-account address</Text>
           <TextInput
             value={studentSca}
@@ -103,6 +120,18 @@ export default function VerifyPage() {
             placeholderTextColor={COLORS.muted}
             style={styles.input}
             autoCapitalize="none"
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Course code</Text>
+          <TextInput
+            value={courseCode}
+            onChangeText={setCourseCode}
+            placeholder="IDATT2104 or TDT4100"
+            placeholderTextColor={COLORS.muted}
+            style={styles.input}
+            autoCapitalize="characters"
           />
         </View>
 
@@ -118,22 +147,16 @@ export default function VerifyPage() {
           />
         </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Course code (optional)</Text>
-          <TextInput
-            value={courseCode}
-            onChangeText={setCourseCode}
-            placeholder="IDATT2104"
-            placeholderTextColor={COLORS.muted}
-            style={styles.input}
-            autoCapitalize="characters"
-          />
-        </View>
-
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <Pressable style={styles.verifyButton} onPress={handleVerify}>
-          <Text style={styles.verifyButtonText}>Verify</Text>
+        <Pressable
+          style={[styles.verifyButton, verifying && styles.verifyButtonDisabled]}
+          onPress={handleVerify}
+          disabled={verifying}
+        >
+          <Text style={styles.verifyButtonText}>
+            {verifying ? "Verifying..." : "Verify"}
+          </Text>
         </Pressable>
       </View>
 
@@ -141,6 +164,7 @@ export default function VerifyPage() {
         <View style={styles.card}>
           <View style={styles.resultHeader}>
             <Text style={styles.cardTitle}>Verification result</Text>
+
             <View
               style={[
                 styles.resultBadge,
@@ -155,26 +179,6 @@ export default function VerifyPage() {
 
           <Text style={styles.resultMessage}>{result.message}</Text>
 
-          {result.courseCode ? (
-            <View style={styles.resultBlock}>
-              <Text style={styles.resultLabel}>Course code</Text>
-              <Text style={styles.resultValue}>{result.courseCode}</Text>
-            </View>
-          ) : null}
-
-          {result.certificateCid ? (
-            <View style={styles.resultBlock}>
-              <Text style={styles.resultLabel}>Certificate CID</Text>
-              <Text style={styles.resultValue}>{result.certificateCid}</Text>
-            </View>
-          ) : null}
-
-          <View style={styles.resultBlock}>
-            <Text style={styles.resultLabel}>On-chain match</Text>
-            <Text style={styles.resultValue}>
-              {result.onChainMatch ? "Yes" : "No"}
-            </Text>
-          </View>
           {result.courseName ? (
             <View style={styles.resultBlock}>
               <Text style={styles.resultLabel}>Course</Text>
@@ -186,6 +190,13 @@ export default function VerifyPage() {
             <View style={styles.resultBlock}>
               <Text style={styles.resultLabel}>Course code</Text>
               <Text style={styles.resultValue}>{result.courseCode}</Text>
+            </View>
+          ) : null}
+
+          {result.degreeCourse ? (
+            <View style={styles.resultBlock}>
+              <Text style={styles.resultLabel}>Degree course</Text>
+              <Text style={styles.resultValue}>{result.degreeCourse}</Text>
             </View>
           ) : null}
 
@@ -209,6 +220,20 @@ export default function VerifyPage() {
               <Text style={styles.resultValue}>{result.evaluationDate}</Text>
             </View>
           ) : null}
+
+          {result.certificateCid ? (
+            <View style={styles.resultBlock}>
+              <Text style={styles.resultLabel}>Certificate CID</Text>
+              <Text style={styles.resultValue}>{result.certificateCid}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.resultBlock}>
+            <Text style={styles.resultLabel}>On-chain match</Text>
+            <Text style={styles.resultValue}>
+              {result.onChainMatch ? "Yes" : "No"}
+            </Text>
+          </View>
         </View>
       ) : null}
     </ScrollView>
@@ -298,6 +323,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     maxWidth: 220,
   },
+  verifyButtonDisabled: {
+    opacity: 0.65,
+  },
   verifyButtonText: {
     color: "#FFFFFF",
     fontSize: 15,
@@ -308,6 +336,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 14,
+    gap: 12,
   },
   resultBadge: {
     borderRadius: 999,
@@ -343,11 +372,5 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 15,
     fontWeight: "600",
-  },
-  noteText: {
-    color: COLORS.muted,
-    fontSize: 13,
-    lineHeight: 19,
-    marginTop: 8,
   },
 });

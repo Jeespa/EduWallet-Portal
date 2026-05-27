@@ -48,6 +48,19 @@ function normalizeSession(session: any): AuthSession {
   };
 }
 
+function normalizeRequest(request: any): PortalRequest {
+  return {
+    id: request.id,
+    studentId: request.studentId ?? null,
+    studentSca: request.studentSca,
+    requesterOrgName: request.requesterOrgName ?? "Current organization",
+    permissionType: request.permissionType,
+    reason: request.reason,
+    status: request.status,
+    createdAt: request.createdAt,
+  };
+}
+
 export async function loginPortal(
   email: string,
   password: string,
@@ -103,15 +116,7 @@ export async function createPortalPermissionRequest(
     body: JSON.stringify(input),
   });
 
-  return {
-    id: result.request.id,
-    studentSca: result.request.studentSca,
-    requesterOrgName: "Current organization",
-    permissionType: result.request.permissionType,
-    reason: result.request.reason,
-    status: result.request.status,
-    createdAt: result.request.createdAt,
-  };
+  return normalizeRequest(result.request);
 }
 
 export async function listPortalRequests(
@@ -122,15 +127,7 @@ export async function listPortalRequests(
     token,
   });
 
-  return result.requests.map((request) => ({
-    id: request.id,
-    studentSca: request.studentSca,
-    requesterOrgName: "Current organization",
-    permissionType: request.permissionType,
-    reason: request.reason,
-    status: request.status,
-    createdAt: request.createdAt,
-  }));
+  return result.requests.map(normalizeRequest);
 }
 
 export async function verifyAcademicRecord(

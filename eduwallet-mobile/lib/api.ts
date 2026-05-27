@@ -33,7 +33,7 @@ const client = createGatewayClient(API_BASE_URL);
  */
 export async function login(
   id: string,
-  password: string
+  password: string,
 ): Promise<CredentialsResponse> {
   return client.logIn(id, password);
 }
@@ -54,7 +54,7 @@ export async function login(
 export async function getPermissions(
   studentSca: string,
   id: string,
-  password: string
+  password: string,
 ): Promise<AllPermissionsForStudent> {
   return client.getPermissions(studentSca, id, password);
 }
@@ -75,7 +75,7 @@ export async function revokePermission(
   studentSca: string,
   id: string,
   password: string,
-  universityAddress?: string
+  universityAddress?: string,
 ): Promise<PermissionStatus> {
   return client.revokePermission(studentSca, id, password, universityAddress);
 }
@@ -98,13 +98,84 @@ export async function grantPermission(
   id: string,
   password: string,
   type: "read" | "write",
-  universityAddress?: string
+  universityAddress?: string,
 ): Promise<PermissionStatus> {
   return client.grantPermission(
     studentSca,
     id,
     password,
     type,
-    universityAddress
+    universityAddress,
   );
+}
+
+// --- error handling ------------------------------------------------
+
+function getRawErrorMessage(error: unknown): string {
+  try {
+    if (error instanceof Error) {
+      return error.message;
+    }
+
+    if (typeof error === "string") {
+      return error;
+    }
+
+    return JSON.stringify(error) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * Convert technical gateway / blockchain / fetch errors into messages that
+ * are readable for the mobile app user.
+ */
+export function getFriendlyApiErrorMessage(
+  error: unknown,
+  fallback = "Something went wrong. Please try again.",
+): string {
+  const rawMessage = getRawErrorMessage(error);
+  const message = rawMessage.toLowerCase();
+
+  if (
+    message.includes("network request failed") ||
+    message.includes("failed to fetch") ||
+    message.includes("fetch failed") ||
+    message.includes("networkerror") ||
+    message.includes("network")
+  ) {
+    return "Could not connect to EduWallet. Please check that the gateway is running.";
+  }
+
+  if (
+    message.includes("unauthorized") ||
+    message.includes("forbidden") ||
+    message.includes("invalid credentials") ||
+    message.includes("invalid student") ||
+    message.includes("incorrect password") ||
+    message.includes("wrong password") ||
+    message.includes("authentication") ||
+    message.includes("credential") ||
+    message.includes("password") ||
+    message.includes("signature") ||
+    message.includes("execution reverted") ||
+    message.includes("call exception") ||
+    message.includes("failed to retrieve permissions") ||
+    message.includes("failed to load permissions") ||
+    message.includes("401") ||
+    message.includes("403")
+  ) {
+    return "Incorrect password. Please try again.";
+  }
+
+  if (
+    message.includes("sender doesn't have enough funds") ||
+    message.includes("insufficient funds") ||
+    message.includes("balance is: 0")
+  ) {
+    return "Could not complete the request because the local demo wallet has no funds. Restart the demo setup and try again.";
+  }
+
+  return fallback;
 }

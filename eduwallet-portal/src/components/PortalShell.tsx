@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { router, usePathname, type Href } from "expo-router";
 import { PORTAL_COLORS as COLORS } from "../constants/portalTheme";
@@ -8,30 +8,113 @@ type NavItem = {
   id: string;
   label: string;
   href: Href;
+  description: string;
+  requiresIssuer?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
-  { id: "dashboard", label: "Dashboard", href: "/dashboard" },
-  { id: "students", label: "Students", href: "/students" },
-  { id: "requests", label: "Requests", href: "/requests" },
-  { id: "verify", label: "Verify", href: "/verify" },
-  { id: "issue", label: "Issue", href: "/issue" },
-  { id: "settings", label: "Settings", href: "/settings" },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    href: "/dashboard",
+    description: "Overview",
+  },
+  {
+    id: "students",
+    label: "Students",
+    href: "/students",
+    description: "Find student wallets",
+  },
+  {
+    id: "requests",
+    label: "Access requests",
+    href: "/requests",
+    description: "Review and create requests",
+  },
+  {
+    id: "verify",
+    label: "Verify record",
+    href: "/verify",
+    description: "Check EduWallet records",
+  },
+  {
+    id: "issue",
+    label: "Issue result",
+    href: "/issue",
+    description: "Submit academic results",
+    requiresIssuer: true,
+  },
 ];
+
+function formatRole(role?: string) {
+  if (!role) return "-";
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+function canShowIssuePage(input: {
+  role?: string;
+  organizationName?: string;
+  organizationNumber?: string;
+}) {
+  const role = input.role?.toLowerCase();
+  const organizationName = input.organizationName?.toLowerCase() ?? "";
+
+  const hasIssuerRole = role === "issuer" || role === "admin";
+
+  const isAcademicIssuer =
+    input.organizationNumber === "974767880" ||
+    organizationName.includes("ntnu") ||
+    organizationName.includes("university");
+
+  return hasIssuerRole && isAcademicIssuer;
+}
 
 export function PortalShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { user, organization, signOut } = usePortalAuth();
 
+  const navItems = useMemo(() => {
+    return NAV_ITEMS.filter((item) => {
+      if (!item.requiresIssuer) return true;
+
+      return canShowIssuePage({
+        role: user?.permissionLevel,
+        organizationName: organization?.name,
+        organizationNumber: organization?.organizationNumber,
+      });
+    });
+  }, [
+    organization?.name,
+    organization?.organizationNumber,
+    user?.permissionLevel,
+  ]);
+
+  const handleSignOut = () => {
+    signOut();
+    router.replace("/login");
+  };
+
   return (
     <View style={styles.screen}>
       <View style={styles.sidebar}>
         <View>
-          <Text style={styles.brand}>EduWallet Portal</Text>
-          <Text style={styles.orgName}>{organization?.name}</Text>
+          <View style={styles.brandBlock}>
+            <Text style={styles.brand}>EduWallet Portal</Text>
+            <Text style={styles.brandSubtitle}>
+              Organization access to student-owned academic records
+            </Text>
+          </View>
+
+          <View style={styles.organizationBox}>
+            <Text style={styles.organizationLabel}>Organization</Text>
+            <Text style={styles.orgName}>{organization?.name || "-"}</Text>
+            <Text style={styles.orgNumber}>
+              {organization?.organizationNumber || "-"}
+            </Text>
+          </View>
 
           <View style={styles.navSection}>
-            {NAV_ITEMS.map((item) => {
+            {navItems.map((item) => {
               const isActive =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -49,6 +132,14 @@ export function PortalShell({ children }: { children: ReactNode }) {
                   >
                     {item.label}
                   </Text>
+                  <Text
+                    style={[
+                      styles.navItemDescription,
+                      isActive && styles.navItemDescriptionActive,
+                    ]}
+                  >
+                    {item.description}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -56,23 +147,18 @@ export function PortalShell({ children }: { children: ReactNode }) {
         </View>
 
         <View style={styles.sidebarFooter}>
-          <Text style={styles.userName}>{user?.name}</Text>
-          <Text style={styles.userMeta}>{user?.email}</Text>
-          <Text style={styles.userMeta}>
-            {user?.permissionLevel} · {organization?.organizationNumber}
-          </Text>
+          <Text style={styles.footerLabel}>Signed in as</Text>
+          <Text style={styles.userName}>{user?.name || "-"}</Text>
+          <Text style={styles.userMeta}>{user?.email || "-"}</Text>
+          <Text style={styles.rolePill}>{formatRole(user?.permissionLevel)}</Text>
 
-          <Pressable style={styles.signOutButton} onPress={signOut}>
+          <Pressable style={styles.signOutButton} onPress={handleSignOut}>
             <Text style={styles.signOutButtonText}>Sign out</Text>
           </Pressable>
         </View>
       </View>
 
       <View style={styles.content}>
-        <View style={styles.topBar}>
-          <Text style={styles.topBarTitle}>Portal Workspace</Text>
-        </View>
-
         <View style={styles.contentInner}>{children}</View>
       </View>
     </View>
@@ -86,7 +172,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
   },
   sidebar: {
-    width: 280,
+    width: 300,
     backgroundColor: COLORS.surface,
     borderRightWidth: 1,
     borderRightColor: COLORS.border,
@@ -94,16 +180,44 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     justifyContent: "space-between",
   },
+  brandBlock: {
+    marginBottom: 22,
+  },
   brand: {
     color: COLORS.text,
     fontSize: 24,
     fontWeight: "700",
     marginBottom: 6,
   },
-  orgName: {
+  brandSubtitle: {
     color: COLORS.muted,
-    fontSize: 14,
-    marginBottom: 28,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  organizationBox: {
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 24,
+  },
+  organizationLabel: {
+    color: COLORS.muted,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  orgName: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  orgNumber: {
+    color: COLORS.muted,
+    fontSize: 13,
   },
   navSection: {
     gap: 10,
@@ -112,7 +226,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: "transparent",
-    borderRadius: 12,
+    borderRadius: 14,
     paddingVertical: 12,
     paddingHorizontal: 14,
   },
@@ -123,15 +237,31 @@ const styles = StyleSheet.create({
   navItemText: {
     color: COLORS.text,
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: "700",
+    marginBottom: 3,
   },
   navItemTextActive: {
     color: "#FFFFFF",
+  },
+  navItemDescription: {
+    color: COLORS.muted,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  navItemDescriptionActive: {
+    color: "#EAF1FF",
   },
   sidebarFooter: {
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
     paddingTop: 18,
+  },
+  footerLabel: {
+    color: COLORS.muted,
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginBottom: 8,
   },
   userName: {
     color: COLORS.text,
@@ -142,11 +272,24 @@ const styles = StyleSheet.create({
   userMeta: {
     color: COLORS.muted,
     fontSize: 13,
-    marginBottom: 8,
+    marginBottom: 10,
     lineHeight: 18,
   },
+  rolePill: {
+    alignSelf: "flex-start",
+    color: "#FFFFFF",
+    backgroundColor: COLORS.surfaceAlt,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 999,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    fontSize: 12,
+    fontWeight: "700",
+    marginBottom: 12,
+  },
   signOutButton: {
-    marginTop: 8,
+    marginTop: 4,
     backgroundColor: COLORS.surfaceAlt,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -156,24 +299,11 @@ const styles = StyleSheet.create({
   },
   signOutButtonText: {
     color: COLORS.text,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   content: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  topBar: {
-    height: 72,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    backgroundColor: COLORS.background,
-  },
-  topBarTitle: {
-    color: COLORS.text,
-    fontSize: 20,
-    fontWeight: "700",
   },
   contentInner: {
     flex: 1,

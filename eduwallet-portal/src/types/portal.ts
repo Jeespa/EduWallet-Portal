@@ -4,6 +4,7 @@ export type RequestStatus = "pending" | "approved" | "rejected";
 
 export type PortalRequest = {
   id: string;
+  studentId?: string | null;
   studentSca: string;
   requesterOrgName: string;
   permissionType: PermissionType;
@@ -13,6 +14,7 @@ export type PortalRequest = {
 };
 
 export type VerifyInput = {
+  studentId?: string;
   studentSca: string;
   certificateCid?: string;
   courseCode?: string;

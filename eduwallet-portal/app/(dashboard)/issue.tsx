@@ -10,10 +10,41 @@ import {
 import { useLocalSearchParams } from "expo-router";
 import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
 import { usePortalAuth } from "../../src/context/PortalAuthContext";
-import { MOCK_STUDENT_REFERENCES } from "../../src/lib/mockPortalStudents";
+import {
+  createIssuanceDraft,
+  submitIssuanceDraft,
+} from "../../src/lib/portalBackendApi";
+
+type SubmissionState =
+  | {
+      status: "idle";
+    }
+  | {
+      status: "submitted";
+      draftId: string;
+      updatedAt?: string;
+    };
+
+function canUseIssuancePage(input: {
+  role?: string;
+  organizationName?: string;
+  organizationNumber?: string;
+}) {
+  const role = input.role?.toLowerCase();
+  const organizationName = input.organizationName?.toLowerCase() ?? "";
+
+  const hasIssuerRole = role === "issuer" || role === "admin";
+
+  const isAcademicIssuer =
+    input.organizationNumber === "974767880" ||
+    organizationName.includes("ntnu") ||
+    organizationName.includes("university");
+
+  return hasIssuerRole && isAcademicIssuer;
+}
 
 export default function IssuePage() {
-  const { user, organization } = usePortalAuth();
+  const { token, user, organization } = usePortalAuth();
 
   const params = useLocalSearchParams<{
     studentId?: string;
@@ -30,7 +61,10 @@ export default function IssuePage() {
   const [evaluationDate, setEvaluationDate] = useState("");
   const [certificateCid, setCertificateCid] = useState("");
   const [error, setError] = useState("");
-  const [draftCreated, setDraftCreated] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submission, setSubmission] = useState<SubmissionState>({
+    status: "idle",
+  });
 
   useEffect(() => {
     if (typeof params.studentId === "string" && params.studentId.trim()) {
@@ -42,25 +76,11 @@ export default function IssuePage() {
     }
   }, [params.studentId, params.studentSca]);
 
-  const selectedStudent = useMemo(() => {
-    return MOCK_STUDENT_REFERENCES.find((student) => {
-      const studentIdMatches =
-        !!studentId.trim() && student.studentId === studentId.trim();
-
-      const studentScaMatches =
-        !!studentSca.trim() &&
-        student.studentSca.toLowerCase() === studentSca.trim().toLowerCase();
-
-      return studentIdMatches || studentScaMatches;
-    });
-  }, [studentId, studentSca]);
-
-  const hasWriteAccessForStudent =
-    selectedStudent?.permissionStatus === "write";
-
-  const canIssue =
-    (user?.permissionLevel === "admin" || user?.permissionLevel === "issuer") &&
-    hasWriteAccessForStudent;
+  const canIssue = canUseIssuancePage({
+    role: user?.permissionLevel,
+    organizationName: organization?.name,
+    organizationNumber: organization?.organizationNumber,
+  });
 
   const draftReady = useMemo(() => {
     return (
@@ -82,31 +102,17 @@ export default function IssuePage() {
     evaluationDate,
   ]);
 
-  const handleCreateDraft = () => {
+  const handleSubmitResult = async () => {
     setError("");
-    setDraftCreated(false);
+    setSubmission({ status: "idle" });
 
-    if (
-      user?.permissionLevel !== "admin" &&
-      user?.permissionLevel !== "issuer"
-    ) {
-      setError(
-        "Your account does not currently have permission to issue results.",
-      );
+    if (!token) {
+      setError("You must be logged in to submit academic results.");
       return;
     }
 
-    if (!selectedStudent) {
-      setError(
-        "Selected student could not be found in the current portal data.",
-      );
-      return;
-    }
-
-    if (selectedStudent.permissionStatus !== "write") {
-      setError(
-        "This organization does not currently have write access for the selected student.",
-      );
+    if (!canIssue) {
+      setError("Your account does not have permission to issue results.");
       return;
     }
 
@@ -145,54 +151,71 @@ export default function IssuePage() {
       return;
     }
 
-    setDraftCreated(true);
+    setSubmitting(true);
+
+    try {
+      const draft = await createIssuanceDraft(token, {
+        studentId: studentId.trim(),
+        studentSca: studentSca.trim(),
+        courseCode: courseCode.trim().toUpperCase(),
+        courseName: courseName.trim(),
+        degreeCourse: degreeCourse.trim() || undefined,
+        ects: ects.trim(),
+        grade: grade.trim().toUpperCase(),
+        evaluationDate: evaluationDate.trim(),
+        certificateCid: certificateCid.trim() || undefined,
+      });
+
+      const submitted = await submitIssuanceDraft(token, draft.id);
+
+      setSubmission({
+        status: "submitted",
+        draftId: submitted.id ?? draft.id,
+        updatedAt: submitted.updatedAt,
+      });
+    } catch (err: any) {
+      setError(err?.message || "Failed to submit academic result.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
+  if (!canIssue) {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.title}>Issue result</Text>
+        <Text style={styles.subtitle}>
+          Submit course results to a student’s EduWallet when write access is
+          available.
+        </Text>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Access restricted</Text>
+          <Text style={styles.emptyText}>
+            Your account does not have permission to issue academic results.
+          </Text>
+        </View>
+      </ScrollView>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <Text style={styles.title}>Issue</Text>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.title}>Issue result</Text>
       <Text style={styles.subtitle}>
-        Prepare new academic result entries for issuance to an existing
-        EduWallet student.
+        Submit a course result to the selected student’s EduWallet.
       </Text>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Issuance context</Text>
-
-        <View style={styles.infoBlock}>
-          <Text style={styles.label}>Organization</Text>
-          <Text style={styles.value}>{organization?.name || "-"}</Text>
-        </View>
-
-        <View style={styles.infoBlock}>
-          <Text style={styles.label}>Signed-in user</Text>
-          <Text style={styles.value}>{user?.name || "-"}</Text>
-        </View>
-
-        <View style={styles.infoBlock}>
-          <Text style={styles.label}>Permission level</Text>
-          <Text style={styles.value}>{user?.permissionLevel || "-"}</Text>
-        </View>
-
-        <View
-          style={[
-            styles.statusBox,
-            canIssue ? styles.statusAllowed : styles.statusRestricted,
-          ]}
-        >
-          <Text style={styles.statusTitle}>
-            {canIssue ? "Issuance enabled" : "Issuance restricted"}
-          </Text>
-          <Text style={styles.statusText}>
-            {canIssue
-              ? "This account can prepare issuance drafts for the selected student. On-chain submission is still pending backend integration."
-              : "Issuance requires both an issuer/admin account and write access for the selected student."}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Draft academic result</Text>
+        <Text style={styles.cardTitle}>Academic result</Text>
 
         {studentId || studentSca ? (
           <View style={styles.selectedStudentBox}>
@@ -209,13 +232,6 @@ export default function IssuePage() {
                 Smart-account: {studentSca}
               </Text>
             ) : null}
-
-            <Text style={styles.selectedStudentText}>
-              Current access:{" "}
-              {selectedStudent?.permissionStatus
-                ? selectedStudent.permissionStatus
-                : "unknown"}
-            </Text>
           </View>
         ) : null}
 
@@ -224,7 +240,7 @@ export default function IssuePage() {
           <TextInput
             value={studentId}
             onChangeText={setStudentId}
-            placeholder="s123456"
+            placeholder="Generated student ID"
             placeholderTextColor={COLORS.muted}
             style={styles.input}
             autoCapitalize="none"
@@ -249,7 +265,7 @@ export default function IssuePage() {
             <TextInput
               value={courseCode}
               onChangeText={setCourseCode}
-              placeholder="IDATT2104"
+              placeholder="TEST1001"
               placeholderTextColor={COLORS.muted}
               style={styles.input}
               autoCapitalize="characters"
@@ -274,7 +290,7 @@ export default function IssuePage() {
           <TextInput
             value={courseName}
             onChangeText={setCourseName}
-            placeholder="Distributed Systems"
+            placeholder="Portal Integration Test"
             placeholderTextColor={COLORS.muted}
             style={styles.input}
           />
@@ -331,12 +347,12 @@ export default function IssuePage() {
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        {draftCreated ? (
+        {submission.status === "submitted" ? (
           <View style={styles.successBox}>
-            <Text style={styles.successTitle}>Draft created</Text>
+            <Text style={styles.successTitle}>Result submitted</Text>
             <Text style={styles.successText}>
-              The issuance draft has been prepared locally. The final submission
-              to the backend/on-chain flow is not yet connected.
+              The result was submitted through the portal backend and written to
+              EduWallet. Draft ID: {submission.draftId}
             </Text>
           </View>
         ) : null}
@@ -344,16 +360,19 @@ export default function IssuePage() {
         <Pressable
           style={[
             styles.createButton,
-            !canIssue && styles.createButtonDisabled,
+            submitting && styles.createButtonDisabled,
           ]}
-          onPress={handleCreateDraft}
+          onPress={handleSubmitResult}
+          disabled={submitting}
         >
-          <Text style={styles.createButtonText}>Create draft issuance</Text>
+          <Text style={styles.createButtonText}>
+            {submitting ? "Submitting..." : "Create and submit result"}
+          </Text>
         </Pressable>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Draft preview</Text>
+        <Text style={styles.cardTitle}>Result preview</Text>
 
         {draftReady ? (
           <>
@@ -368,14 +387,9 @@ export default function IssuePage() {
             </View>
 
             <View style={styles.infoBlock}>
-              <Text style={styles.label}>Issuer</Text>
-              <Text style={styles.value}>{organization?.name || "-"}</Text>
-            </View>
-
-            <View style={styles.infoBlock}>
               <Text style={styles.label}>Course</Text>
               <Text style={styles.value}>
-                {courseCode} — {courseName}
+                {courseCode.toUpperCase()} — {courseName}
               </Text>
             </View>
 
@@ -391,7 +405,7 @@ export default function IssuePage() {
 
             <View style={styles.infoBlock}>
               <Text style={styles.label}>Grade</Text>
-              <Text style={styles.value}>{grade}</Text>
+              <Text style={styles.value}>{grade.toUpperCase()}</Text>
             </View>
 
             <View style={styles.infoBlock}>
@@ -406,7 +420,7 @@ export default function IssuePage() {
           </>
         ) : (
           <Text style={styles.emptyText}>
-            Fill out the required fields to preview the draft issuance record.
+            Fill out the required fields to preview the academic result.
           </Text>
         )}
       </View>
@@ -481,35 +495,13 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 220,
   },
-  statusBox: {
-    borderRadius: 12,
-    padding: 14,
-    marginTop: 8,
-  },
-  statusAllowed: {
-    backgroundColor: "#1E5A3A",
-  },
-  statusRestricted: {
-    backgroundColor: "#5B4A1F",
-  },
-  statusTitle: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 6,
-  },
-  statusText: {
-    color: "#FFFFFF",
-    fontSize: 13,
-    lineHeight: 18,
-  },
   error: {
     color: COLORS.danger,
     marginBottom: 14,
     fontSize: 14,
   },
   successBox: {
-    backgroundColor: "#1E5A3A",
+    backgroundColor: COLORS.success,
     borderRadius: 12,
     padding: 14,
     marginBottom: 14,
@@ -531,7 +523,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
-    maxWidth: 240,
+    maxWidth: 260,
   },
   createButtonDisabled: {
     opacity: 0.65,
@@ -544,6 +536,7 @@ const styles = StyleSheet.create({
   emptyText: {
     color: COLORS.muted,
     fontSize: 15,
+    lineHeight: 22,
   },
   selectedStudentBox: {
     backgroundColor: COLORS.surfaceAlt,

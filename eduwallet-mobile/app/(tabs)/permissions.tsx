@@ -16,6 +16,7 @@ import {
   getPermissions,
   revokePermission,
   grantPermission,
+  getFriendlyApiErrorMessage,
 } from "../../lib/api";
 import type { PermissionStatus } from "../../types";
 
@@ -49,6 +50,7 @@ export default function PermissionsScreen() {
   const [password, setPassword] = useState("");
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   // The university that the user is currently acting on
   const [selectedPerm, setSelectedPerm] = useState<PermissionStatus | null>(
@@ -114,6 +116,7 @@ export default function PermissionsScreen() {
     setPendingAction(action);
     setSelectedPerm(perm);
     setPassword("");
+    setModalError(null);
     setPasswordModalVisible(true);
   };
 
@@ -127,6 +130,7 @@ export default function PermissionsScreen() {
     setPendingAction(null);
     setSelectedPerm(null);
     setPassword("");
+    setModalError(null);
   };
 
   /**
@@ -136,14 +140,21 @@ export default function PermissionsScreen() {
    */
   const refreshPermissions = async (id: string, password: string) => {
     if (!sca) return;
+
     setLoading(true);
     setError(null);
+
     try {
       const permissions = await getPermissions(sca, id, password);
       const mapped = mapPermissionsToStatuses(permissions);
       setPerms(mapped);
-    } catch (e: any) {
-      setError(e.message || "Failed to load permissions");
+    } catch (e: unknown) {
+      const message = getFriendlyApiErrorMessage(
+        e,
+        "Failed to refresh permissions.",
+      );
+
+      throw new Error(message);
     } finally {
       setLoading(false);
     }
@@ -155,8 +166,10 @@ export default function PermissionsScreen() {
    */
   const confirmAction = async () => {
     if (!sca || !id || !pendingAction || !password) return;
+
     setSubmitting(true);
     setError(null);
+    setModalError(null);
 
     try {
       if (pendingAction === "refresh") {
@@ -181,8 +194,15 @@ export default function PermissionsScreen() {
 
       await refreshPermissions(id, password);
       closeModal();
-    } catch (e: any) {
-      setError(e.message || "Action failed");
+    } catch (e: unknown) {
+      const message = getFriendlyApiErrorMessage(
+        e,
+        pendingAction === "refresh"
+          ? "Failed to refresh permissions."
+          : "Permission action failed.",
+      );
+
+      setModalError(message);
     } finally {
       setSubmitting(false);
     }
@@ -347,8 +367,16 @@ export default function PermissionsScreen() {
               placeholderTextColor="#777"
               secureTextEntry
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(value) => {
+                setPassword(value);
+                setModalError(null);
+              }}
             />
+
+            {modalError ? (
+              <Text style={styles.modalError}>{modalError}</Text>
+            ) : null}
+
             <View style={styles.modalButtonsRow}>
               <Pressable
                 style={styles.modalButton}
@@ -462,6 +490,11 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     marginBottom: 12,
     color: "#ffffff",
+  },
+  modalError: {
+    color: "#ff6b6b",
+    fontSize: 13,
+    marginBottom: 12,
   },
   modalButtonsRow: {
     flexDirection: "row",

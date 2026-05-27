@@ -1,100 +1,232 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import { router } from "expo-router";
+import { useEffect, useMemo, useState } from "react";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
 import { usePortalAuth } from "../../src/context/PortalAuthContext";
-import { MOCK_REQUESTS } from "../../src/lib/mockPortalRequests";
-import { getDashboardSummary } from "../../src/lib/mockPortalDashboard";
+import { listPortalRequests } from "../../src/lib/portalBackendApi";
+import type { PortalRequest } from "../../src/types/portal";
+
+type RequestSummary = {
+  total: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+};
+
+function formatRole(role?: string) {
+  if (!role) return "-";
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+function buildRequestSummary(requests: PortalRequest[]): RequestSummary {
+  return requests.reduce(
+    (summary, request) => {
+      summary.total += 1;
+
+      if (request.status === "approved") {
+        summary.approved += 1;
+      } else if (request.status === "rejected") {
+        summary.rejected += 1;
+      } else {
+        summary.pending += 1;
+      }
+
+      return summary;
+    },
+    {
+      total: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+    },
+  );
+}
+
+function formatStatus(status: PortalRequest["status"]) {
+  switch (status) {
+    case "approved":
+      return "Approved";
+    case "rejected":
+      return "Rejected";
+    case "pending":
+    default:
+      return "Pending";
+  }
+}
+
+function formatPermission(permissionType: PortalRequest["permissionType"]) {
+  return permissionType === "write" ? "Write access" : "Read access";
+}
+
+function formatActivityText(request: PortalRequest) {
+  const studentLabel = request.studentId
+    ? `student ${request.studentId}`
+    : "a student";
+
+  return `${formatPermission(request.permissionType)} requested for ${studentLabel}`;
+}
 
 export default function DashboardHome() {
-  const { user, organization } = usePortalAuth();
-  const summary = getDashboardSummary(MOCK_REQUESTS);
+  const { token, user, organization } = usePortalAuth();
+
+  const [requests, setRequests] = useState<PortalRequest[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDashboardData() {
+      if (!token) return;
+
+      setLoading(true);
+      setLoadError("");
+
+      try {
+        const result = await listPortalRequests(token);
+
+        if (!cancelled) {
+          setRequests(result);
+        }
+      } catch (err: any) {
+        if (!cancelled) {
+          setLoadError(err?.message || "Could not load dashboard data.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDashboardData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  const summary = useMemo(() => buildRequestSummary(requests), [requests]);
+
+  const recentRequests = useMemo(() => {
+    return [...requests].slice(0, 5);
+  }, [requests]);
+
+  const roleLabel = formatRole(user?.permissionLevel);
 
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.title}>Dashboard</Text>
       <Text style={styles.subtitle}>
-        Welcome back, {user?.name}. Here is an overview of your portal activity.
+        Overview of the current organization workspace.
       </Text>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Organization</Text>
+        <Text style={styles.cardTitle}>Current session</Text>
 
-        <View style={styles.infoBlock}>
-          <Text style={styles.label}>Organization name</Text>
-          <Text style={styles.value}>{organization?.name || "-"}</Text>
-        </View>
+        <View style={styles.sessionGrid}>
+          <View style={styles.infoBlock}>
+            <Text style={styles.label}>Organization</Text>
+            <Text style={styles.value}>{organization?.name || "-"}</Text>
+          </View>
 
-        <View style={styles.infoBlock}>
-          <Text style={styles.label}>Organization number</Text>
-          <Text style={styles.value}>
-            {organization?.organizationNumber || "-"}
-          </Text>
-        </View>
+          <View style={styles.infoBlock}>
+            <Text style={styles.label}>Organization number</Text>
+            <Text style={styles.value}>
+              {organization?.organizationNumber || "-"}
+            </Text>
+          </View>
 
-        <View style={styles.infoBlock}>
-          <Text style={styles.label}>Signed-in user</Text>
-          <Text style={styles.value}>{user?.name || "-"}</Text>
-        </View>
+          <View style={styles.infoBlock}>
+            <Text style={styles.label}>Signed-in user</Text>
+            <Text style={styles.value}>{user?.name || "-"}</Text>
+          </View>
 
-        <View style={styles.infoBlock}>
-          <Text style={styles.label}>Email</Text>
-          <Text style={styles.value}>{user?.email || "-"}</Text>
-        </View>
-
-        <View style={styles.infoBlock}>
-          <Text style={styles.label}>Permission level</Text>
-          <Text style={styles.value}>{user?.permissionLevel || "-"}</Text>
+          <View style={styles.infoBlock}>
+            <Text style={styles.label}>Role</Text>
+            <Text style={styles.value}>{roleLabel}</Text>
+          </View>
         </View>
       </View>
 
-      <View style={styles.statsRow}>
-        <View style={styles.statCard}>
-          <Text style={styles.statValue}>{summary.total}</Text>
-          <Text style={styles.statLabel}>Total requests</Text>
-        </View>
-
+      <View style={styles.overviewGrid}>
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{summary.pending}</Text>
-          <Text style={styles.statLabel}>Pending</Text>
+          <Text style={styles.statLabel}>Pending requests</Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{summary.approved}</Text>
-          <Text style={styles.statLabel}>Approved</Text>
+          <Text style={styles.statLabel}>Approved requests</Text>
         </View>
 
         <View style={styles.statCard}>
           <Text style={styles.statValue}>{summary.rejected}</Text>
-          <Text style={styles.statLabel}>Rejected</Text>
+          <Text style={styles.statLabel}>Rejected requests</Text>
+        </View>
+
+        <View style={styles.statCard}>
+          <Text style={styles.statValue}>{summary.total}</Text>
+          <Text style={styles.statLabel}>Total requests</Text>
         </View>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Quick actions</Text>
-
-        <View style={styles.actionsRow}>
-          <Pressable
-            style={styles.actionButton}
-            onPress={() => router.push("/requests")}
-          >
-            <Text style={styles.actionButtonTitle}>New Request</Text>
-            <Text style={styles.actionButtonText}>
-              Request read or write access from a student.
-            </Text>
-          </Pressable>
-
-          <Pressable
-            style={styles.actionButton}
-            onPress={() => router.push("/verify")}
-          >
-            <Text style={styles.actionButtonTitle}>Verify Certificate</Text>
-            <Text style={styles.actionButtonText}>
-              Check a certificate or result using mock verification.
-            </Text>
-          </Pressable>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.cardTitle}>Recent activity</Text>
+          {loading ? <Text style={styles.headerMeta}>Loading...</Text> : null}
         </View>
+
+        {loadError ? <Text style={styles.error}>{loadError}</Text> : null}
+
+        {!loading && !loadError && recentRequests.length === 0 ? (
+          <Text style={styles.emptyText}>
+            No recent activity yet. Activity will appear here when access
+            requests, verifications, or submissions are created.
+          </Text>
+        ) : null}
+
+        {recentRequests.map((request) => (
+          <View key={request.id} style={styles.activityItem}>
+            <View style={styles.activityHeader}>
+              <Text style={styles.activityTitle}>
+                {formatActivityText(request)}
+              </Text>
+
+              <View
+                style={[
+                  styles.statusBadge,
+                  request.status === "approved"
+                    ? styles.statusApproved
+                    : request.status === "rejected"
+                      ? styles.statusRejected
+                      : styles.statusPending,
+                ]}
+              >
+                <Text style={styles.statusBadgeText}>
+                  {formatStatus(request.status)}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.activityMeta}>
+              Smart-account: {request.studentSca}
+            </Text>
+
+            <Text style={styles.activityMeta}>
+              Created: {request.createdAt}
+            </Text>
+
+            {request.reason ? (
+              <Text style={styles.activityReason}>{request.reason}</Text>
+            ) : null}
+          </View>
+        ))}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -102,6 +234,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
+  },
+  content: {
+    paddingBottom: 24,
   },
   title: {
     color: COLORS.text,
@@ -112,7 +247,8 @@ const styles = StyleSheet.create({
   subtitle: {
     color: COLORS.muted,
     fontSize: 16,
-    marginBottom: 24,
+    lineHeight: 23,
+    marginBottom: 22,
   },
   card: {
     backgroundColor: COLORS.surface,
@@ -120,21 +256,22 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: 20,
     padding: 22,
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
+    marginBottom: 18,
   },
   cardTitle: {
     color: COLORS.text,
     fontSize: 20,
     fontWeight: "700",
-    marginBottom: 18,
+  },
+  sessionGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 18,
+    marginTop: 18,
   },
   infoBlock: {
-    marginBottom: 14,
+    minWidth: 220,
+    flex: 1,
   },
   label: {
     color: COLORS.muted,
@@ -144,18 +281,17 @@ const styles = StyleSheet.create({
   value: {
     color: COLORS.text,
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
   },
-  statsRow: {
+  overviewGrid: {
     flexDirection: "row",
-    gap: 16,
-    marginBottom: 20,
     flexWrap: "wrap",
-    alignItems: "stretch",
+    gap: 16,
+    marginBottom: 18,
   },
   statCard: {
-    minWidth: 180,
     flex: 1,
+    minWidth: 180,
     backgroundColor: COLORS.surfaceAlt,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -173,30 +309,77 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  actionsRow: {
+  sectionHeader: {
     flexDirection: "row",
-    gap: 16,
-    flexWrap: "wrap",
-    alignItems: "stretch",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 18,
+    gap: 12,
   },
-  actionButton: {
-    flex: 1,
-    minWidth: 260,
+  headerMeta: {
+    color: COLORS.muted,
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  emptyText: {
+    color: COLORS.muted,
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  error: {
+    color: COLORS.danger,
+    fontSize: 14,
+    marginBottom: 12,
+  },
+  activityItem: {
     backgroundColor: COLORS.surfaceAlt,
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 18,
-    padding: 20,
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
   },
-  actionButtonTitle: {
-    color: COLORS.text,
-    fontSize: 17,
-    fontWeight: "700",
+  activityHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+    alignItems: "flex-start",
     marginBottom: 8,
   },
-  actionButtonText: {
+  activityTitle: {
+    color: COLORS.text,
+    fontSize: 15,
+    fontWeight: "700",
+    flex: 1,
+  },
+  activityMeta: {
     color: COLORS.muted,
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  activityReason: {
+    color: COLORS.text,
     fontSize: 14,
     lineHeight: 20,
+    marginTop: 8,
+  },
+  statusBadge: {
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  statusPending: {
+    backgroundColor: COLORS.warning,
+  },
+  statusApproved: {
+    backgroundColor: COLORS.success,
+  },
+  statusRejected: {
+    backgroundColor: COLORS.dangerDark,
+  },
+  statusBadgeText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: "700",
   },
 });

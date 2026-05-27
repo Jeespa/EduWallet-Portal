@@ -33,6 +33,16 @@ const FILTER_OPTIONS: Array<{ value: PermissionFilter; label: string }> = [
   { value: "none", label: "No Access" },
 ];
 
+function getRequestButtonLabel(status: PermissionStatus) {
+  if (status === "read") return "Request write access";
+  return "Request access";
+}
+
+function getRequestPermissionType(status: PermissionStatus) {
+  if (status === "read") return "write";
+  return "read";
+}
+
 export default function StudentsPage() {
   const { token } = usePortalAuth();
 
@@ -129,7 +139,11 @@ export default function StudentsPage() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.title}>Students</Text>
       <Text style={styles.subtitle}>
         Look up existing EduWallet students by student ID or smart-account
@@ -197,6 +211,10 @@ export default function StudentsPage() {
           ? filteredStudents.map((student) => {
               const permissionStatus = student.permissionStatus ?? "none";
               const canIssueResult = permissionStatus === "write";
+              const requestPending =
+                permissionStatus === "pending-read" ||
+                permissionStatus === "pending-write";
+              const canRequestAccess = permissionStatus !== "write";
 
               return (
                 <View key={student.studentId} style={styles.studentCard}>
@@ -232,22 +250,34 @@ export default function StudentsPage() {
                   </View>
 
                   <View style={styles.actionsRow}>
-                    <Pressable
-                      style={styles.primaryButton}
-                      onPress={() =>
-                        router.push({
-                          pathname: "/requests",
-                          params: {
-                            studentId: student.studentId,
-                            studentSca: student.studentSca,
-                          },
-                        })
-                      }
-                    >
-                      <Text style={styles.primaryButtonText}>
-                        Request access
-                      </Text>
-                    </Pressable>
+                    {canRequestAccess ? (
+                      requestPending ? (
+                        <View style={styles.disabledButton}>
+                          <Text style={styles.disabledButtonText}>
+                            Request pending
+                          </Text>
+                        </View>
+                      ) : (
+                        <Pressable
+                          style={styles.primaryButton}
+                          onPress={() =>
+                            router.push({
+                              pathname: "/requests",
+                              params: {
+                                studentId: student.studentId,
+                                studentSca: student.studentSca,
+                                permissionType:
+                                  getRequestPermissionType(permissionStatus),
+                              },
+                            })
+                          }
+                        >
+                          <Text style={styles.primaryButtonText}>
+                            {getRequestButtonLabel(permissionStatus)}
+                          </Text>
+                        </Pressable>
+                      )
+                    ) : null}
 
                     <Pressable
                       style={styles.secondaryButton}
@@ -414,4 +444,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
   },
   secondaryButtonText: { color: COLORS.text, fontWeight: "700" },
+  disabledButton: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    opacity: 0.75,
+  },
+  disabledButtonText: {
+    color: COLORS.muted,
+    fontWeight: "700",
+  },
 });
