@@ -3,13 +3,17 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "lint": "expo lint"
-  },
+  "start": "expo start",
+  "reset-project": "node ./scripts/reset-project.js",
+  "android": "expo start --android",
+  "ios": "expo start --ios",
+  "web": "expo start --web",
+  "lint": "expo lint",
+  "export:web": "npx expo export -p web",
+  "export:web:demo": "set EXPO_PUBLIC_PORTAL_BACKEND_BASE_URL=/api&& npx expo export -p web",
+  "serve:demo": "node demo-server.mjs",
+  "demo:web": "npm run export:web:demo && npm run serve:demo"
+},
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
     "@react-navigation/bottom-tabs": "^7.4.0",

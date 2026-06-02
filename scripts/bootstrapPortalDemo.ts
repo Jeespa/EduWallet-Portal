@@ -1,6 +1,6 @@
 // scripts/bootstrapPortalDemo.ts
-
-import { ethers } from "hardhat";
+import type { Wallet } from "ethers";
+import { ethers, network } from "hardhat";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { pbkdf2Sync } from "node:crypto";
 import path from "node:path";
@@ -9,6 +9,7 @@ import { registerStudent, enrollStudent, evaluateStudent } from "../sdk/dist";
 
 const NTNU_ORG_NUMBER = "974767880";
 const NORDIC_HIRING_ORG_NUMBER = "999888777";
+const TBS_ORG_NUMBER = "123456789";
 
 // Local development keys only. Never use these outside local Hardhat testing.
 const NTNU_PRIVATE_KEY =
@@ -16,6 +17,50 @@ const NTNU_PRIVATE_KEY =
 
 const NORDIC_HIRING_PRIVATE_KEY =
   "0x2222222222222222222222222222222222222222222222222222222222222222";
+
+const TRONDHEIM_BUSINESS_SCHOOL_PRIVATE_KEY =
+  "0x3333333333333333333333333333333333333333333333333333333333333333";
+
+const STUDENT_PERMISSION_ABI = [
+  "function grantPermission(bytes32 permissionType, address university)",
+];
+
+type PermissionLevel = "none" | "read" | "write";
+type RegisteringOrganization = "ntnu" | "tbs";
+type AccessOrganization = "ntnu" | "nordicHiring";
+
+type CourseSeed = {
+  code: string;
+  name: string;
+  degreeCourse: string;
+  ects: number;
+  grade: string;
+  evaluationDate: string;
+};
+
+type StudentSeed = {
+  name: string;
+  surname: string;
+  birthDate: string;
+  birthPlace: string;
+  country: string;
+  homeInstitution: string;
+  registeredBy: RegisteringOrganization;
+  initialAccess?: Partial<Record<AccessOrganization, PermissionLevel>>;
+  courses: CourseSeed[];
+  testPurpose: string;
+};
+
+type GeneratedStudent = {
+  studentId: string;
+  password: string;
+  studentSca: string;
+  ownerAddress: string;
+  name: string;
+  homeInstitution: string;
+  registeredBy: RegisteringOrganization;
+  testPurpose: string;
+};
 
 function deriveStudentOwnerPrivateKey(
   password: string,
@@ -30,6 +75,143 @@ function deriveStudentOwnerPrivateKey(
   ).toString("hex");
 
   return "0x" + derivedKey;
+}
+
+function fullName(student: StudentSeed) {
+  return `${student.name} ${student.surname}`;
+}
+
+async function grantPermissionLocally(input: {
+  studentSca: string;
+  organizationSmartAccount: string;
+  permission: Exclude<PermissionLevel, "none">;
+}) {
+  const permissionRole =
+    input.permission === "write"
+      ? ethers.id("WRITER_ROLE")
+      : ethers.id("READER_ROLE");
+
+  await network.provider.send("hardhat_setBalance", [
+    input.studentSca,
+    ethers.toQuantity(ethers.parseEther("10000")),
+  ]);
+
+  await network.provider.request({
+    method: "hardhat_impersonateAccount",
+    params: [input.studentSca],
+  });
+
+  try {
+    const studentAsSelfSigner = await ethers.getSigner(input.studentSca);
+
+    const studentContract = await ethers.getContractAt(
+      STUDENT_PERMISSION_ABI,
+      input.studentSca,
+      studentAsSelfSigner,
+    );
+
+    await (
+      await studentContract.grantPermission(
+        permissionRole,
+        input.organizationSmartAccount,
+      )
+    ).wait();
+  } finally {
+    await network.provider.request({
+      method: "hardhat_stopImpersonatingAccount",
+      params: [input.studentSca],
+    });
+  }
+}
+
+async function createDemoStudent(input: {
+  student: StudentSeed;
+  issuerWallet: Wallet;
+  deployerSendTransaction: (tx: {
+    to: string;
+    value: bigint;
+  }) => Promise<{ wait: () => Promise<unknown> }>;
+  organizationSmartAccounts: Record<AccessOrganization, string>;
+}): Promise<GeneratedStudent> {
+  const created = await registerStudent(input.issuerWallet as any, {
+    name: input.student.name,
+    surname: input.student.surname,
+    birthDate: input.student.birthDate,
+    birthPlace: input.student.birthPlace,
+    country: input.student.country,
+  });
+
+  const ownerPrivateKey = deriveStudentOwnerPrivateKey(
+    created.password,
+    created.id,
+  );
+
+  const ownerWallet = new ethers.Wallet(ownerPrivateKey, ethers.provider);
+
+  await (
+    await input.deployerSendTransaction({
+      to: ownerWallet.address,
+      value: ethers.parseEther("10000"),
+    })
+  ).wait();
+
+  await enrollStudent(
+    input.issuerWallet as any,
+    created.academicWalletAddress,
+    input.student.courses.map((course) => ({
+      code: course.code,
+      name: course.name,
+      degreeCourse: course.degreeCourse,
+      ects: course.ects,
+    })),
+  );
+
+  await evaluateStudent(
+    input.issuerWallet as any,
+    created.academicWalletAddress,
+    input.student.courses.map((course) => ({
+      code: course.code,
+      grade: course.grade,
+      evaluationDate: course.evaluationDate,
+    })),
+  );
+
+  for (const organization of Object.keys(
+    input.student.initialAccess ?? {},
+  ) as AccessOrganization[]) {
+    const permission = input.student.initialAccess?.[organization];
+
+    if (!permission || permission === "none") {
+      continue;
+    }
+
+    await grantPermissionLocally({
+      studentSca: created.academicWalletAddress,
+      organizationSmartAccount: input.organizationSmartAccounts[organization],
+      permission,
+    });
+  }
+
+  console.log("");
+  console.log("Student registered:");
+  console.log("Name:             ", fullName(input.student));
+  console.log("Registered by:    ", input.student.registeredBy);
+  console.log("Student ID:       ", created.id);
+  console.log("Student password: ", created.password);
+  console.log("Student SCA:      ", created.academicWalletAddress);
+  console.log("Owner EOA:        ", ownerWallet.address);
+  console.log("Test purpose:     ", input.student.testPurpose);
+
+  return {
+    studentId: created.id,
+    password: created.password,
+    studentSca: created.academicWalletAddress,
+    ownerAddress: ownerWallet.address,
+    name: fullName(input.student),
+    homeInstitution: input.student.homeInstitution,
+    registeredBy: input.student.registeredBy,
+    testPurpose: input.student.testPurpose,
+  };
 }
 
 async function main() {
@@ -69,9 +251,7 @@ async function main() {
   await studentsRegister.waitForDeployment();
 
   const PaymasterFactory = await ethers.getContractFactory("Paymaster");
-  const paymaster = await PaymasterFactory.deploy(
-    await entryPoint.getAddress(),
-  );
+  const paymaster = await PaymasterFactory.deploy(await entryPoint.getAddress());
   await paymaster.waitForDeployment();
 
   await (
@@ -81,11 +261,11 @@ async function main() {
   ).wait();
 
   console.log("Contracts deployed:");
-  console.log("EntryPoint:      ", await entryPoint.getAddress());
-  console.log("StudentDeployer: ", await studentDeployer.getAddress());
-  console.log("UniversityDepl.: ", await universityDeployer.getAddress());
-  console.log("StudentsRegister:", await studentsRegister.getAddress());
-  console.log("Paymaster:       ", await paymaster.getAddress());
+  console.log("EntryPoint:       ", await entryPoint.getAddress());
+  console.log("StudentDeployer:  ", await studentDeployer.getAddress());
+  console.log("UniversityDepl.:  ", await universityDeployer.getAddress());
+  console.log("StudentsRegister: ", await studentsRegister.getAddress());
+  console.log("Paymaster:        ", await paymaster.getAddress());
 
   // ---------------------------------------------------------------------------
   // 2. Create fixed organization wallets
@@ -95,24 +275,22 @@ async function main() {
     NORDIC_HIRING_PRIVATE_KEY,
     ethers.provider,
   );
+  const tbsWallet = new ethers.Wallet(
+    TRONDHEIM_BUSINESS_SCHOOL_PRIVATE_KEY,
+    ethers.provider,
+  );
 
-  // Fund org wallets so they can interact with local chain.
-  await (
-    await deployer.sendTransaction({
-      to: ntnuWallet.address,
-      value: ethers.parseEther("10000"),
-    })
-  ).wait();
-
-  await (
-    await deployer.sendTransaction({
-      to: nordicHiringWallet.address,
-      value: ethers.parseEther("10000"),
-    })
-  ).wait();
+  for (const wallet of [ntnuWallet, nordicHiringWallet, tbsWallet]) {
+    await (
+      await deployer.sendTransaction({
+        to: wallet.address,
+        value: ethers.parseEther("10000"),
+      })
+    ).wait();
+  }
 
   // ---------------------------------------------------------------------------
-  // 3. Subscribe NTNU and Nordic Hiring as on-chain organization accounts
+  // 3. Subscribe organizations as on-chain organization accounts
   // ---------------------------------------------------------------------------
   await (
     await studentsRegister.subscribe(
@@ -132,9 +310,20 @@ async function main() {
     )
   ).wait();
 
+  await (
+    await studentsRegister.subscribe(
+      tbsWallet.address,
+      "Trondheim Business School",
+      "Norway",
+      "TBS",
+    )
+  ).wait();
+
+  console.log("");
   console.log("Organizations subscribed:");
-  console.log("NTNU EOA:         ", ntnuWallet.address);
-  console.log("Nordic Hiring EOA:", nordicHiringWallet.address);
+  console.log("NTNU EOA:                    ", ntnuWallet.address);
+  console.log("Nordic Hiring EOA:           ", nordicHiringWallet.address);
+  console.log("Trondheim Business School EOA:", tbsWallet.address);
 
   const ntnuSmartAccountAddress = await studentsRegister
     .connect(ntnuWallet)
@@ -144,83 +333,235 @@ async function main() {
     .connect(nordicHiringWallet)
     .getUniversityAccount();
 
-  console.log("NTNU smart account:         ", ntnuSmartAccountAddress);
-  console.log("Nordic Hiring smart account:", nordicHiringSmartAccountAddress);
+  const tbsSmartAccountAddress = await studentsRegister
+    .connect(tbsWallet)
+    .getUniversityAccount();
+
+  console.log("NTNU smart account:                    ", ntnuSmartAccountAddress);
+  console.log("Nordic Hiring smart account:           ", nordicHiringSmartAccountAddress);
+  console.log("Trondheim Business School smart account:", tbsSmartAccountAddress);
+
+  const organizationSmartAccounts: Record<AccessOrganization, string> = {
+    ntnu: ntnuSmartAccountAddress,
+    nordicHiring: nordicHiringSmartAccountAddress,
+  };
 
   // ---------------------------------------------------------------------------
-  // 4. Register a real EduWallet student through NTNU
+  // 4. Register students for the user test
   // ---------------------------------------------------------------------------
-  const anna = await registerStudent(ntnuWallet as any, {
-    name: "Anna",
-    surname: "Berg",
-    birthDate: "2000-04-12",
-    birthPlace: "Trondheim",
-    country: "Norway",
-  });
-
-  console.log("Student registered:");
-  console.log("Student ID:       ", anna.id);
-  console.log("Student password: ", anna.password);
-  console.log("Student SCA:      ", anna.academicWalletAddress);
-
-  const annaOwnerPrivateKey = deriveStudentOwnerPrivateKey(
-    anna.password,
-    anna.id,
-  );
-
-  const annaOwnerWallet = new ethers.Wallet(
-    annaOwnerPrivateKey,
-    ethers.provider,
-  );
-
-  await (
-    await deployer.sendTransaction({
-      to: annaOwnerWallet.address,
-      value: ethers.parseEther("10000"),
-    })
-  ).wait();
-
-  console.log("Student owner EOA:", annaOwnerWallet.address);
-  console.log("Student owner EOA funded for local demo transactions.");
-
-  // ---------------------------------------------------------------------------
-  // 5. Add real course data on-chain
-  // ---------------------------------------------------------------------------
-  await enrollStudent(ntnuWallet as any, anna.academicWalletAddress, [
+  const studentSeeds: StudentSeed[] = [
     {
-      code: "IDATT2104",
-      name: "Network Programming",
-      degreeCourse: "Computer Science",
-      ects: 7.5,
+      name: "Anna",
+      surname: "Berg",
+      birthDate: "2000-04-12",
+      birthPlace: "Trondheim",
+      country: "Norway",
+      homeInstitution: "NTNU University",
+      registeredBy: "ntnu",
+      initialAccess: {
+        nordicHiring: "none",
+      },
+      testPurpose: "Nordic Hiring task: request read access.",
+      courses: [
+        {
+          code: "IDATT2104",
+          name: "Network Programming",
+          degreeCourse: "Computer Science",
+          ects: 7.5,
+          grade: "A",
+          evaluationDate: "2025-05-20",
+        },
+        {
+          code: "TDT4100",
+          name: "Object-Oriented Programming",
+          degreeCourse: "Computer Science",
+          ects: 7.5,
+          grade: "B",
+          evaluationDate: "2025-06-02",
+        },
+      ],
     },
     {
-      code: "TDT4100",
-      name: "Object-Oriented Programming",
-      degreeCourse: "Computer Science",
-      ects: 7.5,
+      name: "Jonas",
+      surname: "Holm",
+      birthDate: "1999-09-03",
+      birthPlace: "Oslo",
+      country: "Norway",
+      homeInstitution: "NTNU University",
+      registeredBy: "ntnu",
+      initialAccess: {
+        nordicHiring: "read",
+      },
+      testPurpose: "Nordic Hiring task: verify an existing course result.",
+      courses: [
+        {
+          code: "TDT4100",
+          name: "Object-Oriented Programming",
+          degreeCourse: "Computer Science",
+          ects: 7.5,
+          grade: "C",
+          evaluationDate: "2025-06-05",
+        },
+        {
+          code: "TDT4140",
+          name: "Software Engineering",
+          degreeCourse: "Computer Science",
+          ects: 7.5,
+          grade: "B",
+          evaluationDate: "2025-05-28",
+        },
+      ],
     },
-  ]);
-
-  await evaluateStudent(ntnuWallet as any, anna.academicWalletAddress, [
     {
-      code: "IDATT2104",
-      grade: "A",
-      evaluationDate: "2025-05-20",
+      name: "Emil",
+      surname: "Nilsen",
+      birthDate: "2000-11-22",
+      birthPlace: "Stavanger",
+      country: "Norway",
+      homeInstitution: "Trondheim Business School",
+      registeredBy: "tbs",
+      initialAccess: {
+        ntnu: "none",
+        nordicHiring: "none",
+      },
+      testPurpose: "NTNU task: request write access.",
+      courses: [
+        {
+          code: "TDT4180",
+          name: "Human-Computer Interaction",
+          degreeCourse: "Information Systems",
+          ects: 7.5,
+          grade: "B",
+          evaluationDate: "2025-05-25",
+        },
+        {
+          code: "TDT4100",
+          name: "Object-Oriented Programming",
+          degreeCourse: "Information Systems",
+          ects: 7.5,
+          grade: "D",
+          evaluationDate: "2025-06-04",
+        },
+      ],
     },
-  ]);
-
-  await evaluateStudent(ntnuWallet as any, anna.academicWalletAddress, [
     {
-      code: "TDT4100",
-      grade: "B",
-      evaluationDate: "2025-06-02",
+      name: "Sara",
+      surname: "Lund",
+      birthDate: "2001-01-18",
+      birthPlace: "Bergen",
+      country: "Norway",
+      homeInstitution: "NTNU University",
+      registeredBy: "ntnu",
+      initialAccess: {
+        nordicHiring: "none",
+      },
+      testPurpose: "NTNU task: issue a new academic result.",
+      courses: [
+        {
+          code: "IDATT2104",
+          name: "Network Programming",
+          degreeCourse: "Computer Science",
+          ects: 7.5,
+          grade: "B",
+          evaluationDate: "2025-05-19",
+        },
+        {
+          code: "TDT4120",
+          name: "Algorithms and Data Structures",
+          degreeCourse: "Computer Science",
+          ects: 7.5,
+          grade: "C",
+          evaluationDate: "2025-06-10",
+        },
+      ],
     },
-  ]);
+    {
+      name: "Nora",
+      surname: "Solheim",
+      birthDate: "1998-07-30",
+      birthPlace: "Tromsø",
+      country: "Norway",
+      homeInstitution: "Trondheim Business School",
+      registeredBy: "tbs",
+      initialAccess: {
+        ntnu: "read",
+        nordicHiring: "read",
+      },
+      testPurpose:
+        "Backup verification student. Both NTNU and Nordic Hiring have read access.",
+      courses: [
+        {
+          code: "IDATT2104",
+          name: "Network Programming",
+          degreeCourse: "Information Systems",
+          ects: 7.5,
+          grade: "C",
+          evaluationDate: "2025-05-22",
+        },
+        {
+          code: "TDT4100",
+          name: "Object-Oriented Programming",
+          degreeCourse: "Information Systems",
+          ects: 7.5,
+          grade: "A",
+          evaluationDate: "2025-06-01",
+        },
+      ],
+    },
+    {
+      name: "Maya",
+      surname: "Eide",
+      birthDate: "2002-02-14",
+      birthPlace: "Ålesund",
+      country: "Norway",
+      homeInstitution: "Trondheim Business School",
+      registeredBy: "tbs",
+      initialAccess: {
+        ntnu: "none",
+        nordicHiring: "none",
+      },
+      testPurpose: "Extra student reserved for the later EduWallet mobile app test.",
+      courses: [
+        {
+          code: "TDT4160",
+          name: "Computers and Digital Design",
+          degreeCourse: "Information Systems",
+          ects: 7.5,
+          grade: "B",
+          evaluationDate: "2025-05-30",
+        },
+        {
+          code: "TDT4240",
+          name: "Software Architecture",
+          degreeCourse: "Information Systems",
+          ects: 7.5,
+          grade: "A",
+          evaluationDate: "2025-06-07",
+        },
+      ],
+    },
+  ];
 
-  console.log("Courses and grades written to EduWallet.");
+  const generatedStudents: GeneratedStudent[] = [];
+
+  for (const student of studentSeeds) {
+    const issuerWallet = student.registeredBy === "ntnu" ? ntnuWallet : tbsWallet;
+
+    const generatedStudent = await createDemoStudent({
+      student,
+      issuerWallet,
+      deployerSendTransaction: (tx) => deployer.sendTransaction(tx),
+      organizationSmartAccounts,
+    });
+
+    generatedStudents.push(generatedStudent);
+  }
+
+  console.log("");
+  console.log("All demo students registered and course data written.");
 
   // ---------------------------------------------------------------------------
-  // 6. Write generated local demo files
+  // 5. Write generated local demo files
   // ---------------------------------------------------------------------------
   const demoOutput = {
     organizations: {
@@ -238,18 +579,29 @@ async function main() {
         address: nordicHiringWallet.address,
         smartAccountAddress: nordicHiringSmartAccountAddress,
       },
-    },
-    students: [
-      {
-        studentId: anna.id,
-        password: anna.password,
-        studentSca: anna.academicWalletAddress,
-        ownerAddress: annaOwnerWallet.address,
-        name: "Anna Berg",
-        homeInstitution: "NTNU University",
-        permissionStatus: "write",
+      trondheimBusinessSchool: {
+        organizationNumber: TBS_ORG_NUMBER,
+        name: "Trondheim Business School",
+        privateKey: TRONDHEIM_BUSINESS_SCHOOL_PRIVATE_KEY,
+        address: tbsWallet.address,
+        smartAccountAddress: tbsSmartAccountAddress,
       },
-    ],
+    },
+    students: generatedStudents,
+    testPlan: {
+      nordicHiring: {
+        requestReadAccess: "Anna Berg",
+        verifyExistingResult: "Jonas Holm",
+      },
+      ntnu: {
+        requestWriteAccess: "Emil Nilsen",
+        issueResult: "Sara Lund",
+      },
+      backup: {
+        verification: "Nora Solheim",
+        mobileAppTest: "Maya Eide",
+      },
+    },
   };
 
   const portalDemoDir = path.join(
@@ -296,6 +648,18 @@ async function main() {
   console.log("portal-backend/src/demo/portalDemoBlockchain.json");
   console.log("portal-backend/.env.demo-chain");
   console.log("gateway/.env.demo-chain");
+  console.log("");
+  console.log("Recommended test students:");
+  console.log("Nordic Hiring request read access: Anna Berg");
+  console.log("Nordic Hiring verify result:       Jonas Holm");
+  console.log("NTNU request write access:         Emil Nilsen");
+  console.log("NTNU issue result:                 Sara Lund");
+  console.log("Backup verification:               Nora Solheim");
+  console.log("Mobile app test:                   Maya Eide");
+  console.log("");
+  console.log("Expected portal statuses:");
+  console.log("NTNU: Anna write, Jonas write, Emil none, Sara write, Nora read, Maya none");
+  console.log("Nordic Hiring: Anna none, Jonas read, Emil none, Sara none, Nora read, Maya none");
   console.log("");
   console.log(
     "Copy the contents of portal-backend/.env.demo-chain into portal-backend/.env",

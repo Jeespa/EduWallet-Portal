@@ -290,7 +290,7 @@ export default function IssuePage() {
           <TextInput
             value={courseName}
             onChangeText={setCourseName}
-            placeholder="Portal Integration Test"
+            placeholder="Programming 101"
             placeholderTextColor={COLORS.muted}
             style={styles.input}
           />
