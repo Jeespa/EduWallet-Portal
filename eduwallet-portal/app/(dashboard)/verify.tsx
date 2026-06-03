@@ -166,7 +166,7 @@ export default function VerifyPage() {
           <TextInput
             value={courseCode}
             onChangeText={setCourseCode}
-            placeholder="IDATT2104 or TDT4100"
+            placeholder="TEST1001"
             placeholderTextColor={COLORS.muted}
             style={styles.input}
             autoCapitalize="characters"
