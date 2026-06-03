@@ -1,4 +1,4 @@
-import { ReactNode, useMemo } from "react";
+import { ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, usePathname, type Href } from "expo-router";
 import { PORTAL_COLORS as COLORS } from "../constants/portalTheme";
@@ -9,7 +9,6 @@ type NavItem = {
   label: string;
   href: Href;
   description: string;
-  requiresIssuer?: boolean;
 };
 
 const NAV_ITEMS: NavItem[] = [
@@ -23,26 +22,13 @@ const NAV_ITEMS: NavItem[] = [
     id: "students",
     label: "Students",
     href: "/students",
-    description: "Find student wallets",
+    description: "Find student records",
   },
   {
     id: "requests",
     label: "Access requests",
     href: "/requests",
     description: "Review and create requests",
-  },
-  {
-    id: "verify",
-    label: "Check record",
-    href: "/verify",
-    description: "Verify EduWallet records",
-  },
-  {
-    id: "issue",
-    label: "Issue result",
-    href: "/issue",
-    description: "Submit academic results",
-    requiresIssuer: true,
   },
 ];
 
@@ -51,43 +37,9 @@ function formatRole(role?: string) {
   return role.charAt(0).toUpperCase() + role.slice(1);
 }
 
-function canShowIssuePage(input: {
-  role?: string;
-  organizationName?: string;
-  organizationNumber?: string;
-}) {
-  const role = input.role?.toLowerCase();
-  const organizationName = input.organizationName?.toLowerCase() ?? "";
-
-  const hasIssuerRole = role === "issuer" || role === "admin";
-
-  const isAcademicIssuer =
-    input.organizationNumber === "974767880" ||
-    organizationName.includes("ntnu") ||
-    organizationName.includes("university");
-
-  return hasIssuerRole && isAcademicIssuer;
-}
-
 export function PortalShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { user, organization, signOut } = usePortalAuth();
-
-  const navItems = useMemo(() => {
-    return NAV_ITEMS.filter((item) => {
-      if (!item.requiresIssuer) return true;
-
-      return canShowIssuePage({
-        role: user?.permissionLevel,
-        organizationName: organization?.name,
-        organizationNumber: organization?.organizationNumber,
-      });
-    });
-  }, [
-    organization?.name,
-    organization?.organizationNumber,
-    user?.permissionLevel,
-  ]);
 
   const handleSignOut = () => {
     signOut();
@@ -111,7 +63,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
             </View>
 
             <View style={styles.navSection}>
-              {navItems.map((item) => {
+              {NAV_ITEMS.map((item) => {
                 const isActive =
                   pathname === item.href ||
                   pathname.startsWith(`${item.href}/`);

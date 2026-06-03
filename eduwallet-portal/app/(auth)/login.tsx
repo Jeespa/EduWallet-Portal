@@ -57,18 +57,9 @@ export default function LoginScreen() {
         <View style={styles.card}>
           <Text style={styles.title}>EduWallet Portal</Text>
           <Text style={styles.subtitle}>
-            Sign in with your personal portal account to request and verify
-            student data.
+            Sign in with your personal portal account to access student academic
+            records.
           </Text>
-
-          <View style={styles.helperBox}>
-            <Text style={styles.helperTitle}>Demo accounts</Text>
-            <Text style={styles.helperText}>lars@ntnu.no / password123</Text>
-            <Text style={styles.helperText}>ingrid@ntnu.no / password123</Text>
-            <Text style={styles.helperText}>
-              emma@nordichiring.no / password123
-            </Text>
-          </View>
 
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
@@ -141,26 +132,7 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     fontSize: 15,
     lineHeight: 22,
-    marginBottom: 20,
-  },
-  helperBox: {
-    backgroundColor: COLORS.surfaceAlt,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 22,
-  },
-  helperTitle: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: "700",
-    marginBottom: 8,
-  },
-  helperText: {
-    color: COLORS.muted,
-    fontSize: 13,
-    lineHeight: 19,
+    marginBottom: 24,
   },
   inputGroup: {
     marginBottom: 18,
