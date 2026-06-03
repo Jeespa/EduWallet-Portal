@@ -6,6 +6,8 @@ export type PortalRequest = {
   id: string;
   studentId?: string | null;
   studentSca: string;
+  studentName?: string | null;
+  homeInstitution?: string | null;
   requesterOrgName: string;
   permissionType: PermissionType;
   reason: string;

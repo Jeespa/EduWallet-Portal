@@ -56,6 +56,8 @@ export type PermissionRequestDto = {
   id: string;
   studentId: string | null;
   studentSca: string;
+  studentName?: string | null;
+  homeInstitution?: string | null;
   permissionType: string;
   status: string;
   reason: string;

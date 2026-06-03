@@ -57,12 +57,38 @@ function formatPermission(permissionType: PortalRequest["permissionType"]) {
   return permissionType === "write" ? "Update access" : "View access";
 }
 
+function shortenIdentifier(value?: string | null) {
+  if (!value) return "-";
+  if (value.length <= 12) return value;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
+
 function formatActivityText(request: PortalRequest) {
-  const studentLabel = request.studentId
-    ? `student ${request.studentId}`
-    : "a student";
+  const studentLabel = request.studentName
+    ? request.studentName
+    : request.studentId
+      ? `student ${shortenIdentifier(request.studentId)}`
+      : "a student";
 
   return `${formatPermission(request.permissionType)} requested for ${studentLabel}`;
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("nb-NO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 export default function DashboardHome() {
@@ -212,12 +238,19 @@ export default function DashboardHome() {
               </View>
             </View>
 
+            {request.homeInstitution ? (
+              <Text style={styles.activityMeta}>
+                {request.homeInstitution}
+              </Text>
+            ) : null}
+
             <Text style={styles.activityMeta}>
-              Smart-account: {request.studentSca}
+              EduWallet reference:{" "}
+              {shortenIdentifier(request.studentId ?? request.studentSca)}
             </Text>
 
             <Text style={styles.activityMeta}>
-              Created: {request.createdAt}
+              Created: {formatDateTime(request.createdAt)}
             </Text>
 
             {request.reason ? (

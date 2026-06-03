@@ -52,6 +52,25 @@ The portal backend should run on:
 http://localhost:4000
 ```
 
+### Terminal 5: Start portal frontend
+```cmd
+cd <repo-root>\eduwallet-portal
+npx expo start
+```
+
+### Terminal 6: Web Demo Server
+
+```cmd
+cd <repo-root>\eduwallet-portal
+npm run demo:web
+```
+
+### Terminal 7: Launch Ngrok
+
+```cmd
+ngrok http 8080
+```
+
 ## Important generated demo data
 
 The generated blockchain demo data is stored in:

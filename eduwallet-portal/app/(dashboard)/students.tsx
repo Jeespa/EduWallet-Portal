@@ -35,7 +35,7 @@ const FILTER_OPTIONS: Array<{ value: PermissionFilter; label: string }> = [
 
 function getRequestButtonLabel(status: PermissionStatus) {
   if (status === "read") return "Request update access";
-  return "Request view access";
+  return "Request access";
 }
 
 function getRequestPermissionType(status: PermissionStatus) {
@@ -291,7 +291,7 @@ export default function StudentsPage() {
                         })
                       }
                     >
-                      <Text style={styles.secondaryButtonText}>Verify</Text>
+                      <Text style={styles.secondaryButtonText}>Check result</Text>
                     </Pressable>
 
                     {canIssueResult ? (

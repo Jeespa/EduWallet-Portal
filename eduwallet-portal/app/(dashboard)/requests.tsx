@@ -60,6 +60,10 @@ function formatPermission(permissionType: PermissionType) {
 }
 
 function getRequestTitle(request: PortalRequest) {
+  if (request.studentName) {
+    return `Request for ${request.studentName}`;
+  }
+
   if (request.studentId) {
     return `Request for student ${shortenIdentifier(request.studentId)}`;
   }
@@ -69,6 +73,24 @@ function getRequestTitle(request: PortalRequest) {
 
 function normalizePermissionType(value?: string | string[]): PermissionType {
   return value === "write" ? "write" : "read";
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("nb-NO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
 }
 
 export default function RequestsPage() {
@@ -171,6 +193,8 @@ export default function RequestsPage() {
         !normalized ||
         request.studentSca.toLowerCase().includes(normalized) ||
         (request.studentId?.toLowerCase().includes(normalized) ?? false) ||
+        (request.studentName?.toLowerCase().includes(normalized) ?? false) ||
+        (request.homeInstitution?.toLowerCase().includes(normalized) ?? false) ||
         request.reason.toLowerCase().includes(normalized) ||
         request.createdAt.toLowerCase().includes(normalized);
 
@@ -521,6 +545,12 @@ export default function RequestsPage() {
                 </View>
               </View>
 
+              {request.homeInstitution ? (
+                <Text style={styles.requestMeta}>
+                  {request.homeInstitution}
+                </Text>
+              ) : null}
+
               {request.studentId ? (
                 <Text style={styles.requestMeta}>
                   EduWallet reference: {shortenIdentifier(request.studentId)}
@@ -528,15 +558,11 @@ export default function RequestsPage() {
               ) : null}
 
               <Text style={styles.requestMeta}>
-                EduWallet address: {shortenIdentifier(request.studentSca)}
-              </Text>
-
-              <Text style={styles.requestMeta}>
                 Access level: {formatPermission(request.permissionType)}
               </Text>
 
               <Text style={styles.requestMeta}>
-                Created: {request.createdAt}
+                Created: {formatDateTime(request.createdAt)}
               </Text>
 
               <Text style={styles.requestReason}>{request.reason}</Text>

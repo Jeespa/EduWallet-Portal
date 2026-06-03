@@ -520,7 +520,7 @@ async function main() {
         ntnu: "none",
         nordicHiring: "none",
       },
-      testPurpose: "Extra student reserved for the later EduWallet mobile app test.",
+      testPurpose: "Student reserved for the EduWallet mobile app test.",
       courses: [
         {
           code: "TDT4160",

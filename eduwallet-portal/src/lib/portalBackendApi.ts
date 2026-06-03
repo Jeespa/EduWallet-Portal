@@ -53,6 +53,8 @@ function normalizeRequest(request: any): PortalRequest {
     id: request.id,
     studentId: request.studentId ?? null,
     studentSca: request.studentSca,
+    studentName: request.studentName ?? null,
+    homeInstitution: request.homeInstitution ?? null,
     requesterOrgName: request.requesterOrgName ?? "Current organization",
     permissionType: request.permissionType,
     reason: request.reason,

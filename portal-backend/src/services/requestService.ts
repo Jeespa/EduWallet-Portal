@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { requestOnChainPermission } from "../eduwallet/portalEduWalletClient";
 import { getOnChainPermissionStatus } from "../eduwallet/portalEduWalletClient";
+import { findStudentByIdOrSca } from "./studentLookupService";
 import type {
   CreatePermissionRequestBody,
   PermissionRequestDto,
@@ -19,27 +20,57 @@ type ListRequestsInput = {
   permissionType?: string;
 };
 
-function mapPermissionRequestDto(
-  request: {
-    id: string;
-    studentId: string | null;
-    studentSca: string;
-    permissionType: { toLowerCase(): string };
-    status: { toLowerCase(): string };
-    reason: string;
-    createdAt: Date;
-  },
+type StoredPermissionRequest = {
+  id: string;
+  studentId: string | null;
+  studentSca: string;
+  permissionType: { toLowerCase(): string };
+  status: { toLowerCase(): string };
+  reason: string;
+  createdAt: Date;
+};
+
+function normalizeSearchValue(value?: string | null) {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+async function mapPermissionRequestDto(
+  request: StoredPermissionRequest,
   statusOverride?: "pending" | "approved" | "rejected",
-): PermissionRequestDto {
+): Promise<PermissionRequestDto> {
+  const student = await findStudentByIdOrSca({
+    studentId: request.studentId,
+    studentSca: request.studentSca,
+  });
+
   return {
     id: request.id,
     studentId: request.studentId,
     studentSca: request.studentSca,
+    studentName: student?.name ?? null,
+    homeInstitution: student?.homeInstitution ?? null,
     permissionType: request.permissionType.toLowerCase(),
     status: statusOverride ?? request.status.toLowerCase(),
     reason: request.reason,
     createdAt: request.createdAt,
   };
+}
+
+function requestMatchesQuery(request: PermissionRequestDto, query: string) {
+  if (!query) return true;
+
+  const searchableValues = [
+    request.studentId,
+    request.studentSca,
+    request.studentName,
+    request.homeInstitution,
+    request.reason,
+    String(request.createdAt),
+  ];
+
+  return searchableValues.some((value) =>
+    normalizeSearchValue(value).includes(query),
+  );
 }
 
 export async function createPermissionRequest(
@@ -70,7 +101,7 @@ export async function createPermissionRequest(
 export async function listPermissionRequests(
   input: ListRequestsInput,
 ): Promise<PermissionRequestListResponse> {
-  const q = (input.q ?? "").trim();
+  const q = normalizeSearchValue(input.q);
   const status = (input.status ?? "").trim().toUpperCase();
   const permissionType = (input.permissionType ?? "").trim().toUpperCase();
 
@@ -82,15 +113,6 @@ export async function listPermissionRequests(
         : {}),
       ...(permissionType && ["READ", "WRITE"].includes(permissionType)
         ? { permissionType: permissionType as "READ" | "WRITE" }
-        : {}),
-      ...(q
-        ? {
-            OR: [
-              { studentId: { contains: q, mode: "insensitive" } },
-              { studentSca: { contains: q, mode: "insensitive" } },
-              { reason: { contains: q, mode: "insensitive" } },
-            ],
-          }
         : {}),
     },
     orderBy: {
@@ -133,8 +155,12 @@ export async function listPermissionRequests(
     }),
   );
 
+  const filteredDtos = requestDtos.filter((request) =>
+    requestMatchesQuery(request, q),
+  );
+
   return {
-    requests: requestDtos,
-    count: requestDtos.length,
+    requests: filteredDtos,
+    count: filteredDtos.length,
   };
 }

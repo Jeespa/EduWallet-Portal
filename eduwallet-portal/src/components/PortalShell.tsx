@@ -1,5 +1,5 @@
 import { ReactNode, useMemo } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { router, usePathname, type Href } from "expo-router";
 import { PORTAL_COLORS as COLORS } from "../constants/portalTheme";
 import { usePortalAuth } from "../context/PortalAuthContext";
@@ -33,9 +33,9 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: "verify",
-    label: "Verify record",
+    label: "Check record",
     href: "/verify",
-    description: "Check EduWallet records",
+    description: "Verify EduWallet records",
   },
   {
     id: "issue",
@@ -97,65 +97,74 @@ export function PortalShell({ children }: { children: ReactNode }) {
   return (
     <View style={styles.screen}>
       <View style={styles.sidebar}>
-        <View>
-          <View style={styles.brandBlock}>
-            <Text style={styles.brand}>EduWallet Portal</Text>
-            <Text style={styles.brandSubtitle}>
-              Organization access to student-owned academic records
-            </Text>
-          </View>
+        <ScrollView
+          style={styles.sidebarScroll}
+          contentContainerStyle={styles.sidebarScrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View>
+            <View style={styles.brandBlock}>
+              <Text style={styles.brand}>EduWallet Portal</Text>
+              <Text style={styles.brandSubtitle}>
+                Organization access to student-owned academic records
+              </Text>
+            </View>
 
-          <View style={styles.organizationBox}>
-            <Text style={styles.organizationLabel}>Organization</Text>
-            <Text style={styles.orgName}>{organization?.name || "-"}</Text>
-            <Text style={styles.orgNumber}>
-              {organization?.organizationNumber || "-"}
-            </Text>
-          </View>
+            <View style={styles.navSection}>
+              {navItems.map((item) => {
+                const isActive =
+                  pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`);
 
-          <View style={styles.navSection}>
-            {navItems.map((item) => {
-              const isActive =
-                pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-              return (
-                <Pressable
-                  key={item.id}
-                  style={[styles.navItem, isActive && styles.navItemActive]}
-                  onPress={() => router.push(item.href)}
-                >
-                  <Text
-                    style={[
-                      styles.navItemText,
-                      isActive && styles.navItemTextActive,
-                    ]}
+                return (
+                  <Pressable
+                    key={item.id}
+                    style={[styles.navItem, isActive && styles.navItemActive]}
+                    onPress={() => router.push(item.href)}
                   >
-                    {item.label}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.navItemDescription,
-                      isActive && styles.navItemDescriptionActive,
-                    ]}
-                  >
-                    {item.description}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                    <Text
+                      style={[
+                        styles.navItemText,
+                        isActive && styles.navItemTextActive,
+                      ]}
+                    >
+                      {item.label}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.navItemDescription,
+                        isActive && styles.navItemDescriptionActive,
+                      ]}
+                    >
+                      {item.description}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-        </View>
 
-        <View style={styles.sidebarFooter}>
-          <Text style={styles.footerLabel}>Signed in as</Text>
-          <Text style={styles.userName}>{user?.name || "-"}</Text>
-          <Text style={styles.userMeta}>{user?.email || "-"}</Text>
-          <Text style={styles.rolePill}>{formatRole(user?.permissionLevel)}</Text>
+          <View style={styles.sidebarFooter}>
+            <Text style={styles.footerLabel}>Signed in as</Text>
+            <Text style={styles.userName}>{user?.name || "-"}</Text>
+            <Text style={styles.userMeta}>{user?.email || "-"}</Text>
 
-          <Pressable style={styles.signOutButton} onPress={handleSignOut}>
-            <Text style={styles.signOutButtonText}>Sign out</Text>
-          </Pressable>
-        </View>
+            <View style={styles.footerMetaBlock}>
+              <Text style={styles.footerMetaLabel}>Organization</Text>
+              <Text style={styles.footerMetaValue}>
+                {organization?.name || "-"}
+              </Text>
+            </View>
+
+            <Text style={styles.rolePill}>
+              {formatRole(user?.permissionLevel)}
+            </Text>
+
+            <Pressable style={styles.signOutButton} onPress={handleSignOut}>
+              <Text style={styles.signOutButtonText}>Sign out</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
       </View>
 
       <View style={styles.content}>
@@ -176,12 +185,19 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
     borderRightWidth: 1,
     borderRightColor: COLORS.border,
+  },
+  sidebarScroll: {
+    flex: 1,
+  },
+  sidebarScrollContent: {
+    flexGrow: 1,
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 24,
-    justifyContent: "space-between",
+    gap: 24,
   },
   brandBlock: {
-    marginBottom: 22,
+    marginBottom: 26,
   },
   brand: {
     color: COLORS.text,
@@ -193,31 +209,6 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     fontSize: 13,
     lineHeight: 18,
-  },
-  organizationBox: {
-    backgroundColor: COLORS.surfaceAlt,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 16,
-    padding: 14,
-    marginBottom: 24,
-  },
-  organizationLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    marginBottom: 8,
-  },
-  orgName: {
-    color: COLORS.text,
-    fontSize: 15,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  orgNumber: {
-    color: COLORS.muted,
-    fontSize: 13,
   },
   navSection: {
     gap: 10,
@@ -272,7 +263,23 @@ const styles = StyleSheet.create({
   userMeta: {
     color: COLORS.muted,
     fontSize: 13,
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  footerMetaBlock: {
     marginBottom: 10,
+  },
+  footerMetaLabel: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  footerMetaValue: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: "600",
     lineHeight: 18,
   },
   rolePill: {

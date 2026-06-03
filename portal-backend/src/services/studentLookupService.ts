@@ -100,3 +100,13 @@ export async function searchStudents(
     count: enrichedStudents.length,
   };
 }
+
+export async function findStudentByIdOrSca(input: {
+  studentId?: string | null;
+  studentSca?: string | null;
+}): Promise<PortalStudentReference | null> {
+  return studentSource.findByIdOrSca({
+    studentId: input.studentId?.trim() || undefined,
+    studentSca: input.studentSca?.trim() || undefined,
+  });
+}

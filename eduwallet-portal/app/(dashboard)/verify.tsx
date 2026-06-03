@@ -72,12 +72,12 @@ export default function VerifyPage() {
     setResult(null);
 
     if (!token) {
-      setError("You must be logged in to verify records.");
+      setError("You must be logged in to check records.");
       return;
     }
 
     if (!studentSca.trim()) {
-      setError("Please select a student or enter an EduWallet address.");
+      setError("Please select a student from the student list or enter an EduWallet address.");
       return;
     }
 
@@ -105,7 +105,7 @@ export default function VerifyPage() {
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.title}>Verify record</Text>
+      <Text style={styles.title}>Check record</Text>
       <Text style={styles.subtitle}>
         Check whether a student record or course exists in EduWallet.
       </Text>
@@ -193,7 +193,7 @@ export default function VerifyPage() {
           disabled={verifying}
         >
           <Text style={styles.verifyButtonText}>
-            {verifying ? "Verifying..." : "Verify"}
+            {verifying ? "Checking..." : "Check record"}
           </Text>
         </Pressable>
       </View>

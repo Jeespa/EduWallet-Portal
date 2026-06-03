@@ -385,8 +385,7 @@ export default function IssuePage() {
           <View style={styles.successBox}>
             <Text style={styles.successTitle}>Result submitted</Text>
             <Text style={styles.successText}>
-              The result was submitted through the portal backend and written to
-              EduWallet. Draft ID: {submission.draftId}
+              The academic result was submitted successfully.
             </Text>
           </View>
         ) : null}
