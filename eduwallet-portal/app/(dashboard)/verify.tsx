@@ -13,16 +13,25 @@ import type { VerifyResult } from "../../src/types/portal";
 import { verifyAcademicRecord } from "../../src/lib/portalBackendApi";
 import { usePortalAuth } from "../../src/context/PortalAuthContext";
 
+function shortenIdentifier(value: string) {
+  if (value.length <= 12) return value;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
+
 export default function VerifyPage() {
   const { token } = usePortalAuth();
 
   const params = useLocalSearchParams<{
     studentId?: string;
     studentSca?: string;
+    studentName?: string;
+    homeInstitution?: string;
   }>();
 
   const [studentId, setStudentId] = useState("");
   const [studentSca, setStudentSca] = useState("");
+  const [studentName, setStudentName] = useState("");
+  const [homeInstitution, setHomeInstitution] = useState("");
   const [certificateCid, setCertificateCid] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [error, setError] = useState("");
@@ -37,7 +46,26 @@ export default function VerifyPage() {
     if (typeof params.studentSca === "string" && params.studentSca.trim()) {
       setStudentSca(params.studentSca);
     }
-  }, [params.studentId, params.studentSca]);
+
+    if (typeof params.studentName === "string" && params.studentName.trim()) {
+      setStudentName(params.studentName);
+    }
+
+    if (
+      typeof params.homeInstitution === "string" &&
+      params.homeInstitution.trim()
+    ) {
+      setHomeInstitution(params.homeInstitution);
+    }
+  }, [
+    params.studentId,
+    params.studentSca,
+    params.studentName,
+    params.homeInstitution,
+  ]);
+
+  const hasSelectedStudent = Boolean(studentId || studentSca);
+  const hasHumanReadableStudent = Boolean(studentName || homeInstitution);
 
   const handleVerify = async () => {
     setError("");
@@ -49,7 +77,7 @@ export default function VerifyPage() {
     }
 
     if (!studentSca.trim()) {
-      setError("Please enter a student smart-account address.");
+      setError("Please select a student or enter an EduWallet address.");
       return;
     }
 
@@ -72,56 +100,66 @@ export default function VerifyPage() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
       <Text style={styles.title}>Verify record</Text>
       <Text style={styles.subtitle}>
-        Verify whether a student record or course exists in EduWallet.
+        Check whether a student record or course exists in EduWallet.
       </Text>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Verification input</Text>
 
-        {studentId || studentSca ? (
+        {hasSelectedStudent ? (
           <View style={styles.selectedStudentBox}>
             <Text style={styles.selectedStudentTitle}>Selected student</Text>
 
-            {studentId ? (
-              <Text style={styles.selectedStudentText}>
-                Student ID: {studentId}
-              </Text>
+            <Text style={styles.selectedStudentName}>
+              {studentName || "Selected EduWallet student"}
+            </Text>
+
+            {homeInstitution ? (
+              <Text style={styles.selectedStudentText}>{homeInstitution}</Text>
             ) : null}
 
-            {studentSca ? (
-              <Text style={styles.selectedStudentText}>
-                Smart-account: {studentSca}
+            {studentId ? (
+              <Text style={styles.selectedStudentMeta}>
+                EduWallet reference: {shortenIdentifier(studentId)}
               </Text>
             ) : null}
           </View>
         ) : null}
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Student ID</Text>
-          <TextInput
-            value={studentId}
-            onChangeText={setStudentId}
-            placeholder="Generated student ID"
-            placeholderTextColor={COLORS.muted}
-            style={styles.input}
-            autoCapitalize="none"
-          />
-        </View>
+        {!hasHumanReadableStudent ? (
+          <>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Student identifier</Text>
+              <TextInput
+                value={studentId}
+                onChangeText={setStudentId}
+                placeholder="Student identifier"
+                placeholderTextColor={COLORS.muted}
+                style={styles.input}
+                autoCapitalize="none"
+              />
+            </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Student smart-account address</Text>
-          <TextInput
-            value={studentSca}
-            onChangeText={setStudentSca}
-            placeholder="0x..."
-            placeholderTextColor={COLORS.muted}
-            style={styles.input}
-            autoCapitalize="none"
-          />
-        </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>EduWallet address</Text>
+              <TextInput
+                value={studentSca}
+                onChangeText={setStudentSca}
+                placeholder="0x..."
+                placeholderTextColor={COLORS.muted}
+                style={styles.input}
+                autoCapitalize="none"
+              />
+            </View>
+          </>
+        ) : null}
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Course code</Text>
@@ -281,15 +319,27 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   selectedStudentTitle: {
-    color: COLORS.text,
-    fontSize: 14,
+    color: COLORS.muted,
+    fontSize: 12,
     fontWeight: "700",
-    marginBottom: 6,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  selectedStudentName: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 4,
   },
   selectedStudentText: {
     color: COLORS.muted,
     fontSize: 13,
     lineHeight: 18,
+  },
+  selectedStudentMeta: {
+    color: COLORS.muted,
+    fontSize: 12,
+    marginTop: 8,
   },
   inputGroup: {
     marginBottom: 18,

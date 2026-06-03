@@ -43,16 +43,25 @@ function canUseIssuancePage(input: {
   return hasIssuerRole && isAcademicIssuer;
 }
 
+function shortenIdentifier(value: string) {
+  if (value.length <= 12) return value;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
+
 export default function IssuePage() {
   const { token, user, organization } = usePortalAuth();
 
   const params = useLocalSearchParams<{
     studentId?: string;
     studentSca?: string;
+    studentName?: string;
+    homeInstitution?: string;
   }>();
 
   const [studentId, setStudentId] = useState("");
   const [studentSca, setStudentSca] = useState("");
+  const [studentName, setStudentName] = useState("");
+  const [homeInstitution, setHomeInstitution] = useState("");
   const [courseCode, setCourseCode] = useState("");
   const [courseName, setCourseName] = useState("");
   const [degreeCourse, setDegreeCourse] = useState("");
@@ -74,13 +83,32 @@ export default function IssuePage() {
     if (typeof params.studentSca === "string" && params.studentSca.trim()) {
       setStudentSca(params.studentSca);
     }
-  }, [params.studentId, params.studentSca]);
+
+    if (typeof params.studentName === "string" && params.studentName.trim()) {
+      setStudentName(params.studentName);
+    }
+
+    if (
+      typeof params.homeInstitution === "string" &&
+      params.homeInstitution.trim()
+    ) {
+      setHomeInstitution(params.homeInstitution);
+    }
+  }, [
+    params.studentId,
+    params.studentSca,
+    params.studentName,
+    params.homeInstitution,
+  ]);
 
   const canIssue = canUseIssuancePage({
     role: user?.permissionLevel,
     organizationName: organization?.name,
     organizationNumber: organization?.organizationNumber,
   });
+
+  const hasSelectedStudent = Boolean(studentId || studentSca);
+  const hasHumanReadableStudent = Boolean(studentName || homeInstitution);
 
   const draftReady = useMemo(() => {
     return (
@@ -117,12 +145,12 @@ export default function IssuePage() {
     }
 
     if (!studentId.trim()) {
-      setError("Please enter the student ID.");
+      setError("Please select a student or enter the student identifier.");
       return;
     }
 
     if (!studentSca.trim()) {
-      setError("Please enter the student smart-account address.");
+      setError("Please select a student or enter an EduWallet address.");
       return;
     }
 
@@ -189,7 +217,7 @@ export default function IssuePage() {
       >
         <Text style={styles.title}>Issue result</Text>
         <Text style={styles.subtitle}>
-          Submit course results to a student’s EduWallet when write access is
+          Submit course results to a student’s EduWallet when update access is
           available.
         </Text>
 
@@ -217,47 +245,53 @@ export default function IssuePage() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Academic result</Text>
 
-        {studentId || studentSca ? (
+        {hasSelectedStudent ? (
           <View style={styles.selectedStudentBox}>
             <Text style={styles.selectedStudentTitle}>Selected student</Text>
 
-            {studentId ? (
-              <Text style={styles.selectedStudentText}>
-                Student ID: {studentId}
-              </Text>
+            <Text style={styles.selectedStudentName}>
+              {studentName || "Selected EduWallet student"}
+            </Text>
+
+            {homeInstitution ? (
+              <Text style={styles.selectedStudentText}>{homeInstitution}</Text>
             ) : null}
 
-            {studentSca ? (
-              <Text style={styles.selectedStudentText}>
-                Smart-account: {studentSca}
+            {studentId ? (
+              <Text style={styles.selectedStudentMeta}>
+                EduWallet reference: {shortenIdentifier(studentId)}
               </Text>
             ) : null}
           </View>
         ) : null}
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Student ID</Text>
-          <TextInput
-            value={studentId}
-            onChangeText={setStudentId}
-            placeholder="Generated student ID"
-            placeholderTextColor={COLORS.muted}
-            style={styles.input}
-            autoCapitalize="none"
-          />
-        </View>
+        {!hasHumanReadableStudent ? (
+          <>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Student identifier</Text>
+              <TextInput
+                value={studentId}
+                onChangeText={setStudentId}
+                placeholder="Student identifier"
+                placeholderTextColor={COLORS.muted}
+                style={styles.input}
+                autoCapitalize="none"
+              />
+            </View>
 
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Student smart-account address</Text>
-          <TextInput
-            value={studentSca}
-            onChangeText={setStudentSca}
-            placeholder="0x..."
-            placeholderTextColor={COLORS.muted}
-            style={styles.input}
-            autoCapitalize="none"
-          />
-        </View>
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>EduWallet address</Text>
+              <TextInput
+                value={studentSca}
+                onChangeText={setStudentSca}
+                placeholder="0x..."
+                placeholderTextColor={COLORS.muted}
+                style={styles.input}
+                autoCapitalize="none"
+              />
+            </View>
+          </>
+        ) : null}
 
         <View style={styles.row}>
           <View style={[styles.inputGroup, styles.halfWidth]}>
@@ -377,13 +411,22 @@ export default function IssuePage() {
         {draftReady ? (
           <>
             <View style={styles.infoBlock}>
-              <Text style={styles.label}>Student ID</Text>
-              <Text style={styles.value}>{studentId}</Text>
+              <Text style={styles.label}>Student</Text>
+              <Text style={styles.value}>
+                {studentName || shortenIdentifier(studentId)}
+              </Text>
             </View>
 
+            {homeInstitution ? (
+              <View style={styles.infoBlock}>
+                <Text style={styles.label}>Home institution</Text>
+                <Text style={styles.value}>{homeInstitution}</Text>
+              </View>
+            ) : null}
+
             <View style={styles.infoBlock}>
-              <Text style={styles.label}>Student smart-account</Text>
-              <Text style={styles.value}>{studentSca}</Text>
+              <Text style={styles.label}>EduWallet reference</Text>
+              <Text style={styles.value}>{shortenIdentifier(studentId)}</Text>
             </View>
 
             <View style={styles.infoBlock}>
@@ -547,14 +590,26 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   selectedStudentTitle: {
-    color: COLORS.text,
-    fontSize: 14,
+    color: COLORS.muted,
+    fontSize: 12,
     fontWeight: "700",
-    marginBottom: 6,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  selectedStudentName: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 4,
   },
   selectedStudentText: {
     color: COLORS.muted,
     fontSize: 13,
     lineHeight: 18,
+  },
+  selectedStudentMeta: {
+    color: COLORS.muted,
+    fontSize: 12,
+    marginTop: 8,
   },
 });

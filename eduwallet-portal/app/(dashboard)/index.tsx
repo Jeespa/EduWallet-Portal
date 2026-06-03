@@ -54,7 +54,7 @@ function formatStatus(status: PortalRequest["status"]) {
 }
 
 function formatPermission(permissionType: PortalRequest["permissionType"]) {
-  return permissionType === "write" ? "Write access" : "Read access";
+  return permissionType === "write" ? "Update access" : "View access";
 }
 
 function formatActivityText(request: PortalRequest) {

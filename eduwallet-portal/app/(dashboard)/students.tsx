@@ -26,21 +26,26 @@ type PermissionFilter = "all" | PermissionStatus;
 
 const FILTER_OPTIONS: Array<{ value: PermissionFilter; label: string }> = [
   { value: "all", label: "All" },
-  { value: "read", label: "Read" },
-  { value: "write", label: "Write" },
-  { value: "pending-read", label: "Pending Read" },
-  { value: "pending-write", label: "Pending Write" },
+  { value: "read", label: "View" },
+  { value: "write", label: "Update" },
+  { value: "pending-read", label: "Pending View" },
+  { value: "pending-write", label: "Pending Update" },
   { value: "none", label: "No Access" },
 ];
 
 function getRequestButtonLabel(status: PermissionStatus) {
-  if (status === "read") return "Request write access";
-  return "Request access";
+  if (status === "read") return "Request update access";
+  return "Request view access";
 }
 
 function getRequestPermissionType(status: PermissionStatus) {
   if (status === "read") return "write";
   return "read";
+}
+
+function shortenIdentifier(value: string) {
+  if (value.length <= 12) return value;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }
 
 export default function StudentsPage() {
@@ -50,8 +55,7 @@ export default function StudentsPage() {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [query, setQuery] = useState("");
-  const [selectedFilter, setSelectedFilter] =
-    useState<PermissionFilter>("all");
+  const [selectedFilter, setSelectedFilter] = useState<PermissionFilter>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -111,13 +115,13 @@ export default function StudentsPage() {
   const renderPermissionLabel = (status?: PermissionStatus) => {
     switch (status) {
       case "pending-read":
-        return "Pending Read";
+        return "Pending View Access";
       case "pending-write":
-        return "Pending Write";
+        return "Pending Update Access";
       case "read":
-        return "Read Access";
+        return "View Access";
       case "write":
-        return "Write Access";
+        return "Update Access";
       case "none":
       default:
         return "No Access";
@@ -146,8 +150,7 @@ export default function StudentsPage() {
     >
       <Text style={styles.title}>Students</Text>
       <Text style={styles.subtitle}>
-        Look up existing EduWallet students by student ID or smart-account
-        address.
+        Look up existing EduWallet students by name, institution, or identifier.
       </Text>
 
       <View style={styles.card}>
@@ -156,13 +159,13 @@ export default function StudentsPage() {
         <TextInput
           value={query}
           onChangeText={setQuery}
-          placeholder="Search by student ID, smart-account, name, or institution"
+          placeholder="Search by name, institution, or EduWallet identifier"
           placeholderTextColor={COLORS.muted}
           style={styles.input}
           autoCapitalize="none"
         />
 
-        <Text style={styles.filterLabel}>Permission filter</Text>
+        <Text style={styles.filterLabel}>Access filter</Text>
 
         <View style={styles.filterRow}>
           {FILTER_OPTIONS.map((option) => {
@@ -223,8 +226,8 @@ export default function StudentsPage() {
                       <Text style={styles.studentName}>
                         {student.name || "Unknown student"}
                       </Text>
-                      <Text style={styles.studentId}>
-                        Student ID: {student.studentId}
+                      <Text style={styles.studentMeta}>
+                        {student.homeInstitution || "Unknown institution"}
                       </Text>
                     </View>
 
@@ -237,17 +240,9 @@ export default function StudentsPage() {
                     </View>
                   </View>
 
-                  <View style={styles.infoBlock}>
-                    <Text style={styles.label}>Smart-account</Text>
-                    <Text style={styles.value}>{student.studentSca}</Text>
-                  </View>
-
-                  <View style={styles.infoBlock}>
-                    <Text style={styles.label}>Home institution</Text>
-                    <Text style={styles.value}>
-                      {student.homeInstitution || "-"}
-                    </Text>
-                  </View>
+                  <Text style={styles.technicalMeta}>
+                    EduWallet reference: {shortenIdentifier(student.studentId)}
+                  </Text>
 
                   <View style={styles.actionsRow}>
                     {canRequestAccess ? (
@@ -266,6 +261,9 @@ export default function StudentsPage() {
                               params: {
                                 studentId: student.studentId,
                                 studentSca: student.studentSca,
+                                studentName: student.name ?? "",
+                                homeInstitution:
+                                  student.homeInstitution ?? "",
                                 permissionType:
                                   getRequestPermissionType(permissionStatus),
                               },
@@ -287,6 +285,8 @@ export default function StudentsPage() {
                           params: {
                             studentId: student.studentId,
                             studentSca: student.studentSca,
+                            studentName: student.name ?? "",
+                            homeInstitution: student.homeInstitution ?? "",
                           },
                         })
                       }
@@ -303,6 +303,8 @@ export default function StudentsPage() {
                             params: {
                               studentId: student.studentId,
                               studentSca: student.studentSca,
+                              studentName: student.name ?? "",
+                              homeInstitution: student.homeInstitution ?? "",
                             },
                           })
                         }
@@ -403,7 +405,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 14,
+    marginBottom: 10,
     gap: 12,
   },
   studentHeaderText: { flex: 1 },
@@ -413,10 +415,15 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 4,
   },
-  studentId: { color: COLORS.muted, fontSize: 14 },
-  infoBlock: { marginBottom: 12 },
-  label: { color: COLORS.muted, fontSize: 13, marginBottom: 4 },
-  value: { color: COLORS.text, fontSize: 15, fontWeight: "600" },
+  studentMeta: {
+    color: COLORS.muted,
+    fontSize: 14,
+  },
+  technicalMeta: {
+    color: COLORS.muted,
+    fontSize: 12,
+    marginTop: 2,
+  },
   badge: { borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
   badgeNeutral: { backgroundColor: "#334155" },
   badgePending: { backgroundColor: "#5B4A1F" },
@@ -425,7 +432,7 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 12,
+    marginTop: 18,
     flexWrap: "wrap",
   },
   primaryButton: {

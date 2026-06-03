@@ -34,9 +34,14 @@ const PERMISSION_FILTER_OPTIONS: Array<{
   label: string;
 }> = [
   { value: "all", label: "All" },
-  { value: "read", label: "Read" },
-  { value: "write", label: "Write" },
+  { value: "read", label: "View" },
+  { value: "write", label: "Update" },
 ];
+
+function shortenIdentifier(value: string) {
+  if (value.length <= 12) return value;
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
 
 function formatStatus(status: PortalRequest["status"]) {
   switch (status) {
@@ -51,12 +56,12 @@ function formatStatus(status: PortalRequest["status"]) {
 }
 
 function formatPermission(permissionType: PermissionType) {
-  return permissionType === "write" ? "Write access" : "Read access";
+  return permissionType === "write" ? "Update access" : "View access";
 }
 
 function getRequestTitle(request: PortalRequest) {
   if (request.studentId) {
-    return `Request for student ${request.studentId}`;
+    return `Request for student ${shortenIdentifier(request.studentId)}`;
   }
 
   return "Access request";
@@ -72,11 +77,15 @@ export default function RequestsPage() {
   const params = useLocalSearchParams<{
     studentId?: string;
     studentSca?: string;
+    studentName?: string;
+    homeInstitution?: string;
     permissionType?: string;
   }>();
 
   const [studentId, setStudentId] = useState("");
   const [studentSca, setStudentSca] = useState("");
+  const [studentName, setStudentName] = useState("");
+  const [homeInstitution, setHomeInstitution] = useState("");
   const [permissionType, setPermissionType] = useState<PermissionType>("read");
   const [reason, setReason] = useState("");
   const [error, setError] = useState("");
@@ -107,6 +116,17 @@ export default function RequestsPage() {
       setStudentSca(params.studentSca as string);
     }
 
+    if (typeof params.studentName === "string" && params.studentName.trim()) {
+      setStudentName(params.studentName);
+    }
+
+    if (
+      typeof params.homeInstitution === "string" &&
+      params.homeInstitution.trim()
+    ) {
+      setHomeInstitution(params.homeInstitution);
+    }
+
     if (typeof params.permissionType === "string") {
       setPermissionType(normalizePermissionType(params.permissionType));
     }
@@ -115,7 +135,13 @@ export default function RequestsPage() {
       setShowNewRequestForm(true);
       setOpenedFromStudentCard(true);
     }
-  }, [params.studentId, params.studentSca, params.permissionType]);
+  }, [
+    params.studentId,
+    params.studentSca,
+    params.studentName,
+    params.homeInstitution,
+    params.permissionType,
+  ]);
 
   const loadRequests = useCallback(async () => {
     if (!token) return;
@@ -160,9 +186,14 @@ export default function RequestsPage() {
     });
   }, [requests, requestQuery, statusFilter, permissionFilter]);
 
+  const hasSelectedStudent = Boolean(studentId || studentSca);
+  const hasHumanReadableStudent = Boolean(studentName || homeInstitution);
+
   const resetForm = () => {
     setStudentId("");
     setStudentSca("");
+    setStudentName("");
+    setHomeInstitution("");
     setReason("");
     setPermissionType("read");
     setError("");
@@ -180,7 +211,7 @@ export default function RequestsPage() {
     }
 
     if (!studentSca.trim()) {
-      setError("Please enter the student smart-account address.");
+      setError("Please select a student or enter an EduWallet address.");
       return;
     }
 
@@ -234,50 +265,56 @@ export default function RequestsPage() {
         </Pressable>
       </View>
 
-      {studentId || studentSca ? (
+      {hasSelectedStudent ? (
         <View style={styles.selectedStudentBox}>
           <Text style={styles.selectedStudentTitle}>Selected student</Text>
 
-          {studentId ? (
-            <Text style={styles.selectedStudentText}>
-              Student ID: {studentId}
-            </Text>
+          <Text style={styles.selectedStudentName}>
+            {studentName || "Selected EduWallet student"}
+          </Text>
+
+          {homeInstitution ? (
+            <Text style={styles.selectedStudentText}>{homeInstitution}</Text>
           ) : null}
 
-          {studentSca ? (
-            <Text style={styles.selectedStudentText}>
-              Smart-account: {studentSca}
+          {studentId ? (
+            <Text style={styles.selectedStudentMeta}>
+              EduWallet reference: {shortenIdentifier(studentId)}
             </Text>
           ) : null}
         </View>
       ) : null}
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Student ID</Text>
-        <TextInput
-          value={studentId}
-          onChangeText={setStudentId}
-          placeholder="Generated student ID"
-          placeholderTextColor={COLORS.muted}
-          style={styles.input}
-          autoCapitalize="none"
-        />
-      </View>
+      {!hasHumanReadableStudent ? (
+        <>
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>Student identifier</Text>
+            <TextInput
+              value={studentId}
+              onChangeText={setStudentId}
+              placeholder="Student identifier"
+              placeholderTextColor={COLORS.muted}
+              style={styles.input}
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View style={styles.inputGroup}>
+            <Text style={styles.label}>EduWallet address</Text>
+            <TextInput
+              value={studentSca}
+              onChangeText={setStudentSca}
+              placeholder="0x..."
+              placeholderTextColor={COLORS.muted}
+              style={styles.input}
+              autoCapitalize="none"
+            />
+          </View>
+        </>
+      ) : null}
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Student smart-account address</Text>
-        <TextInput
-          value={studentSca}
-          onChangeText={setStudentSca}
-          placeholder="0x..."
-          placeholderTextColor={COLORS.muted}
-          style={styles.input}
-          autoCapitalize="none"
-        />
-      </View>
-
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>Permission type</Text>
+        <Text style={styles.label}>Access level</Text>
 
         <View style={styles.permissionRow}>
           <Pressable
@@ -293,7 +330,7 @@ export default function RequestsPage() {
                 permissionType === "read" && styles.permissionButtonTextActive,
               ]}
             >
-              Read
+              View
             </Text>
             <Text
               style={[
@@ -301,7 +338,7 @@ export default function RequestsPage() {
                 permissionType === "read" && styles.permissionHintActive,
               ]}
             >
-              Verify records
+              View and verify records
             </Text>
           </Pressable>
 
@@ -315,10 +352,11 @@ export default function RequestsPage() {
             <Text
               style={[
                 styles.permissionButtonText,
-                permissionType === "write" && styles.permissionButtonTextActive,
+                permissionType === "write" &&
+                  styles.permissionButtonTextActive,
               ]}
             >
-              Write
+              Update
             </Text>
             <Text
               style={[
@@ -326,7 +364,7 @@ export default function RequestsPage() {
                 permissionType === "write" && styles.permissionHintActive,
               ]}
             >
-              Submit results
+              Add or update results
             </Text>
           </Pressable>
         </View>
@@ -397,7 +435,7 @@ export default function RequestsPage() {
       <TextInput
         value={requestQuery}
         onChangeText={setRequestQuery}
-        placeholder="Search by student, reason, or date"
+        placeholder="Search by student reference, reason, or date"
         placeholderTextColor={COLORS.muted}
         style={styles.input}
         autoCapitalize="none"
@@ -427,7 +465,7 @@ export default function RequestsPage() {
         })}
       </View>
 
-      <Text style={styles.filterLabel}>Permission type</Text>
+      <Text style={styles.filterLabel}>Access level</Text>
       <View style={styles.filterRow}>
         {PERMISSION_FILTER_OPTIONS.map((option) => {
           const isActive = permissionFilter === option.value;
@@ -473,8 +511,8 @@ export default function RequestsPage() {
                     request.status === "approved"
                       ? styles.badgeApproved
                       : request.status === "rejected"
-                      ? styles.badgeRejected
-                      : styles.badgePending,
+                        ? styles.badgeRejected
+                        : styles.badgePending,
                   ]}
                 >
                   <Text style={styles.badgeText}>
@@ -485,16 +523,16 @@ export default function RequestsPage() {
 
               {request.studentId ? (
                 <Text style={styles.requestMeta}>
-                  Student ID: {request.studentId}
+                  EduWallet reference: {shortenIdentifier(request.studentId)}
                 </Text>
               ) : null}
 
               <Text style={styles.requestMeta}>
-                Smart-account: {request.studentSca}
+                EduWallet address: {shortenIdentifier(request.studentSca)}
               </Text>
 
               <Text style={styles.requestMeta}>
-                Permission: {formatPermission(request.permissionType)}
+                Access level: {formatPermission(request.permissionType)}
               </Text>
 
               <Text style={styles.requestMeta}>
@@ -523,7 +561,7 @@ export default function RequestsPage() {
     >
       <Text style={styles.title}>Access requests</Text>
       <Text style={styles.subtitle}>
-        Review access requests and create new read/write requests.
+        Review access requests and create new access requests.
       </Text>
 
       {successMessage ? (
@@ -610,15 +648,27 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   selectedStudentTitle: {
-    color: COLORS.text,
-    fontSize: 14,
+    color: COLORS.muted,
+    fontSize: 12,
     fontWeight: "700",
-    marginBottom: 6,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  selectedStudentName: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 4,
   },
   selectedStudentText: {
     color: COLORS.muted,
     fontSize: 13,
     lineHeight: 18,
+  },
+  selectedStudentMeta: {
+    color: COLORS.muted,
+    fontSize: 12,
+    marginTop: 8,
   },
   inputGroup: {
     marginBottom: 18,
