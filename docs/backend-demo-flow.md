@@ -100,12 +100,12 @@ NTNU logs in
 → verification confirms the new course exists on-chain
 ```
 
-### Login as NTNU issuer
+### Login as NTNU admin
 
 Use:
 
 ```text
-Email: lars@ntnu.no
+Email: ingrid@ntnu.no
 Password: password123
 ```
 
@@ -145,18 +145,6 @@ Expected message:
 ```text
 Organization does not have read access for this student.
 ```
-
-### Student approval
-
-The student approval is done through the student gateway using the generated student ID, generated student password, student smart account address, and Nordic Hiring smart account address from:
-
-```text
-portal-backend\src\demo\portalDemoBlockchain.json
-```
-
-### Expected result after approval
-
-After approval, Nordic Hiring should be able to verify a real course result from the student’s EduWallet record.
 
 ## Notes
 
