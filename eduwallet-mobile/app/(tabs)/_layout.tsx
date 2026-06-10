@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 /**
  * Root tab layout for the mobile app.
  *
- * - Shows two tabs: "Wallet" and "Permissions"
+ * - Shows two tabs: "Wallet" and "Access"
  * - Hides the tab bar completely when the user is not logged in
  * - Adds safe area padding at the bottom on devices with a gesture bar
  */
@@ -54,9 +54,9 @@ export default function TabLayout() {
       <Tabs.Screen
         name="permissions"
         options={{
-          title: "Permissions",
+          title: "Access",
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="lock-closed-outline" size={size} color={color} />
+            <Ionicons name="lock-open-outline" size={size} color={color} />
           ),
         }}
       />

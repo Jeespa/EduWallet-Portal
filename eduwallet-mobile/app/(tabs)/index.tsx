@@ -100,7 +100,7 @@ export default function HomeScreen() {
       {!isLoggedIn || !data ? (
         // LOGIN VIEW
         <>
-          <Text style={styles.label}>ID</Text>
+          <Text style={styles.label}>Student ID</Text>
           <TextInput
             style={styles.input}
             placeholder="Student ID"

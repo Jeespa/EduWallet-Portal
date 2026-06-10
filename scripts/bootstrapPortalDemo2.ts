@@ -5,13 +5,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { pbkdf2Sync } from "node:crypto";
 import path from "node:path";
 
-import {
-  registerStudent,
-  enrollStudent,
-  evaluateStudent,
-  askForPermission,
-  PermissionType,
-} from "../sdk/dist";
+import { registerStudent, enrollStudent, evaluateStudent } from "../sdk/dist";
 
 const NTNU_ORG_NUMBER = "974767880";
 const NORDIC_HIRING_ORG_NUMBER = "999888777";
@@ -57,7 +51,6 @@ type StudentSeed = {
   homeInstitution: string;
   registeredBy: RegisteringOrganization;
   initialAccess?: Partial<Record<AccessOrganization, PermissionLevel>>;
-  initialRequests?: Partial<Record<AccessOrganization, PermissionLevel>>;
   courses: CourseSeed[];
   testPurpose: string;
 };
@@ -135,22 +128,6 @@ async function grantPermissionLocally(input: {
   }
 }
 
-
-async function requestPermissionLocally(input: {
-  studentSca: string;
-  organizationWallet: Wallet;
-  permission: Exclude<PermissionLevel, "none">;
-}) {
-  const permissionType =
-    input.permission === "write" ? PermissionType.Write : PermissionType.Read;
-
-  await askForPermission(
-    input.organizationWallet as any,
-    input.studentSca,
-    permissionType,
-  );
-}
-
 async function createDemoStudent(input: {
   student: StudentSeed;
   issuerWallet: Wallet;
@@ -159,7 +136,6 @@ async function createDemoStudent(input: {
     value: bigint;
   }) => Promise<{ wait: () => Promise<unknown> }>;
   organizationSmartAccounts: Record<AccessOrganization, string>;
-  organizationWallets: Record<AccessOrganization, Wallet>;
 }): Promise<GeneratedStudent> {
   const created = await registerStudent(input.issuerWallet as any, {
     name: input.student.name,
@@ -216,22 +192,6 @@ async function createDemoStudent(input: {
     await grantPermissionLocally({
       studentSca: created.academicWalletAddress,
       organizationSmartAccount: input.organizationSmartAccounts[organization],
-      permission,
-    });
-  }
-
-  for (const organization of Object.keys(
-    input.student.initialRequests ?? {},
-  ) as AccessOrganization[]) {
-    const permission = input.student.initialRequests?.[organization];
-
-    if (!permission || permission === "none") {
-      continue;
-    }
-
-    await requestPermissionLocally({
-      studentSca: created.academicWalletAddress,
-      organizationWallet: input.organizationWallets[organization],
       permission,
     });
   }
@@ -404,17 +364,6 @@ async function main() {
   const organizationSmartAccounts: Record<AccessOrganization, string> = {
     ntnu: ntnuSmartAccountAddress,
     nordicHiring: nordicHiringSmartAccountAddress,
-  };
-
-  const organizationWallets: Record<AccessOrganization, Wallet> = {
-    ntnu: ntnuWallet,
-    nordicHiring: nordicHiringWallet,
-  };
-
-  const issuerWallets: Record<RegisteringOrganization, Wallet> = {
-    ntnu: ntnuWallet,
-    tbs: tbsWallet,
-    uio: uioWallet,
   };
 
   // ---------------------------------------------------------------------------
@@ -591,11 +540,7 @@ async function main() {
         ntnu: "none",
         nordicHiring: "none",
       },
-      initialRequests: {
-        ntnu: "read",
-      },
-      testPurpose:
-        "Student mobile app test: pending NTNU view request is available immediately.",
+      testPurpose: "Student reserved for the EduWallet mobile app test.",
       courses: [
         {
           code: "IN1000",
@@ -620,14 +565,18 @@ async function main() {
   const generatedStudents: GeneratedStudent[] = [];
 
   for (const student of studentSeeds) {
-    const issuerWallet = issuerWallets[student.registeredBy];
+    const issuerWallet =
+      student.registeredBy === "ntnu"
+        ? ntnuWallet
+        : student.registeredBy === "uio"
+          ? uioWallet
+          : tbsWallet;
 
     const generatedStudent = await createDemoStudent({
       student,
       issuerWallet,
       deployerSendTransaction: (tx) => deployer.sendTransaction(tx),
       organizationSmartAccounts,
-      organizationWallets,
     });
 
     generatedStudents.push(generatedStudent);
@@ -683,7 +632,6 @@ async function main() {
       backup: {
         verification: "Nora Solheim",
         mobileAppTest: "Maya Eide",
-        mobilePendingRequest: "NTNU University view request for Maya Eide",
       },
     },
   };
@@ -740,12 +688,10 @@ async function main() {
   console.log("NTNU issue result:                 Sara Lund");
   console.log("Backup verification:               Nora Solheim");
   console.log("Mobile app test:                   Maya Eide");
-  console.log("Mobile pending request:            NTNU view request for Maya Eide");
   console.log("");
   console.log("Expected portal statuses:");
-  console.log("NTNU: Anna write, Jonas write, Emil none, Sara write, Nora read, Maya pending read");
+  console.log("NTNU: Anna write, Jonas write, Emil none, Sara write, Nora read, Maya none");
   console.log("Nordic Hiring: Anna none, Jonas read, Emil none, Sara none, Nora read, Maya none");
-  console.log("UiO: Maya write");
   console.log("Maya Eide is registered by University of Oslo and reserved for mobile testing.");
   console.log("");
   console.log(

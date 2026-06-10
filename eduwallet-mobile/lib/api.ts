@@ -19,13 +19,21 @@ export const API_BASE_URL =
  */
 const client = createGatewayClient(API_BASE_URL);
 
+type GatewayActionStatus = {
+  status: "ok";
+};
+
 // --- login helper -------------------------------------------------
 
 /**
  * Perform a student login against the gateway.
  *
  * The gateway reconstructs the student wallet from id + password and
- * returns profile data, course results and optionally a permissions snapshot.
+ * returns profile data, course results, optionally a permissions snapshot,
+ * and a temporary student session token.
+ *
+ * The mobile app should use that session token for permission refresh,
+ * approve, and revoke actions instead of asking for the password again.
  *
  * @param id - Student identifier as used during registration
  * @param password - Student password
@@ -38,18 +46,74 @@ export async function login(
   return client.logIn(id, password);
 }
 
-// --- permissions helpers ------------------------------------------
+// --- token-based permissions helpers ------------------------------
+
+/**
+ * Retrieve the multi-university permissions view using the temporary gateway
+ * session token returned by login.
+ *
+ * @param studentSca - Student smart account address
+ * @param sessionToken - Temporary gateway session token from login
+ * @returns AllPermissionsForStudent structure for the given student
+ */
+export async function getPermissionsWithSession(
+  studentSca: string,
+  sessionToken: string,
+): Promise<AllPermissionsForStudent> {
+  return client.getPermissionsWithToken(studentSca, sessionToken);
+}
+
+/**
+ * Revoke an organization's permission using the temporary gateway session token.
+ *
+ * @param studentSca - Student smart account address
+ * @param sessionToken - Temporary gateway session token from login
+ * @param universityAddress - Optional explicit organization smart account address to revoke
+ * @returns Gateway acknowledgement
+ */
+export async function revokePermissionWithSession(
+  studentSca: string,
+  sessionToken: string,
+  universityAddress?: string,
+): Promise<GatewayActionStatus> {
+  return client.revokePermissionWithToken(
+    studentSca,
+    sessionToken,
+    universityAddress,
+  );
+}
+
+/**
+ * Accept a pending permission request using the temporary gateway session token.
+ *
+ * @param studentSca - Student smart account address
+ * @param sessionToken - Temporary gateway session token from login
+ * @param type - Permission type to grant ("read" or "write")
+ * @param universityAddress - Optional explicit organization smart account address to grant to
+ * @returns Gateway acknowledgement
+ */
+export async function grantPermissionWithSession(
+  studentSca: string,
+  sessionToken: string,
+  type: "read" | "write",
+  universityAddress?: string,
+): Promise<GatewayActionStatus> {
+  return client.grantPermissionWithToken(
+    studentSca,
+    sessionToken,
+    type,
+    universityAddress,
+  );
+}
+
+// --- legacy password-based permissions helpers --------------------
+// Kept temporarily so the current mobile screen does not break until the UI is
+// updated to use the token-based functions above.
 
 /**
  * Retrieve the multi-university permissions view for a student.
  *
- * In the mobile app this is usually called after a change to refresh
- * the list, or as a fallback if the login snapshot is missing.
- *
- * @param studentSca - Student smart contract account address
- * @param id - Student identifier
- * @param password - Student password
- * @returns AllPermissionsForStudent structure for the given student
+ * @deprecated Use getPermissionsWithSession instead.
  */
 export async function getPermissions(
   studentSca: string,
@@ -62,14 +126,7 @@ export async function getPermissions(
 /**
  * Revoke this university's permission on the student's smart account.
  *
- * The gateway acts as the student by reconstructing the wallet and
- * sending an ERC-4337 user operation to Student.revokePermission.
- *
- * @param studentSca - Student smart account address
- * @param id - Student identifier
- * @param password - Student password
- * @param universityAddress - Optional explicit university address to revoke
- * @returns Updated per-university permission status
+ * @deprecated Use revokePermissionWithSession instead.
  */
 export async function revokePermission(
   studentSca: string,
@@ -83,15 +140,7 @@ export async function revokePermission(
 /**
  * Accept a pending permission request (read or write) for this student.
  *
- * The gateway reconstructs the student's wallet and calls
- * Student.grantPermission with the requested role.
- *
- * @param studentSca - Student smart account address
- * @param id - Student identifier
- * @param password - Student password
- * @param type - Permission type to grant ("read" or "write")
- * @param universityAddress - Optional explicit university address to grant to
- * @returns Updated per-university permission status
+ * @deprecated Use grantPermissionWithSession instead.
  */
 export async function grantPermission(
   studentSca: string,
@@ -146,6 +195,17 @@ export function getFriendlyApiErrorMessage(
     message.includes("network")
   ) {
     return "Could not connect to EduWallet. Please check that the gateway is running.";
+  }
+
+  if (
+    message.includes("student session") ||
+    message.includes("session token") ||
+    message.includes("session is missing") ||
+    message.includes("session is invalid") ||
+    message.includes("session expired") ||
+    message.includes("expired")
+  ) {
+    return "Your EduWallet session has expired. Please log in again.";
   }
 
   if (

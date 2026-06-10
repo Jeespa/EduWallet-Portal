@@ -5,15 +5,19 @@ import type { CredentialsResponse } from "../types";
 /**
  * Shape of the global student state that is shared across screens.
  *
- * - id:       Student identifier (login id)
- * - sca:      Student smart contract account address
- * - data:     Full login payload from the gateway
- * - setStudent: helper called on successful login
- * - clearStudent: helper called on logout
+ * - id:               Student identifier (login id)
+ * - sca:              Student smart contract account address
+ * - sessionToken:     Temporary gateway session token returned by login
+ * - sessionExpiresAt: Optional expiry timestamp for the gateway session
+ * - data:             Full login payload from the gateway
+ * - setStudent:       Helper called on successful login
+ * - clearStudent:     Helper called on logout
  */
 type StudentContextValue = {
   id: string | null;
   sca: string | null;
+  sessionToken: string | null;
+  sessionExpiresAt: string | null;
   data: CredentialsResponse | null;
   setStudent: (id: string, sca: string, data: CredentialsResponse) => void;
   clearStudent: () => void;
@@ -24,7 +28,7 @@ type StudentContextValue = {
  * It is initialised as undefined and forced through the custom hook below.
  */
 const StudentContext = createContext<StudentContextValue | undefined>(
-  undefined
+  undefined,
 );
 
 /**
@@ -34,6 +38,8 @@ const StudentContext = createContext<StudentContextValue | undefined>(
 export function StudentProvider({ children }: { children: ReactNode }) {
   const [id, setId] = useState<string | null>(null);
   const [sca, setSca] = useState<string | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
+  const [sessionExpiresAt, setSessionExpiresAt] = useState<string | null>(null);
   const [data, setData] = useState<CredentialsResponse | null>(null);
 
   /**
@@ -42,10 +48,12 @@ export function StudentProvider({ children }: { children: ReactNode }) {
   const setStudent = (
     newId: string,
     newSca: string,
-    newData: CredentialsResponse
+    newData: CredentialsResponse,
   ) => {
     setId(newId);
     setSca(newSca);
+    setSessionToken(newData.sessionToken ?? null);
+    setSessionExpiresAt(newData.sessionExpiresAt ?? null);
     setData(newData);
   };
 
@@ -55,12 +63,22 @@ export function StudentProvider({ children }: { children: ReactNode }) {
   const clearStudent = () => {
     setId(null);
     setSca(null);
+    setSessionToken(null);
+    setSessionExpiresAt(null);
     setData(null);
   };
 
   return (
     <StudentContext.Provider
-      value={{ id, sca, data, setStudent, clearStudent }}
+      value={{
+        id,
+        sca,
+        sessionToken,
+        sessionExpiresAt,
+        data,
+        setStudent,
+        clearStudent,
+      }}
     >
       {children}
     </StudentContext.Provider>
