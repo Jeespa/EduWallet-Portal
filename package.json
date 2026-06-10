@@ -1,33 +1,58 @@
 {
-  "name": "eduwallet",
+  "name": "eduwallet-v3",
   "version": "1.0.0",
-  "description": "The project aims to revolutionize university credit management by storing students' academic information on the blockchain. Through EduWallet APIs, universities can easily synchronize grades and credits, simplifying the transfer of academic records between institutions. EduWallet ensures secure, efficient record-keeping and easy credit transferability across institutions.",
+  "private": true,
+  "description": "EduWallet V3 prototype with smart contracts, SDK, gateway, browser extension, mobile app, EduWallet Portal, and portal backend.",
   "scripts": {
+    "compile": "npx hardhat compile",
+    "hardhat:node": "npx hardhat node",
+    "demo:bootstrap": "npx hardhat run scripts/bootstrapPortalDemo.ts --network localhost",
     "cli": "cd cli && npx hardhat run dist/index.js --network localhost",
     "build-cli": "cd cli && npm run build",
     "build-sdk": "cd sdk && npm run build",
+    "build:ext": "cd browser-extension && npm run build",
+    "build:gateway": "cd gateway && npm run build",
+    "build:portal-backend": "cd portal-backend && npm run build",
+    "build:portal": "cd eduwallet-portal && npx expo export --platform web",
+    "build": "npm run compile && npm run build-sdk && npm run build-cli && npm run build:ext && npm run build:gateway && npm run build:portal-backend",
     "deps:root": "npm install",
     "deps:sdk": "cd sdk && npm install",
     "deps:cli": "cd cli && npm install",
     "deps:ext": "cd browser-extension && npm install",
     "deps:gateway": "cd gateway && npm install",
     "deps:mobile": "cd eduwallet-mobile && npm install",
+    "deps:portal": "cd eduwallet-portal && npm install",
     "deps:portal-backend": "cd portal-backend && npm install",
-    "deps:all": "npm run deps:sdk && npm run deps:cli && npm run deps:ext && npm run deps:gateway && npm run deps:mobile && npm run deps:portal-backend",
-    "build:portal-backend": "cd portal-backend && npm run build",
-    "build": "npx hardhat compile && npm run build-sdk && npm run build-cli && cd browser-extension && npm run build && cd ../gateway && npm run build && cd .."
+    "deps:all": "npm run deps:sdk && npm run deps:cli && npm run deps:ext && npm run deps:gateway && npm run deps:mobile && npm run deps:portal && npm run deps:portal-backend",
+    "dev:gateway": "cd gateway && npm run dev",
+    "dev:mobile": "cd eduwallet-mobile && npx expo start -c",
+    "dev:mobile:tunnel": "cd eduwallet-mobile && npx expo start -c --tunnel",
+    "dev:portal": "cd eduwallet-portal && npx expo start --web",
+    "dev:portal:tunnel": "cd eduwallet-portal && npx expo start --web --tunnel",
+    "dev:portal-backend": "cd portal-backend && npm run dev",
+    "portal:prisma:generate": "cd portal-backend && npm run prisma:generate",
+    "portal:prisma:migrate": "cd portal-backend && npm run prisma:migrate",
+    "portal:seed": "cd portal-backend && npm run seed",
+    "demo:web": "cd eduwallet-portal && npm run demo:web"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NTNU-IDI/eduwallet-eduwalletdiego.git"
+    "url": "git+https://github.com/Jeespa/EduWallet-V3.0.git"
   },
-  "keywords": [],
-  "author": "Diego Da Giau",
+  "keywords": [
+    "eduwallet",
+    "academic-credentials",
+    "ethereum",
+    "account-abstraction",
+    "react-native",
+    "expo"
+  ],
+  "author": "Jesper R. Goks\u00f8r",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/NTNU-IDI/eduwallet-eduwalletdiego/issues"
+    "url": "https://github.com/Jeespa/EduWallet-V3.0/issues"
   },
-  "homepage": "https://github.com/NTNU-IDI/eduwallet-eduwalletdiego#readme",
+  "homepage": "https://github.com/Jeespa/EduWallet-V3.0#readme",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@types/node": "^22.15.15",
