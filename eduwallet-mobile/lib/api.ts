@@ -1,7 +1,6 @@
 // app/lib/api.ts
 import type {
   CredentialsResponse,
-  PermissionStatus,
   AllPermissionsForStudent,
 } from "../types";
 import { createGatewayClient } from "shared/clientApi";
@@ -101,58 +100,6 @@ export async function grantPermissionWithSession(
   return client.grantPermissionWithToken(
     studentSca,
     sessionToken,
-    type,
-    universityAddress,
-  );
-}
-
-// --- legacy password-based permissions helpers --------------------
-// Kept temporarily so the current mobile screen does not break until the UI is
-// updated to use the token-based functions above.
-
-/**
- * Retrieve the multi-university permissions view for a student.
- *
- * @deprecated Use getPermissionsWithSession instead.
- */
-export async function getPermissions(
-  studentSca: string,
-  id: string,
-  password: string,
-): Promise<AllPermissionsForStudent> {
-  return client.getPermissions(studentSca, id, password);
-}
-
-/**
- * Revoke this university's permission on the student's smart account.
- *
- * @deprecated Use revokePermissionWithSession instead.
- */
-export async function revokePermission(
-  studentSca: string,
-  id: string,
-  password: string,
-  universityAddress?: string,
-): Promise<PermissionStatus> {
-  return client.revokePermission(studentSca, id, password, universityAddress);
-}
-
-/**
- * Accept a pending permission request (read or write) for this student.
- *
- * @deprecated Use grantPermissionWithSession instead.
- */
-export async function grantPermission(
-  studentSca: string,
-  id: string,
-  password: string,
-  type: "read" | "write",
-  universityAddress?: string,
-): Promise<PermissionStatus> {
-  return client.grantPermission(
-    studentSca,
-    id,
-    password,
     type,
     universityAddress,
   );

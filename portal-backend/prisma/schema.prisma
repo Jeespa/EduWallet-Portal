@@ -1,3 +1,7 @@
+// Prisma Client is generated into src/generated/prisma so the backend can
+// import a local CommonJS client. Do not commit the generated output;
+// run `npm run prisma:generate` after installing dependencies.
+
 generator client {
   provider     = "prisma-client"
   output       = "../src/generated/prisma"

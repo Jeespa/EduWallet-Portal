@@ -130,6 +130,14 @@ export interface CredentialsResponse {
   student: StudentPayload;
   /** Optional multi-university permissions snapshot. */
   allPermissions?: AllPermissionsForStudent;
+  /**
+   * Optional temporary gateway session token.
+   * Returned by newer gateway versions so clients can refresh permissions
+   * and approve/revoke requests without sending the password again.
+   */
+  sessionToken?: string;
+  /** Optional ISO timestamp for when the temporary gateway session expires. */
+  sessionExpiresAt?: string;
 }
 
 // ---------- Permissions ----------
