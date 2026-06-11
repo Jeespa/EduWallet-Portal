@@ -49,13 +49,13 @@ The gateway depends on shared types and a thin HTTP client:
 
 The main endpoints are:
 
-| Method | Path                                        | Purpose                                                                |
-| ------ | ------------------------------------------- | ---------------------------------------------------------------------- |
-| POST   | `/auth/login`                               | Authenticate student and return `CredentialsResponse`.                 |
-| POST   | `/students/:studentSca/permissions`         | Full multi-university view `AllPermissionsForStudent`.                 |
-| POST   | `/students/:studentSca/permissions/revoke`  | Revoke this university’s permission on the student’s smart account.    |
-| POST   | `/students/:studentSca/permissions/grant`   | Accept a pending read/write request for a university.                  |
-| GET    | `/health`                                   | Lightweight health check used in development / monitoring.             |
+| Method | Path                                       | Purpose                                                             |
+| ------ | ------------------------------------------ | ------------------------------------------------------------------- |
+| POST   | `/auth/login`                              | Authenticate student and return `CredentialsResponse`.              |
+| POST   | `/students/:studentSca/permissions`        | Full multi-university view `AllPermissionsForStudent`.              |
+| POST   | `/students/:studentSca/permissions/revoke` | Revoke this university’s permission on the student’s smart account. |
+| POST   | `/students/:studentSca/permissions/grant`  | Accept a pending read/write request for a university.               |
+| GET    | `/health`                                  | Lightweight health check used in development / monitoring.          |
 
 All endpoints return JSON. Error responses use a common shape:
 
@@ -72,15 +72,15 @@ All endpoints return JSON. Error responses use a common shape:
 
 The gateway reads its configuration from environment variables.
 
-| Name                        | Description                                                                 |
-| --------------------------- | --------------------------------------------------------------------------- |
-| `PORT`                      | HTTP port for the gateway (default `3000`).                                |
-| `RPC_URL`                   | JSON-RPC URL of the Ethereum node.                                         |
-| `STUDENTS_REGISTER_ADDRESS` | Address of the `StudentsRegister` contract.                                |
-| `ENTRY_POINT_ADDRESS`       | Address of the ERC-4337 `EntryPoint` contract.                             |
+| Name                        | Description                                                               |
+| --------------------------- | ------------------------------------------------------------------------- |
+| `PORT`                      | HTTP port for the gateway (default `3000`).                               |
+| `RPC_URL`                   | JSON-RPC URL of the Ethereum node.                                        |
+| `STUDENTS_REGISTER_ADDRESS` | Address of the `StudentsRegister` contract.                               |
+| `ENTRY_POINT_ADDRESS`       | Address of the ERC-4337 `EntryPoint` contract.                            |
 | `PAYMASTER_ADDRESS`         | Address of the paymaster contract used for gas sponsorship.               |
-| `CHAIN_ID`                  | Numeric chain ID used for EIP-712 signing.                                 |
-| `IPFS_GATEWAY_URL` (opt.)   | HTTP gateway base for certificate URLs (default `https://ipfs.io/ipfs/`).  |
+| `CHAIN_ID`                  | Numeric chain ID used for EIP-712 signing.                                |
+| `IPFS_GATEWAY_URL` (opt.)   | HTTP gateway base for certificate URLs (default `https://ipfs.io/ipfs/`). |
 
 Example `.env`:
 

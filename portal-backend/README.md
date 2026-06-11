@@ -29,7 +29,7 @@ In the end-to-end demo configuration, the portal backend uses a generated demo s
 
 ## Project structure
 
-~~~text
+```text
 portal-backend/
   prisma/
     schema.prisma
@@ -43,9 +43,10 @@ portal-backend/
     students/
     types/
     index.ts
-~~~
+```
 
 ## Setup
+
     1. Install dependencies
 
     From portal-backend/:

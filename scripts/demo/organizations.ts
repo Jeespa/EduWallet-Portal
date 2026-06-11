@@ -31,14 +31,8 @@ export async function prepareDemoOrganizations(input: {
   studentsRegister: any;
 }): Promise<PreparedOrganizations> {
   const ntnuWallet = new ethers.Wallet(NTNU_PRIVATE_KEY, ethers.provider);
-  const nordicHiringWallet = new ethers.Wallet(
-    NORDIC_HIRING_PRIVATE_KEY,
-    ethers.provider,
-  );
-  const tbsWallet = new ethers.Wallet(
-    TRONDHEIM_BUSINESS_SCHOOL_PRIVATE_KEY,
-    ethers.provider,
-  );
+  const nordicHiringWallet = new ethers.Wallet(NORDIC_HIRING_PRIVATE_KEY, ethers.provider);
+  const tbsWallet = new ethers.Wallet(TRONDHEIM_BUSINESS_SCHOOL_PRIVATE_KEY, ethers.provider);
   const uioWallet = new ethers.Wallet(UIO_PRIVATE_KEY, ethers.provider);
 
   for (const wallet of [ntnuWallet, nordicHiringWallet, tbsWallet, uioWallet]) {
@@ -51,12 +45,7 @@ export async function prepareDemoOrganizations(input: {
   }
 
   await (
-    await input.studentsRegister.subscribe(
-      ntnuWallet.address,
-      "NTNU University",
-      "Norway",
-      "NTNU",
-    )
+    await input.studentsRegister.subscribe(ntnuWallet.address, "NTNU University", "Norway", "NTNU")
   ).wait();
 
   await (
@@ -78,12 +67,7 @@ export async function prepareDemoOrganizations(input: {
   ).wait();
 
   await (
-    await input.studentsRegister.subscribe(
-      uioWallet.address,
-      "University of Oslo",
-      "Norway",
-      "UiO",
-    )
+    await input.studentsRegister.subscribe(uioWallet.address, "University of Oslo", "Norway", "UiO")
   ).wait();
 
   console.log("");
@@ -110,10 +94,7 @@ export async function prepareDemoOrganizations(input: {
     .getUniversityAccount();
 
   console.log("NTNU smart account:                     ", ntnuSmartAccountAddress);
-  console.log(
-    "Nordic Hiring smart account:            ",
-    nordicHiringSmartAccountAddress,
-  );
+  console.log("Nordic Hiring smart account:            ", nordicHiringSmartAccountAddress);
   console.log("Trondheim Business School smart account:", tbsSmartAccountAddress);
   console.log("University of Oslo smart account:       ", uioSmartAccountAddress);
 

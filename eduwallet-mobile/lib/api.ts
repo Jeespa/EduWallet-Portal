@@ -1,16 +1,12 @@
 // app/lib/api.ts
-import type {
-  CredentialsResponse,
-  AllPermissionsForStudent,
-} from "../types";
+import type { CredentialsResponse, AllPermissionsForStudent } from "../types";
 import { createGatewayClient } from "shared/clientApi";
 
 /**
  * Base URL for the EduWallet HTTP gateway as seen from the mobile app.
  * Read from Expo config, with a localhost fallback for development.
  */
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_GATEWAY_BASE_URL ?? "http://localhost:3000";
+export const API_BASE_URL = process.env.EXPO_PUBLIC_GATEWAY_BASE_URL ?? "http://localhost:3000";
 
 /**
  * Thin HTTP client shared between browser extension and mobile app.
@@ -38,10 +34,7 @@ type GatewayActionStatus = {
  * @param password - Student password
  * @returns Structured login response from the gateway
  */
-export async function login(
-  id: string,
-  password: string,
-): Promise<CredentialsResponse> {
+export async function login(id: string, password: string): Promise<CredentialsResponse> {
   return client.logIn(id, password);
 }
 
@@ -75,11 +68,7 @@ export async function revokePermissionWithSession(
   sessionToken: string,
   universityAddress?: string,
 ): Promise<GatewayActionStatus> {
-  return client.revokePermissionWithToken(
-    studentSca,
-    sessionToken,
-    universityAddress,
-  );
+  return client.revokePermissionWithToken(studentSca, sessionToken, universityAddress);
 }
 
 /**
@@ -97,12 +86,7 @@ export async function grantPermissionWithSession(
   type: "read" | "write",
   universityAddress?: string,
 ): Promise<GatewayActionStatus> {
-  return client.grantPermissionWithToken(
-    studentSca,
-    sessionToken,
-    type,
-    universityAddress,
-  );
+  return client.grantPermissionWithToken(studentSca, sessionToken, type, universityAddress);
 }
 
 // --- error handling ------------------------------------------------

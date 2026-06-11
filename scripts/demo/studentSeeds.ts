@@ -138,8 +138,7 @@ export const STUDENT_SEEDS: StudentSeed[] = [
       ntnu: "read",
       nordicHiring: "read",
     },
-    testPurpose:
-      "Backup verification student. Both NTNU and Nordic Hiring have read access.",
+    testPurpose: "Backup verification student. Both NTNU and Nordic Hiring have read access.",
     courses: [
       {
         code: "IDATT2104",
@@ -174,8 +173,7 @@ export const STUDENT_SEEDS: StudentSeed[] = [
     initialRequests: {
       ntnu: "read",
     },
-    testPurpose:
-      "Student mobile app test: pending NTNU view request is available immediately.",
+    testPurpose: "Student mobile app test: pending NTNU view request is available immediately.",
     courses: [
       {
         code: "IN1000",

@@ -1,20 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
 import { usePortalAuth } from "../../src/context/PortalAuthContext";
 import type { PermissionType, PortalRequest } from "../../src/types/portal";
-import {
-  createPortalPermissionRequest,
-  listPortalRequests,
-} from "../../src/lib/portalBackendApi";
+import { createPortalPermissionRequest, listPortalRequests } from "../../src/lib/portalBackendApi";
 
 type RequestStatusFilter = "all" | "pending" | "approved" | "rejected";
 type RequestPermissionFilter = "all" | PermissionType;
@@ -119,16 +109,12 @@ export default function RequestsPage() {
   const [openedFromStudentCard, setOpenedFromStudentCard] = useState(false);
 
   const [requestQuery, setRequestQuery] = useState("");
-  const [statusFilter, setStatusFilter] =
-    useState<RequestStatusFilter>("pending");
-  const [permissionFilter, setPermissionFilter] =
-    useState<RequestPermissionFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<RequestStatusFilter>("pending");
+  const [permissionFilter, setPermissionFilter] = useState<RequestPermissionFilter>("all");
 
   useEffect(() => {
-    const hasStudentId =
-      typeof params.studentId === "string" && params.studentId.trim();
-    const hasStudentSca =
-      typeof params.studentSca === "string" && params.studentSca.trim();
+    const hasStudentId = typeof params.studentId === "string" && params.studentId.trim();
+    const hasStudentSca = typeof params.studentSca === "string" && params.studentSca.trim();
 
     if (hasStudentId) {
       setStudentId(params.studentId as string);
@@ -142,10 +128,7 @@ export default function RequestsPage() {
       setStudentName(params.studentName);
     }
 
-    if (
-      typeof params.homeInstitution === "string" &&
-      params.homeInstitution.trim()
-    ) {
+    if (typeof params.homeInstitution === "string" && params.homeInstitution.trim()) {
       setHomeInstitution(params.homeInstitution);
     }
 
@@ -198,13 +181,10 @@ export default function RequestsPage() {
         request.reason.toLowerCase().includes(normalized) ||
         request.createdAt.toLowerCase().includes(normalized);
 
-      const matchesStatus =
-        statusFilter === "all" ? true : request.status === statusFilter;
+      const matchesStatus = statusFilter === "all" ? true : request.status === statusFilter;
 
       const matchesPermission =
-        permissionFilter === "all"
-          ? true
-          : request.permissionType === permissionFilter;
+        permissionFilter === "all" ? true : request.permissionType === permissionFilter;
 
       return matchesQuery && matchesStatus && matchesPermission;
     });
@@ -376,8 +356,7 @@ export default function RequestsPage() {
             <Text
               style={[
                 styles.permissionButtonText,
-                permissionType === "write" &&
-                  styles.permissionButtonTextActive,
+                permissionType === "write" && styles.permissionButtonTextActive,
               ]}
             >
               Update
@@ -476,12 +455,7 @@ export default function RequestsPage() {
               style={[styles.filterChip, isActive && styles.filterChipActive]}
               onPress={() => setStatusFilter(option.value)}
             >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  isActive && styles.filterChipTextActive,
-                ]}
-              >
+              <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
                 {option.label}
               </Text>
             </Pressable>
@@ -500,12 +474,7 @@ export default function RequestsPage() {
               style={[styles.filterChip, isActive && styles.filterChipActive]}
               onPress={() => setPermissionFilter(option.value)}
             >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  isActive && styles.filterChipTextActive,
-                ]}
-              >
+              <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
                 {option.label}
               </Text>
             </Pressable>
@@ -513,9 +482,7 @@ export default function RequestsPage() {
         })}
       </View>
 
-      {loading ? (
-        <Text style={styles.emptyText}>Loading requests...</Text>
-      ) : null}
+      {loading ? <Text style={styles.emptyText}>Loading requests...</Text> : null}
 
       {!loading && displayedRequests.length === 0 ? (
         <Text style={styles.emptyText}>No matching requests found.</Text>
@@ -525,9 +492,7 @@ export default function RequestsPage() {
         ? displayedRequests.map((request) => (
             <View key={request.id} style={styles.requestItem}>
               <View style={styles.requestHeader}>
-                <Text style={styles.requestTitle}>
-                  {getRequestTitle(request)}
-                </Text>
+                <Text style={styles.requestTitle}>{getRequestTitle(request)}</Text>
 
                 <View
                   style={[
@@ -539,16 +504,12 @@ export default function RequestsPage() {
                         : styles.badgePending,
                   ]}
                 >
-                  <Text style={styles.badgeText}>
-                    {formatStatus(request.status)}
-                  </Text>
+                  <Text style={styles.badgeText}>{formatStatus(request.status)}</Text>
                 </View>
               </View>
 
               {request.homeInstitution ? (
-                <Text style={styles.requestMeta}>
-                  {request.homeInstitution}
-                </Text>
+                <Text style={styles.requestMeta}>{request.homeInstitution}</Text>
               ) : null}
 
               {request.studentId ? (
@@ -561,16 +522,13 @@ export default function RequestsPage() {
                 Access level: {formatPermission(request.permissionType)}
               </Text>
 
-              <Text style={styles.requestMeta}>
-                Created: {formatDateTime(request.createdAt)}
-              </Text>
+              <Text style={styles.requestMeta}>Created: {formatDateTime(request.createdAt)}</Text>
 
               <Text style={styles.requestReason}>{request.reason}</Text>
 
               {request.status === "pending" ? (
                 <Text style={styles.pendingNote}>
-                  Waiting for the student to approve this request in the mobile
-                  app.
+                  Waiting for the student to approve this request in the mobile app.
                 </Text>
               ) : null}
             </View>
@@ -586,9 +544,7 @@ export default function RequestsPage() {
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.title}>Access requests</Text>
-      <Text style={styles.subtitle}>
-        Review access requests and create new access requests.
-      </Text>
+      <Text style={styles.subtitle}>Review access requests and create new access requests.</Text>
 
       {successMessage ? (
         <View style={styles.successBox}>

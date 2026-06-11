@@ -22,10 +22,7 @@ export function createAuthRouter(client: EduWalletClient) {
         return res.status(400).json({ error: "Missing id or password" });
       }
 
-      const payload: CredentialsResponse = await client.loginStudent(
-        id,
-        password,
-      );
+      const payload: CredentialsResponse = await client.loginStudent(id, password);
 
       try {
         const allPermissions = await client.getAllPermissionsAsStudent(

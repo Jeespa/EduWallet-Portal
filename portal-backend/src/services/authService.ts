@@ -34,7 +34,7 @@ type SessionSuccessResult = {
 };
 
 export async function loginPortalUser(
-  input: LoginInput
+  input: LoginInput,
 ): Promise<LoginSuccessResult | AuthErrorResult> {
   const user = await prisma.portalUser.findUnique({
     where: { email: input.email.toLowerCase().trim() },
@@ -101,7 +101,7 @@ export async function loginPortalUser(
 }
 
 export async function getPortalSession(
-  input: SessionInput
+  input: SessionInput,
 ): Promise<SessionSuccessResult | AuthErrorResult> {
   const user = await prisma.portalUser.findUnique({
     where: { id: input.userId },

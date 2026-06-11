@@ -22,9 +22,7 @@ const ENTRY_POINT_ABI = [
 ];
 
 /** Minimal ABI for the SmartAccount contract (only the execute function). */
-const SMART_ACCOUNT_ABI = [
-  "function execute(address target, uint256 value, bytes data)",
-];
+const SMART_ACCOUNT_ABI = ["function execute(address target, uint256 value, bytes data)"];
 
 /**
  * EIP-712 domain parameters for ERC-4337 user operations.
@@ -40,10 +38,7 @@ const DOMAIN_VERSION = "1";
  * @param chainId - Current chain identifier
  * @returns Typed data domain structure for ethers.js
  */
-function getErc4337TypedDataDomain(
-  entryPoint: string,
-  chainId: number
-): ethers.TypedDataDomain {
+function getErc4337TypedDataDomain(entryPoint: string, chainId: number): ethers.TypedDataDomain {
   return {
     name: DOMAIN_NAME,
     version: DOMAIN_VERSION,
@@ -88,7 +83,7 @@ function packPaymasterData(
   paymaster: string,
   paymasterVerificationGasLimit: number | bigint,
   postOpGasLimit: number | bigint,
-  paymasterData: string
+  paymasterData: string,
 ): string {
   return ethers.concat([
     paymaster,
@@ -158,11 +153,7 @@ export class AccountAbstraction {
   constructor(provider: ethers.Provider, signer: ethers.Wallet) {
     this.provider = provider;
     this.signer = signer;
-    this.entryPoint = new ethers.Contract(
-      ENTRY_POINT_ADDRESS,
-      ENTRY_POINT_ABI,
-      provider
-    );
+    this.entryPoint = new ethers.Contract(ENTRY_POINT_ADDRESS, ENTRY_POINT_ABI, provider);
   }
 
   /**
@@ -188,16 +179,8 @@ export class AccountAbstraction {
     data: string;
     initCode?: string;
   }): Promise<UserOperation> {
-    const accountContract = new ethers.Contract(
-      sender,
-      SMART_ACCOUNT_ABI,
-      this.provider
-    );
-    const callData = accountContract.interface.encodeFunctionData("execute", [
-      target,
-      value,
-      data,
-    ]);
+    const accountContract = new ethers.Contract(sender, SMART_ACCOUNT_ABI, this.provider);
+    const callData = accountContract.interface.encodeFunctionData("execute", [target, value, data]);
 
     // Cast to any to avoid strict typing issues on ABI-dynamic function
     const nonce: bigint = await (this.entryPoint as any).getNonce(sender, 0);
@@ -214,8 +197,7 @@ export class AccountAbstraction {
       verificationGasLimit: BigInt(5_000_000),
       preVerificationGas: BigInt(500_000),
       maxFeePerGas: feeData.maxFeePerGas || BigInt(2_000_000_000),
-      maxPriorityFeePerGas:
-        feeData.maxPriorityFeePerGas || BigInt(1_000_000_000),
+      maxPriorityFeePerGas: feeData.maxPriorityFeePerGas || BigInt(1_000_000_000),
       paymaster: PAYMASTER_ADDRESS,
       paymasterVerificationGasLimit: BigInt(2_000_000),
       paymasterPostOpGasLimit: BigInt(2_000_000),
@@ -238,7 +220,7 @@ export class AccountAbstraction {
     const signature = await this.signer.signTypedData(
       getErc4337TypedDataDomain(ENTRY_POINT_ADDRESS, CHAIN_ID),
       getErc4337TypedDataTypes(),
-      packedUserOp
+      packedUserOp,
     );
 
     return { ...userOp, signature };
@@ -254,19 +236,19 @@ export class AccountAbstraction {
   packUserOp(userOp: UserOperation): PackedUserOperation {
     const accountGasLimits = ethers.solidityPacked(
       ["uint128", "uint128"],
-      [userOp.callGasLimit, userOp.verificationGasLimit]
+      [userOp.callGasLimit, userOp.verificationGasLimit],
     );
 
     const gasFees = ethers.solidityPacked(
       ["uint128", "uint128"],
-      [userOp.maxPriorityFeePerGas, userOp.maxFeePerGas]
+      [userOp.maxPriorityFeePerGas, userOp.maxFeePerGas],
     );
 
     const paymasterAndData = packPaymasterData(
       userOp.paymaster,
       userOp.paymasterVerificationGasLimit,
       userOp.paymasterPostOpGasLimit,
-      userOp.paymasterData
+      userOp.paymasterData,
     );
 
     return {
@@ -292,14 +274,14 @@ export class AccountAbstraction {
    */
   async executeUserOps(
     userOps: UserOperation[],
-    beneficiary: string
+    beneficiary: string,
   ): Promise<ethers.TransactionResponse> {
     try {
       const packedUserOps = await Promise.all(
         userOps.map(async (op) => {
           const signed = await this.signUserOp(op);
           return this.packUserOp(signed);
-        })
+        }),
       );
 
       // Cast to any so TS does not complain about ABI-dynamic method
@@ -323,10 +305,7 @@ export class AccountAbstraction {
    * @param targetContract - Contract interface used to parse custom errors
    * @throws {Error} If the user operation failed or logs cannot be interpreted
    */
-  verifyTransaction(
-    receipt: ethers.TransactionReceipt,
-    targetContract: ethers.BaseContract
-  ): void {
+  verifyTransaction(receipt: ethers.TransactionReceipt, targetContract: ethers.BaseContract): void {
     const entryPoint = this.entryPoint;
 
     if (!receipt || !receipt.logs) {
@@ -356,8 +335,7 @@ export class AccountAbstraction {
       parsedUserOpEvent = entryPoint.interface.parseLog(firstUserOpLog as any);
     } catch (e) {
       throw new Error(
-        "Failed to parse UserOperationEvent log: " +
-          (e instanceof Error ? e.message : String(e))
+        "Failed to parse UserOperationEvent log: " + (e instanceof Error ? e.message : String(e)),
       );
     }
 
@@ -379,24 +357,20 @@ export class AccountAbstraction {
       });
 
       if (revertEvents.length === 0) {
-        throw new Error(
-          "UserOperation failed but no UserOperationRevertReason found in logs."
-        );
+        throw new Error("UserOperation failed but no UserOperationRevertReason found in logs.");
       }
 
       let parsedRevertEvent;
       try {
         const firstRevertLog = revertEvents[0];
         if (!firstRevertLog) {
-          throw new Error(
-            "UserOperation failed but no UserOperationRevertReason found in logs."
-          );
+          throw new Error("UserOperation failed but no UserOperationRevertReason found in logs.");
         }
         parsedRevertEvent = entryPoint.interface.parseLog(firstRevertLog as any);
       } catch (e) {
         throw new Error(
           "Failed to parse UserOperationRevertReason log: " +
-            (e instanceof Error ? e.message : String(e))
+            (e instanceof Error ? e.message : String(e)),
         );
       }
 
@@ -411,7 +385,7 @@ export class AccountAbstraction {
         throw new Error(
           `UserOperation reverted with custom error: ${
             decodedError.name
-          }, args: ${JSON.stringify(decodedError.args)}`
+          }, args: ${JSON.stringify(decodedError.args)}`,
         );
       } else {
         throw new Error("UserOperation reverted with unknown custom error.");

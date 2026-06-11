@@ -64,9 +64,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
 
             <View style={styles.navSection}>
               {NAV_ITEMS.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  pathname.startsWith(`${item.href}/`);
+                const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
                 return (
                   <Pressable
@@ -74,12 +72,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
                     style={[styles.navItem, isActive && styles.navItemActive]}
                     onPress={() => router.push(item.href)}
                   >
-                    <Text
-                      style={[
-                        styles.navItemText,
-                        isActive && styles.navItemTextActive,
-                      ]}
-                    >
+                    <Text style={[styles.navItemText, isActive && styles.navItemTextActive]}>
                       {item.label}
                     </Text>
                     <Text
@@ -103,14 +96,10 @@ export function PortalShell({ children }: { children: ReactNode }) {
 
             <View style={styles.footerMetaBlock}>
               <Text style={styles.footerMetaLabel}>Organization</Text>
-              <Text style={styles.footerMetaValue}>
-                {organization?.name || "-"}
-              </Text>
+              <Text style={styles.footerMetaValue}>{organization?.name || "-"}</Text>
             </View>
 
-            <Text style={styles.rolePill}>
-              {formatRole(user?.permissionLevel)}
-            </Text>
+            <Text style={styles.rolePill}>{formatRole(user?.permissionLevel)}</Text>
 
             <Pressable style={styles.signOutButton} onPress={handleSignOut}>
               <Text style={styles.signOutButtonText}>Sign out</Text>

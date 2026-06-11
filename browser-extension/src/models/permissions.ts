@@ -3,8 +3,8 @@
  * @author Diego Da Giau
  */
 export enum PermissionType {
-    Read,
-    Write,
+  Read,
+  Write,
 }
 
 /**
@@ -12,10 +12,10 @@ export enum PermissionType {
  * @author Diego Da Giau
  */
 export interface Permission {
-    /** Ethereum address of the university to which the permission applies */
-    university: string,
-    /** Type of permission granted (Read or Write) */
-    type: PermissionType,
-    /** Indicates if this is a pending request (true) or an approved permission (false) */
-    request: boolean,
+  /** Ethereum address of the university to which the permission applies */
+  university: string;
+  /** Type of permission granted (Read or Write) */
+  type: PermissionType;
+  /** Indicates if this is a pending request (true) or an approved permission (false) */
+  request: boolean;
 }

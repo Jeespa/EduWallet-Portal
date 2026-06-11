@@ -18,12 +18,7 @@ import {
 } from "../../lib/api";
 import type { PermissionStatus } from "../../types";
 
-type PermissionAction =
-  | "refresh"
-  | "revoke"
-  | "grant-view"
-  | "grant-update"
-  | null;
+type PermissionAction = "refresh" | "revoke" | "grant-view" | "grant-update" | null;
 
 type ConfirmationDialog = {
   title: string;
@@ -40,13 +35,9 @@ export default function PermissionsScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [submittingAction, setSubmittingAction] =
-    useState<PermissionAction>(null);
-  const [submittingOrganization, setSubmittingOrganization] = useState<
-    string | null
-  >(null);
-  const [confirmationDialog, setConfirmationDialog] =
-    useState<ConfirmationDialog | null>(null);
+  const [submittingAction, setSubmittingAction] = useState<PermissionAction>(null);
+  const [submittingOrganization, setSubmittingOrganization] = useState<string | null>(null);
+  const [confirmationDialog, setConfirmationDialog] = useState<ConfirmationDialog | null>(null);
 
   const mapPermissionsToStatuses = (all: {
     studentSca: string;
@@ -135,10 +126,7 @@ export default function PermissionsScreen() {
     return "This organization wants to view and check your academic records.";
   }
 
-  function getApproveConfirmationText(
-    type: "read" | "write",
-    organizationLabel: string,
-  ) {
+  function getApproveConfirmationText(type: "read" | "write", organizationLabel: string) {
     if (type === "write") {
       return `This will allow ${organizationLabel} to add or update academic results in your EduWallet.`;
     }
@@ -162,9 +150,7 @@ export default function PermissionsScreen() {
       const mapped = mapPermissionsToStatuses(permissions);
       setPerms(mapped);
     } catch (e: unknown) {
-      setError(
-        getFriendlyApiErrorMessage(e, "Could not check for new requests."),
-      );
+      setError(getFriendlyApiErrorMessage(e, "Could not check for new requests."));
     } finally {
       setLoading(false);
       setSubmittingAction(null);
@@ -183,11 +169,7 @@ export default function PermissionsScreen() {
     setSubmittingOrganization(perm.universitySmartAccount);
 
     try {
-      await revokePermissionWithSession(
-        sca,
-        sessionToken,
-        perm.universitySmartAccount,
-      );
+      await revokePermissionWithSession(sca, sessionToken, perm.universitySmartAccount);
       await refreshPermissions();
     } catch (e: unknown) {
       setError(getFriendlyApiErrorMessage(e, "Could not remove access."));
@@ -208,10 +190,7 @@ export default function PermissionsScreen() {
     });
   }
 
-  async function approveRequest(
-    perm: PermissionStatus,
-    type: "read" | "write",
-  ) {
+  async function approveRequest(perm: PermissionStatus, type: "read" | "write") {
     if (!sca || !sessionToken) {
       setError("Your EduWallet session has expired. Please log in again.");
       return;
@@ -222,26 +201,16 @@ export default function PermissionsScreen() {
     setSubmittingOrganization(perm.universitySmartAccount);
 
     try {
-      await grantPermissionWithSession(
-        sca,
-        sessionToken,
-        type,
-        perm.universitySmartAccount,
-      );
+      await grantPermissionWithSession(sca, sessionToken, type, perm.universitySmartAccount);
       await refreshPermissions();
     } catch (e: unknown) {
-      setError(
-        getFriendlyApiErrorMessage(e, "Could not approve the access request."),
-      );
+      setError(getFriendlyApiErrorMessage(e, "Could not approve the access request."));
       setSubmittingAction(null);
       setSubmittingOrganization(null);
     }
   }
 
-  function confirmApproveRequest(
-    perm: PermissionStatus,
-    type: "read" | "write",
-  ) {
+  function confirmApproveRequest(perm: PermissionStatus, type: "read" | "write") {
     const organizationLabel = getOrganizationLabel(perm);
 
     setConfirmationDialog({
@@ -263,10 +232,7 @@ export default function PermissionsScreen() {
   }
 
   function isSubmittingFor(perm: PermissionStatus, action: PermissionAction) {
-    return (
-      submittingAction === action &&
-      submittingOrganization === perm.universitySmartAccount
-    );
+    return submittingAction === action && submittingOrganization === perm.universitySmartAccount;
   }
 
   if (!sca || !id) {
@@ -304,9 +270,7 @@ export default function PermissionsScreen() {
         disabled={loading || submittingAction !== null}
       >
         <Text style={styles.primaryButtonText}>
-          {submittingAction === "refresh"
-            ? "Checking..."
-            : "Check for new requests"}
+          {submittingAction === "refresh" ? "Checking..." : "Check for new requests"}
         </Text>
       </Pressable>
 
@@ -318,8 +282,7 @@ export default function PermissionsScreen() {
         <View style={styles.emptyStateBox}>
           <Text style={styles.emptyStateTitle}>No access requests yet</Text>
           <Text style={styles.emptyStateText}>
-            When an organization asks to view or update your records, the
-            request will appear here.
+            When an organization asks to view or update your records, the request will appear here.
           </Text>
         </View>
       ) : null}
@@ -341,23 +304,17 @@ export default function PermissionsScreen() {
             <View style={styles.card} key={perm.universitySmartAccount}>
               <Text style={styles.cardTitle}>{organizationLabel}</Text>
 
-              {countryLabel ? (
-                <Text style={styles.cardSubtitle}>{countryLabel}</Text>
-              ) : null}
+              {countryLabel ? <Text style={styles.cardSubtitle}>{countryLabel}</Text> : null}
 
               <View style={styles.section}>
                 <Text style={styles.sectionLabel}>Access status</Text>
-                <Text style={styles.accessStatusValue}>
-                  {getCurrentAccessLabel(perm)}
-                </Text>
+                <Text style={styles.accessStatusValue}>{getCurrentAccessLabel(perm)}</Text>
               </View>
 
               {hasPendingRequest ? (
                 <View style={styles.pendingBox}>
                   <Text style={styles.pendingTitle}>
-                    {hasUpdateRequest
-                      ? "Pending update request"
-                      : "Pending view request"}
+                    {hasUpdateRequest ? "Pending update request" : "Pending view request"}
                   </Text>
 
                   <Text style={styles.pendingText}>
@@ -368,16 +325,13 @@ export default function PermissionsScreen() {
                     <Pressable
                       style={[
                         styles.primaryButton,
-                        isSubmittingFor(perm, "grant-view") &&
-                          styles.buttonDisabled,
+                        isSubmittingFor(perm, "grant-view") && styles.buttonDisabled,
                       ]}
                       onPress={() => confirmApproveRequest(perm, "read")}
                       disabled={submittingAction !== null}
                     >
                       <Text style={styles.primaryButtonText}>
-                        {isSubmittingFor(perm, "grant-view")
-                          ? "Approving..."
-                          : "Approve request"}
+                        {isSubmittingFor(perm, "grant-view") ? "Approving..." : "Approve request"}
                       </Text>
                     </Pressable>
                   ) : null}
@@ -386,16 +340,13 @@ export default function PermissionsScreen() {
                     <Pressable
                       style={[
                         styles.primaryButton,
-                        isSubmittingFor(perm, "grant-update") &&
-                          styles.buttonDisabled,
+                        isSubmittingFor(perm, "grant-update") && styles.buttonDisabled,
                       ]}
                       onPress={() => confirmApproveRequest(perm, "write")}
                       disabled={submittingAction !== null}
                     >
                       <Text style={styles.primaryButtonText}>
-                        {isSubmittingFor(perm, "grant-update")
-                          ? "Approving..."
-                          : "Approve request"}
+                        {isSubmittingFor(perm, "grant-update") ? "Approving..." : "Approve request"}
                       </Text>
                     </Pressable>
                   ) : null}
@@ -412,9 +363,7 @@ export default function PermissionsScreen() {
                   disabled={submittingAction !== null}
                 >
                   <Text style={styles.dangerButtonText}>
-                    {isSubmittingFor(perm, "revoke")
-                      ? "Removing..."
-                      : "Remove access"}
+                    {isSubmittingFor(perm, "revoke") ? "Removing..." : "Remove access"}
                   </Text>
                 </Pressable>
               ) : null}
@@ -456,8 +405,7 @@ export default function PermissionsScreen() {
                 style={[
                   styles.modalButton,
                   styles.modalConfirmButton,
-                  confirmationDialog?.isDestructive &&
-                    styles.modalConfirmButtonDestructive,
+                  confirmationDialog?.isDestructive && styles.modalConfirmButtonDestructive,
                 ]}
                 onPress={handleConfirmDialog}
               >

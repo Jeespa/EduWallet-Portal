@@ -11,30 +11,26 @@ import React from "react";
  * @returns {JSX.Element} The rendered list component.
  */
 export default function List(props: ListProps): JSX.Element {
-    const obj = props.object;
-    const keys = Object.keys(obj);
+  const obj = props.object;
+  const keys = Object.keys(obj);
 
-    return (
-        <>
-            {keys.map((key, index) => (
-                <React.Fragment key={`item-${index}`}>
-                    <Container className="list">
-                        <Row>
-                            <Col className="purple-text text-12 list-title">
-                                {formatCamelCaseString(key)}
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col className="text-15 list-content">
-                                {obj[key]}
-                            </Col>
-                        </Row>
-                    </Container>
-                    {index < keys.length - 1 && <hr className="my-2" />}
-                </React.Fragment>
-            ))}
-        </>
-    );
+  return (
+    <>
+      {keys.map((key, index) => (
+        <React.Fragment key={`item-${index}`}>
+          <Container className="list">
+            <Row>
+              <Col className="purple-text text-12 list-title">{formatCamelCaseString(key)}</Col>
+            </Row>
+            <Row>
+              <Col className="text-15 list-content">{obj[key]}</Col>
+            </Row>
+          </Container>
+          {index < keys.length - 1 && <hr className="my-2" />}
+        </React.Fragment>
+      ))}
+    </>
+  );
 }
 
 /**
@@ -42,5 +38,5 @@ export default function List(props: ListProps): JSX.Element {
  * @author Diego Da Giau
  */
 interface ListProps {
-    object: { [key: string]: any };
+  object: { [key: string]: any };
 }

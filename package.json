@@ -33,7 +33,9 @@
     "portal:prisma:generate": "cd portal-backend && npm run prisma:generate",
     "portal:prisma:migrate": "cd portal-backend && npm run prisma:migrate",
     "portal:seed": "cd portal-backend && npm run seed",
-    "demo:web": "cd eduwallet-portal && npm run demo:web"
+    "demo:web": "cd eduwallet-portal && npm run demo:web",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "repository": {
     "type": "git",
@@ -47,7 +49,7 @@
     "react-native",
     "expo"
   ],
-  "author": "Jesper R. Goks\u00f8r",
+  "author": "Jesper R. Goksør",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/Jeespa/EduWallet-V3.0/issues"
@@ -57,6 +59,7 @@
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@types/node": "^22.15.15",
     "hardhat": "^2.22.18",
+    "prettier": "^3.8.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   },

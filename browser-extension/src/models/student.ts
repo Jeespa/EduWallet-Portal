@@ -46,17 +46,15 @@ export class StudentModel {
    * Gets results for a specific university.
    */
   getResultsByUniversity(universityAddress: string): Result[] {
-    return this.results.filter(
-      (result) => result.university === universityAddress
-    );
+    return this.results.filter((result) => result.university === universityAddress);
   }
 
   /**
    * Gets results grouped by degree course for a specific university.
    */
-  getResultsByUniversityGroupedByCourseDegree(
-    universityAddress: string
-  ): { [key: string]: Result[] } {
+  getResultsByUniversityGroupedByCourseDegree(universityAddress: string): {
+    [key: string]: Result[];
+  } {
     return this.getResultsByUniversity(universityAddress).reduce(
       (acc, result) => {
         if (!acc[result.degreeCourse]) {
@@ -65,7 +63,7 @@ export class StudentModel {
         acc[result.degreeCourse].push(result);
         return acc;
       },
-      {} as { [key: string]: Result[] }
+      {} as { [key: string]: Result[] },
     );
   }
 

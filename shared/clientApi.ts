@@ -31,14 +31,8 @@ type GatewayActionStatus = {
  * @returns Parsed JSON body typed as `T`.
  * @throws {Error} If `res.ok` is false.
  */
-async function parseJsonOrThrow<T>(
-  res: Response,
-  defaultMessage: string,
-): Promise<T> {
-  const json = (await res.json().catch(() => null)) as
-    | T
-    | ErrorResponse
-    | null;
+async function parseJsonOrThrow<T>(res: Response, defaultMessage: string): Promise<T> {
+  const json = (await res.json().catch(() => null)) as T | ErrorResponse | null;
 
   if (!res.ok) {
     throw new Error((json as ErrorResponse | null)?.error || defaultMessage);
@@ -97,10 +91,7 @@ export function createGatewayClient(baseUrl: string) {
         body: JSON.stringify({ id, password }),
       });
 
-      return parseJsonOrThrow<CredentialsResponse>(
-        res,
-        `Login failed (${res.status})`,
-      );
+      return parseJsonOrThrow<CredentialsResponse>(res, `Login failed (${res.status})`);
     },
 
     /**
@@ -124,10 +115,7 @@ export function createGatewayClient(baseUrl: string) {
         headers: sessionHeaders(sessionToken),
       });
 
-      return parseJsonOrThrow<AllPermissionsForStudent>(
-        res,
-        "Failed to fetch permissions",
-      );
+      return parseJsonOrThrow<AllPermissionsForStudent>(res, "Failed to fetch permissions");
     },
 
     /**
@@ -157,10 +145,7 @@ export function createGatewayClient(baseUrl: string) {
         body: JSON.stringify({ id, password }),
       });
 
-      return parseJsonOrThrow<AllPermissionsForStudent>(
-        res,
-        "Failed to fetch permissions",
-      );
+      return parseJsonOrThrow<AllPermissionsForStudent>(res, "Failed to fetch permissions");
     },
 
     /**
@@ -178,22 +163,16 @@ export function createGatewayClient(baseUrl: string) {
       sessionToken: string,
       universityAddress?: string,
     ): Promise<GatewayActionStatus> {
-      const res = await fetch(
-        `${BASE}/students/${studentSca}/permissions/revoke`,
-        {
-          method: "POST",
-          headers: {
-            ...sessionHeaders(sessionToken),
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ universityAddress }),
+      const res = await fetch(`${BASE}/students/${studentSca}/permissions/revoke`, {
+        method: "POST",
+        headers: {
+          ...sessionHeaders(sessionToken),
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({ universityAddress }),
+      });
 
-      return parseJsonOrThrow<GatewayActionStatus>(
-        res,
-        "Failed to revoke permission",
-      );
+      return parseJsonOrThrow<GatewayActionStatus>(res, "Failed to revoke permission");
     },
 
     /**
@@ -218,19 +197,13 @@ export function createGatewayClient(baseUrl: string) {
       password: string,
       universityAddress?: string,
     ): Promise<PermissionStatus> {
-      const res = await fetch(
-        `${BASE}/students/${studentSca}/permissions/revoke`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, password, universityAddress }),
-        },
-      );
+      const res = await fetch(`${BASE}/students/${studentSca}/permissions/revoke`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, password, universityAddress }),
+      });
 
-      return parseJsonOrThrow<PermissionStatus>(
-        res,
-        "Failed to revoke permission",
-      );
+      return parseJsonOrThrow<PermissionStatus>(res, "Failed to revoke permission");
     },
 
     /**
@@ -251,22 +224,16 @@ export function createGatewayClient(baseUrl: string) {
       type: "read" | "write",
       universityAddress?: string,
     ): Promise<GatewayActionStatus> {
-      const res = await fetch(
-        `${BASE}/students/${studentSca}/permissions/grant`,
-        {
-          method: "POST",
-          headers: {
-            ...sessionHeaders(sessionToken),
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ type, universityAddress }),
+      const res = await fetch(`${BASE}/students/${studentSca}/permissions/grant`, {
+        method: "POST",
+        headers: {
+          ...sessionHeaders(sessionToken),
+          "Content-Type": "application/json",
         },
-      );
+        body: JSON.stringify({ type, universityAddress }),
+      });
 
-      return parseJsonOrThrow<GatewayActionStatus>(
-        res,
-        "Failed to grant permission",
-      );
+      return parseJsonOrThrow<GatewayActionStatus>(res, "Failed to grant permission");
     },
 
     /**
@@ -294,19 +261,13 @@ export function createGatewayClient(baseUrl: string) {
       type: "read" | "write",
       universityAddress?: string,
     ): Promise<PermissionStatus> {
-      const res = await fetch(
-        `${BASE}/students/${studentSca}/permissions/grant`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, password, type, universityAddress }),
-        },
-      );
+      const res = await fetch(`${BASE}/students/${studentSca}/permissions/grant`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, password, type, universityAddress }),
+      });
 
-      return parseJsonOrThrow<PermissionStatus>(
-        res,
-        "Failed to grant permission",
-      );
+      return parseJsonOrThrow<PermissionStatus>(res, "Failed to grant permission");
     },
   };
 }

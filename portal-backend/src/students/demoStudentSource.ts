@@ -24,8 +24,7 @@ type DemoBlockchainFile = {
 
 function loadDemoStudents(): PortalStudentReference[] {
   const relativeFile =
-    process.env.PORTAL_DEMO_STUDENTS_FILE ??
-    "src/demo/portalDemoBlockchain.json";
+    process.env.PORTAL_DEMO_STUDENTS_FILE ?? "src/demo/portalDemoBlockchain.json";
 
   const filePath = path.resolve(process.cwd(), relativeFile);
 
@@ -81,17 +80,14 @@ export class DemoStudentSource implements StudentSource {
     });
   }
 
-  async findByIdOrSca(
-    input: FindStudentInput,
-  ): Promise<PortalStudentReference | null> {
+  async findByIdOrSca(input: FindStudentInput): Promise<PortalStudentReference | null> {
     const studentId = input.studentId?.trim();
     const studentSca = input.studentSca?.trim().toLowerCase();
     const students = loadDemoStudents();
 
     const match = students.find((student) => {
       const studentIdMatches = !!studentId && student.studentId === studentId;
-      const studentScaMatches =
-        !!studentSca && student.studentSca.toLowerCase() === studentSca;
+      const studentScaMatches = !!studentSca && student.studentSca.toLowerCase() === studentSca;
 
       return studentIdMatches || studentScaMatches;
     });

@@ -11,9 +11,7 @@ export async function grantPermissionLocally(input: {
   permission: Exclude<PermissionLevel, "none">;
 }) {
   const permissionRole =
-    input.permission === "write"
-      ? ethers.id("WRITER_ROLE")
-      : ethers.id("READER_ROLE");
+    input.permission === "write" ? ethers.id("WRITER_ROLE") : ethers.id("READER_ROLE");
 
   await network.provider.send("hardhat_setBalance", [
     input.studentSca,
@@ -35,10 +33,7 @@ export async function grantPermissionLocally(input: {
     );
 
     await (
-      await studentContract.grantPermission(
-        permissionRole,
-        input.organizationSmartAccount,
-      )
+      await studentContract.grantPermission(permissionRole, input.organizationSmartAccount)
     ).wait();
   } finally {
     await network.provider.request({
@@ -53,12 +48,7 @@ export async function requestPermissionLocally(input: {
   organizationWallet: Wallet;
   permission: Exclude<PermissionLevel, "none">;
 }) {
-  const permissionType =
-    input.permission === "write" ? PermissionType.Write : PermissionType.Read;
+  const permissionType = input.permission === "write" ? PermissionType.Write : PermissionType.Read;
 
-  await askForPermission(
-    input.organizationWallet as any,
-    input.studentSca,
-    permissionType,
-  );
+  await askForPermission(input.organizationWallet as any, input.studentSca, permissionType);
 }

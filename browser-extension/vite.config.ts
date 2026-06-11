@@ -1,7 +1,7 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 //import { visualizer } from 'rollup-plugin-visualizer';
-import viteCompression from 'vite-plugin-compression';
+import viteCompression from "vite-plugin-compression";
 
 export default defineConfig({
   plugins: [
@@ -13,11 +13,10 @@ export default defineConfig({
       brotliSize: true,
     }), */
     viteCompression({
-      algorithm: 'brotliCompress',
-    })
+      algorithm: "brotliCompress",
+    }),
   ],
   build: {
     sourcemap: true,
-    
-  }
-})
+  },
+});

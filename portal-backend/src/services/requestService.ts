@@ -101,9 +101,7 @@ function requestMatchesQuery(request: PermissionRequestDto, query: string) {
     String(request.createdAt),
   ];
 
-  return searchableValues.some((value) =>
-    normalizeSearchValue(value).includes(query),
-  );
+  return searchableValues.some((value) => normalizeSearchValue(value).includes(query));
 }
 
 async function syncPendingRequestStatus(input: {
@@ -181,9 +179,7 @@ export async function listPermissionRequests(
 ): Promise<PermissionRequestListResponse> {
   const q = normalizeSearchValue(input.q);
   const statusFilter = normalizeStatusFilter(input.status);
-  const permissionTypeFilter = normalizePermissionTypeFilter(
-    input.permissionType,
-  );
+  const permissionTypeFilter = normalizePermissionTypeFilter(input.permissionType);
 
   const requests = await prisma.permissionRequestLog.findMany({
     where: {
@@ -209,8 +205,7 @@ export async function listPermissionRequests(
   );
 
   const filteredDtos = requestDtos.filter((request) => {
-    const matchesStatus =
-      !statusFilter || request.status.toUpperCase() === statusFilter;
+    const matchesStatus = !statusFilter || request.status.toUpperCase() === statusFilter;
 
     return matchesStatus && requestMatchesQuery(request, q);
   });

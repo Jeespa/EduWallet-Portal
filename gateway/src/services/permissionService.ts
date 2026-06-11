@@ -7,14 +7,8 @@ import {
   STUDENT_OWNER_ABI,
   STUDENT_PERMISSION_ABI,
 } from "../contracts/studentContractAbis";
-import type {
-  AllPermissionsForStudent,
-  UniversityPermissionEntry,
-} from "../types";
-import {
-  EMPTY_UNIVERSITY_METADATA,
-  fetchUniversitiesMeta,
-} from "./universityMetadataService";
+import type { AllPermissionsForStudent, UniversityPermissionEntry } from "../types";
+import { EMPTY_UNIVERSITY_METADATA, fetchUniversitiesMeta } from "./universityMetadataService";
 
 type PermissionAddressSets = {
   read: string[];
@@ -48,7 +42,7 @@ function isNonZeroAddress(value: string): boolean {
  */
 async function readAllPermissionsAsOwner(
   studentWallet: Wallet,
-  studentSca: string
+  studentSca: string,
 ): Promise<PermissionAddressSets> {
   assertStudentSca(studentSca);
 
@@ -80,12 +74,9 @@ async function readAllPermissionsAsOwner(
  */
 export async function getAllPermissionsForStudent(
   studentWallet: Wallet,
-  studentSca: string
+  studentSca: string,
 ): Promise<AllPermissionsForStudent> {
-  const permissionSets = await readAllPermissionsAsOwner(
-    studentWallet,
-    studentSca
-  );
+  const permissionSets = await readAllPermissionsAsOwner(studentWallet, studentSca);
 
   const allAddresses = Array.from(
     new Set<string>([
@@ -93,28 +84,25 @@ export async function getAllPermissionsForStudent(
       ...permissionSets.write,
       ...permissionSets.readRequested,
       ...permissionSets.writeRequested,
-    ])
+    ]),
   ).filter(isNonZeroAddress);
 
   const universityMap = await fetchUniversitiesMeta(allAddresses);
 
-  const permissions: UniversityPermissionEntry[] = allAddresses.map(
-    (address) => {
-      const metadata =
-        universityMap.get(address) ?? EMPTY_UNIVERSITY_METADATA;
+  const permissions: UniversityPermissionEntry[] = allAddresses.map((address) => {
+    const metadata = universityMap.get(address) ?? EMPTY_UNIVERSITY_METADATA;
 
-      return {
-        universityAddress: address,
-        read: permissionSets.read.includes(address),
-        write: permissionSets.write.includes(address),
-        readRequested: permissionSets.readRequested.includes(address),
-        writeRequested: permissionSets.writeRequested.includes(address),
-        universityName: metadata.name,
-        universityCountry: metadata.country,
-        universityShortName: metadata.shortName,
-      };
-    }
-  );
+    return {
+      universityAddress: address,
+      read: permissionSets.read.includes(address),
+      write: permissionSets.write.includes(address),
+      readRequested: permissionSets.readRequested.includes(address),
+      writeRequested: permissionSets.writeRequested.includes(address),
+      universityName: metadata.name,
+      universityCountry: metadata.country,
+      universityShortName: metadata.shortName,
+    };
+  });
 
   return {
     studentSca,
@@ -129,22 +117,18 @@ export async function grantPermissionAsStudent(
   studentWallet: Wallet,
   studentSca: string,
   kind: PermissionGrantKind,
-  targetUniversity: string | undefined
+  targetUniversity: string | undefined,
 ): Promise<void> {
   assertStudentSca(studentSca);
   const universityAddress = assertTargetUniversity(targetUniversity);
 
-  const studentContract = new Contract(
-    studentSca,
-    STUDENT_PERMISSION_ABI,
-    provider
-  );
+  const studentContract = new Contract(studentSca, STUDENT_PERMISSION_ABI, provider);
   const permissionRole = kind === "write" ? ROLE_CODES.write : ROLE_CODES.read;
 
-  const callData = studentContract.interface.encodeFunctionData(
-    "grantPermission",
-    [permissionRole, universityAddress]
-  );
+  const callData = studentContract.interface.encodeFunctionData("grantPermission", [
+    permissionRole,
+    universityAddress,
+  ]);
 
   await executeStudentUserOperation(studentWallet, studentSca, callData);
 }
@@ -155,21 +139,16 @@ export async function grantPermissionAsStudent(
 export async function revokePermissionAsStudent(
   studentWallet: Wallet,
   studentSca: string,
-  targetUniversity: string | undefined
+  targetUniversity: string | undefined,
 ): Promise<void> {
   assertStudentSca(studentSca);
   const universityAddress = assertTargetUniversity(targetUniversity);
 
-  const studentContract = new Contract(
-    studentSca,
-    STUDENT_PERMISSION_ABI,
-    provider
-  );
+  const studentContract = new Contract(studentSca, STUDENT_PERMISSION_ABI, provider);
 
-  const callData = studentContract.interface.encodeFunctionData(
-    "revokePermission",
-    [universityAddress]
-  );
+  const callData = studentContract.interface.encodeFunctionData("revokePermission", [
+    universityAddress,
+  ]);
 
   await executeStudentUserOperation(studentWallet, studentSca, callData);
 }
@@ -177,13 +156,9 @@ export async function revokePermissionAsStudent(
 async function executeStudentUserOperation(
   studentWallet: Wallet,
   studentSca: string,
-  callData: string
+  callData: string,
 ): Promise<void> {
-  const studentContract = new Contract(
-    studentSca,
-    STUDENT_PERMISSION_ABI,
-    provider
-  );
+  const studentContract = new Contract(studentSca, STUDENT_PERMISSION_ABI, provider);
 
   const accountAbstraction = new AccountAbstraction(provider, studentWallet);
 
@@ -194,10 +169,7 @@ async function executeStudentUserOperation(
     data: callData,
   });
 
-  const tx = await accountAbstraction.executeUserOps(
-    [userOperation],
-    studentWallet.address
-  );
+  const tx = await accountAbstraction.executeUserOps([userOperation], studentWallet.address);
   const receipt = await tx.wait();
 
   if (receipt) {

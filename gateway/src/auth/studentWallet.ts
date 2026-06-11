@@ -12,13 +12,9 @@ import { provider } from "../blockchain/provider";
 export function derivePrivateKey(password: string, studentId: string): string {
   const iterations = 100000;
   const keyLength = 32;
-  const derivedKey = pbkdf2Sync(
-    password,
-    studentId,
-    iterations,
-    keyLength,
-    "sha256"
-  ).toString("hex");
+  const derivedKey = pbkdf2Sync(password, studentId, iterations, keyLength, "sha256").toString(
+    "hex",
+  );
 
   return `0x${derivedKey}`;
 }
@@ -26,10 +22,7 @@ export function derivePrivateKey(password: string, studentId: string): string {
 /**
  * Reconstructs the student's externally owned wallet from ID and password.
  */
-export function getStudentWalletFromCredentials(
-  id: string,
-  password: string
-): Wallet {
+export function getStudentWalletFromCredentials(id: string, password: string): Wallet {
   if (!id || !password) {
     throw new Error("Both id and password are required");
   }

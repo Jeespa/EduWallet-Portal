@@ -6,32 +6,18 @@ type PortalAuthContextValue = {
   user: PortalUser | null;
   organization: Organization | null;
   isAuthenticated: boolean;
-  signIn: (
-    token: string,
-    user: PortalUser,
-    organization: Organization,
-  ) => void;
+  signIn: (token: string, user: PortalUser, organization: Organization) => void;
   signOut: () => void;
 };
 
-const PortalAuthContext = createContext<PortalAuthContextValue | undefined>(
-  undefined,
-);
+const PortalAuthContext = createContext<PortalAuthContextValue | undefined>(undefined);
 
-export function PortalAuthProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function PortalAuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<PortalUser | null>(null);
   const [organization, setOrganization] = useState<Organization | null>(null);
 
-  const signIn = (
-    newToken: string,
-    newUser: PortalUser,
-    newOrganization: Organization,
-  ) => {
+  const signIn = (newToken: string, newUser: PortalUser, newOrganization: Organization) => {
     setToken(newToken);
     setUser(newUser);
     setOrganization(newOrganization);
@@ -55,11 +41,7 @@ export function PortalAuthProvider({
     [token, user, organization],
   );
 
-  return (
-    <PortalAuthContext.Provider value={value}>
-      {children}
-    </PortalAuthContext.Provider>
-  );
+  return <PortalAuthContext.Provider value={value}>{children}</PortalAuthContext.Provider>;
 }
 
 export function usePortalAuth() {

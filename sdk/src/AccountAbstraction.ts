@@ -17,10 +17,7 @@ const DOMAIN_VERSION = "1";
  * @param chainId Chain ID
  * Code adapted from: https://github.com/eth-infinitism/account-abstraction/
  */
-export function getErc4337TypedDataDomain(
-  entryPoint: string,
-  chainId: number,
-): TypedDataDomain {
+export function getErc4337TypedDataDomain(entryPoint: string, chainId: number): TypedDataDomain {
   return {
     name: DOMAIN_NAME,
     version: DOMAIN_VERSION,
@@ -157,15 +154,8 @@ export class AccountAbstraction {
     data: string;
     initCode?: string;
   }): Promise<UserOperation> {
-    const accountContract = SmartAccount__factory.connect(
-      sender,
-      this.provider,
-    );
-    const callData = accountContract.interface.encodeFunctionData("execute", [
-      target,
-      value,
-      data,
-    ]);
+    const accountContract = SmartAccount__factory.connect(sender, this.provider);
+    const callData = accountContract.interface.encodeFunctionData("execute", [target, value, data]);
 
     // Get the nonce for the smart account
     const nonce = await this.entryPoint.getNonce(sender, 0);
@@ -185,8 +175,7 @@ export class AccountAbstraction {
       verificationGasLimit: BigInt(5_000_000),
       preVerificationGas: BigInt(500_000),
       maxFeePerGas: feeData.maxFeePerGas || BigInt(2_000_000_000),
-      maxPriorityFeePerGas:
-        feeData.maxPriorityFeePerGas || BigInt(1_000_000_000),
+      maxPriorityFeePerGas: feeData.maxPriorityFeePerGas || BigInt(1_000_000_000),
       paymaster: paymaster,
       paymasterVerificationGasLimit: BigInt(2_000_000),
       paymasterPostOpGasLimit: BigInt(2_000_000),
@@ -278,44 +267,44 @@ export class AccountAbstraction {
    * @throws Error if transaction fails
    */
   async executeUserOps(
-  userOps: UserOperation[],
-  beneficiary: string
-): Promise<ethers.TransactionResponse> {
-  try {
-    const packedUserOps = await Promise.all(
-      userOps.map(async (op) => {
-        const signedOp = await this.signUserOp(op);
-        return this.packUserOp(signedOp);
-      })
-    );
+    userOps: UserOperation[],
+    beneficiary: string,
+  ): Promise<ethers.TransactionResponse> {
+    try {
+      const packedUserOps = await Promise.all(
+        userOps.map(async (op) => {
+          const signedOp = await this.signUserOp(op);
+          return this.packUserOp(signedOp);
+        }),
+      );
 
-    const connectedSigner = this.signer.connect(this.provider);
-    const connectedEntryPoint = this.entryPoint.connect(connectedSigner) as any;
+      const connectedSigner = this.signer.connect(this.provider);
+      const connectedEntryPoint = this.entryPoint.connect(connectedSigner) as any;
 
-    const signerAddress = connectedSigner.address.toLowerCase();
+      const signerAddress = connectedSigner.address.toLowerCase();
 
-    const chainNonce = await this.provider.getTransactionCount(
-      connectedSigner.address,
-      "pending"
-    );
+      const chainNonce = await this.provider.getTransactionCount(
+        connectedSigner.address,
+        "pending",
+      );
 
-    const cachedNonce = nextTxNonceByAddress.get(signerAddress);
-    const nonce = cachedNonce === undefined ? chainNonce : Math.max(chainNonce, cachedNonce);
+      const cachedNonce = nextTxNonceByAddress.get(signerAddress);
+      const nonce = cachedNonce === undefined ? chainNonce : Math.max(chainNonce, cachedNonce);
 
-    nextTxNonceByAddress.set(signerAddress, nonce + 1);
+      nextTxNonceByAddress.set(signerAddress, nonce + 1);
 
-    console.log(
-      `[EduWallet SDK] Sending EntryPoint.handleOps from ${connectedSigner.address} with tx nonce ${nonce}`
-    );
+      console.log(
+        `[EduWallet SDK] Sending EntryPoint.handleOps from ${connectedSigner.address} with tx nonce ${nonce}`,
+      );
 
-    return await connectedEntryPoint.handleOps(packedUserOps, beneficiary, {
-      nonce,
-    });
-  } catch (error) {
-    logError("Error sending batch user operations:", error);
-    throw error;
+      return await connectedEntryPoint.handleOps(packedUserOps, beneficiary, {
+        nonce,
+      });
+    } catch (error) {
+      logError("Error sending batch user operations:", error);
+      throw error;
+    }
   }
-}
 
   /**
    * Verifies the result of a user operation transaction.
@@ -324,10 +313,7 @@ export class AccountAbstraction {
    * @param targetContract Target contract for error decoding
    * @throws Error if operation failed or logs are missing
    */
-  verifyTransaction(
-    receipt: ethers.TransactionReceipt,
-    targetContract: ethers.BaseContract,
-  ): void {
+  verifyTransaction(receipt: ethers.TransactionReceipt, targetContract: ethers.BaseContract): void {
     const entryPoint = this.entryPoint;
 
     if (!receipt || !receipt.logs) {
@@ -353,8 +339,7 @@ export class AccountAbstraction {
       parsedUserOpEvent = entryPoint.interface.parseLog(userOpEvents[0]);
     } catch (e) {
       throw new Error(
-        "Failed to parse UserOperationEvent log: " +
-          (e instanceof Error ? e.message : String(e)),
+        "Failed to parse UserOperationEvent log: " + (e instanceof Error ? e.message : String(e)),
       );
     }
 
@@ -376,9 +361,7 @@ export class AccountAbstraction {
       });
 
       if (revertEvents.length === 0) {
-        throw new Error(
-          "UserOperation failed but no UserOperationRevertReason found in logs.",
-        );
+        throw new Error("UserOperation failed but no UserOperationRevertReason found in logs.");
       }
 
       let parsedRevertEvent;

@@ -111,12 +111,12 @@ Creates both a student EOA and smart account.
 
 **Returns**: `Promise<StudentCredentials>` - The created student credentials and wallet information  
 **Throws**: `Error` - If university wallet is missing, student data is incomplete, or registration fails  
-**Author**: Diego Da Giau  
+**Author**: Diego Da Giau
 
-| Param | Type | Description |
-| --- | --- | --- |
-| universityWallet | `Wallet` | The university wallet with registration permissions |
-| student | `StudentData` | The student information to register |
+| Param            | Type          | Description                                         |
+| ---------------- | ------------- | --------------------------------------------------- |
+| universityWallet | `Wallet`      | The university wallet with registration permissions |
+| student          | `StudentData` | The student information to register                 |
 
 ### enrollStudent(universityWallet, studentWalletAddress, courses) ⇒ `Promise<void>`
 
@@ -125,13 +125,13 @@ Records course enrollments on the student's academic blockchain record, establis
 
 **Returns**: `Promise<void>` - Promise that resolves when all enrollments are successfully recorded  
 **Throws**: `Error` - If university wallet is missing, student address is invalid, course data is invalid, or enrollment transaction fails  
-**Author**: Diego Da Giau  
+**Author**: Diego Da Giau
 
-| Param | Type | Description |
-| --- | --- | --- |
-| universityWallet | `Wallet` | The university wallet with enrollment authority |
-| studentWalletAddress | `string` | The student's academic wallet address on blockchain |
-| courses | `Array<CourseInfo>` | Array of courses to enroll the student in (code, name, degreeCourse, ects) |
+| Param                | Type                | Description                                                                |
+| -------------------- | ------------------- | -------------------------------------------------------------------------- |
+| universityWallet     | `Wallet`            | The university wallet with enrollment authority                            |
+| studentWalletAddress | `string`            | The student's academic wallet address on blockchain                        |
+| courses              | `Array<CourseInfo>` | Array of courses to enroll the student in (code, name, degreeCourse, ects) |
 
 ### evaluateStudent(universityWallet, studentWalletAddress, evaluations) ⇒ `Promise<void>`
 
@@ -140,13 +140,13 @@ Publishes certificates to IPFS when provided and records evaluations on the bloc
 
 **Returns**: `Promise<void>` - Promise that resolves when all evaluations are successfully recorded  
 **Throws**: `Error` - If university wallet is missing, student address is invalid, evaluation data is invalid, or the evaluation transaction fails  
-**Author**: Diego Da Giau  
+**Author**: Diego Da Giau
 
-| Param | Type | Description |
-| --- | --- | --- |
-| universityWallet | `Wallet` | The university wallet with evaluation permissions |
-| studentWalletAddress | `string` | The student's academic wallet address |
-| evaluations | `Array<Evaluation>` | Array of academic evaluations to record |
+| Param                | Type                | Description                                       |
+| -------------------- | ------------------- | ------------------------------------------------- |
+| universityWallet     | `Wallet`            | The university wallet with evaluation permissions |
+| studentWalletAddress | `string`            | The student's academic wallet address             |
+| evaluations          | `Array<Evaluation>` | Array of academic evaluations to record           |
 
 ### getStudentInfo(universityWallet, studentWalletAddress) ⇒ `Promise<Student>`
 
@@ -155,12 +155,12 @@ Only fetches personal data without academic results.
 
 **Returns**: `Promise<Student>` - The student's basic information  
 **Throws**: `Error` - If university wallet is missing, student address is invalid, or data retrieval fails  
-**Author**: Diego Da Giau  
+**Author**: Diego Da Giau
 
-| Param | Type | Description |
-| --- | --- | --- |
-| universityWallet | `Wallet` | The university wallet with read permissions |
-| studentWalletAddress | `string` | The student's academic wallet address |
+| Param                | Type     | Description                                 |
+| -------------------- | -------- | ------------------------------------------- |
+| universityWallet     | `Wallet` | The university wallet with read permissions |
+| studentWalletAddress | `string` | The student's academic wallet address       |
 
 ### getStudentWithResult(universityWallet, studentWalletAddress) ⇒ `Promise<Student>`
 
@@ -169,12 +169,12 @@ Provides a complete academic profile with course outcomes.
 
 **Returns**: `Promise<Student>` - The student's complete information with academic results  
 **Throws**: `Error` - If university wallet is missing, student address is invalid, or data retrieval fails  
-**Author**: Diego Da Giau  
+**Author**: Diego Da Giau
 
-| Param | Type | Description |
-| --- | --- | --- |
-| universityWallet | `Wallet` | The university wallet with read permissions |
-| studentWalletAddress | `string` | The student's academic wallet address |
+| Param                | Type     | Description                                 |
+| -------------------- | -------- | ------------------------------------------- |
+| universityWallet     | `Wallet` | The university wallet with read permissions |
+| studentWalletAddress | `string` | The student's academic wallet address       |
 
 ### askForPermission(universityWallet, studentWalletAddress, type) ⇒ `Promise<void>`
 
@@ -183,13 +183,13 @@ Universities must request access before they can read or modify student records.
 
 **Returns**: `Promise<void>` - Promise that resolves when the permission request is submitted and confirmed  
 **Throws**: `Error` - If university wallet is missing, student address is invalid, permission type is invalid, or permission request fails  
-**Author**: Diego Da Giau  
+**Author**: Diego Da Giau
 
-| Param | Type | Description |
-| --- | --- | --- |
-| universityWallet | `Wallet` | The university wallet requesting permission |
-| studentWalletAddress | `string` | The student's academic wallet address |
-| type | `PermissionType` | Type of permission requested (Read or Write) |
+| Param                | Type             | Description                                  |
+| -------------------- | ---------------- | -------------------------------------------- |
+| universityWallet     | `Wallet`         | The university wallet requesting permission  |
+| studentWalletAddress | `string`         | The student's academic wallet address        |
+| type                 | `PermissionType` | Type of permission requested (Read or Write) |
 
 ### verifyPermission(universityWallet, studentWalletAddress) ⇒ `Promise<PermissionType|null>`
 
@@ -197,9 +197,9 @@ Verifies a university's permission level for a student's academic wallet.
 
 **Returns**: `Promise<PermissionType|null>` - The highest permission level (Read or Write) or null if no permission  
 **Throws**: `Error` - If university wallet is missing, student address is invalid, or permission verification fails  
-**Author**: Diego Da Giau  
+**Author**: Diego Da Giau
 
-| Param | Type | Description |
-| --- | --- | --- |
-| universityWallet | `Wallet` | The university wallet to check permissions for |
-| studentWalletAddress | `string` | The student's academic wallet address |
+| Param                | Type     | Description                                    |
+| -------------------- | -------- | ---------------------------------------------- |
+| universityWallet     | `Wallet` | The university wallet to check permissions for |
+| studentWalletAddress | `string` | The student's academic wallet address          |

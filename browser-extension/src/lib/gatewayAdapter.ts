@@ -14,11 +14,7 @@ import { StudentModel } from "../models/student";
 import UniversityModel from "../models/university";
 import { logError } from "../utils/conf";
 import { Permission, PermissionType } from "../models/permissions";
-import {
-  gatewayLogIn,
-  gatewayRevokePermissions,
-  gatewayGrantPermission,
-} from "./api";
+import { gatewayLogIn, gatewayRevokePermissions, gatewayGrantPermission } from "./api";
 
 // ---------------- Permission helpers (adapter) ----------------
 
@@ -57,9 +53,7 @@ async function getRawPermissions(student: StudentModel): Promise<Permission[]> {
     const uniLabel =
       entry.universityName && entry.universityShortName
         ? `${entry.universityName} (${entry.universityShortName})`
-        : entry.universityShortName ||
-          entry.universityName ||
-          entry.universityAddress;
+        : entry.universityShortName || entry.universityName || entry.universityAddress;
 
     // Attach the on chain address on a best effort basis so that revoke/grant
     // calls can target a specific university. The Permission model does not
@@ -116,15 +110,12 @@ async function getRawPermissions(student: StudentModel): Promise<Permission[]> {
  * @param _student - Unused, kept for backward compatibility.
  * @returns A UniversityModel instance suitable for the existing UI.
  */
-async function getUniversity(
-  label: string,
-  _student?: StudentModel
-): Promise<UniversityModel> {
+async function getUniversity(label: string, _student?: StudentModel): Promise<UniversityModel> {
   return new UniversityModel(
     label, // name
     "Unknown country", // country (not used in the current UI)
     label, // shortName
-    label // "address"/id (also not used anymore)
+    label, // "address"/id (also not used anymore)
   );
 }
 
@@ -146,16 +137,14 @@ async function revokePermission(
   student: StudentModel,
   permission: Permission,
   id: string,
-  password: string
+  password: string,
 ): Promise<void> {
   const sca = student.accountAddress;
   if (!sca) {
     throw new Error("Student account address is missing");
   }
 
-  const universityAddress = (permission as any).universityAddress as
-    | string
-    | undefined;
+  const universityAddress = (permission as any).universityAddress as string | undefined;
 
   await gatewayRevokePermissions(sca, id, password, universityAddress);
 }
@@ -178,19 +167,16 @@ async function grantPermission(
   student: StudentModel,
   permission: Permission,
   id: string,
-  password: string
+  password: string,
 ): Promise<void> {
   const sca = student.accountAddress;
   if (!sca) {
     throw new Error("Student account address is missing");
   }
 
-  const type: "read" | "write" =
-    permission.type === PermissionType.Write ? "write" : "read";
+  const type: "read" | "write" = permission.type === PermissionType.Write ? "write" : "read";
 
-  const universityAddress = (permission as any).universityAddress as
-    | string
-    | undefined;
+  const universityAddress = (permission as any).universityAddress as string | undefined;
 
   await gatewayGrantPermission(sca, id, password, type, universityAddress);
 }
@@ -219,9 +205,7 @@ export async function logIn(credentials: Credentials): Promise<StudentModel> {
     }
 
     // Use the gateway instead of direct blockchain calls
-    const { id, studentSca, student, allPermissions } = await gatewayLogIn(
-      credentials
-    );
+    const { id, studentSca, student, allPermissions } = await gatewayLogIn(credentials);
 
     // Build the StudentModel the UI already expects
     const studentModel = new StudentModel(id, studentSca);
@@ -258,9 +242,7 @@ export async function logIn(credentials: Credentials): Promise<StudentModel> {
     if (`${error}`.includes("Authentication failed")) {
       throw new Error("Authentication failed. Check your credentials.");
     }
-    throw new Error(
-      error instanceof Error ? error.message : "Connection issues. Try again."
-    );
+    throw new Error(error instanceof Error ? error.message : "Connection issues. Try again.");
   }
 }
 
@@ -278,7 +260,7 @@ export async function logIn(credentials: Credentials): Promise<StudentModel> {
  */
 export async function getUniversities(
   student: StudentModel,
-  universitiesLabels: string[]
+  universitiesLabels: string[],
 ): Promise<UniversityModel[]> {
   try {
     if (!student) {
@@ -317,9 +299,7 @@ export async function getUniversities(
  * @returns List of Permission objects representing read/write and request states.
  * @throws {Error} If the student is not properly authenticated.
  */
-export async function getPermissions(
-  student: StudentModel
-): Promise<Permission[]> {
+export async function getPermissions(student: StudentModel): Promise<Permission[]> {
   try {
     if (!student) {
       throw new Error("Student not properly authenticated");
@@ -354,7 +334,7 @@ export async function performAction(
   student: StudentModel,
   permission: Permission,
   id: string,
-  password: string
+  password: string,
 ): Promise<void> {
   try {
     if (!student) {
@@ -370,9 +350,7 @@ export async function performAction(
     }
 
     if (!id || !password) {
-      throw new Error(
-        "Student ID and password are required to modify permissions"
-      );
+      throw new Error("Student ID and password are required to modify permissions");
     }
 
     if (permission.request) {

@@ -192,8 +192,8 @@ The root `package.json` ties the monorepo together. Typical scripts include:
 - `deps:mobile` – install dependencies for the mobile app.
 - `dependencies` – convenience script that runs the individual `deps:*`
   scripts. In practice it is safest to:
-  1) run `npm install` once at the root, and  
-  2) then run the `deps:*` scripts.
+  1. run `npm install` once at the root, and
+  2. then run the `deps:*` scripts.
 - `build-sdk` – builds the SDK (ESM + CJS bundles and type declarations).
 - `build-cli` – builds the CLI.
 - `build` – compiles the smart contracts and then builds the SDK, CLI and
@@ -226,44 +226,54 @@ to enable PowerShell script execution.
 These steps prepare the whole monorepo for development.
 
 1. Clone the repository
-    ~~~bash
-    git clone <this-repo-url>
-    cd eduwallet  (or the folder name you cloned into)
-    ~~~
+
+   ```bash
+   git clone <this-repo-url>
+   cd eduwallet  (or the folder name you cloned into)
+   ```
 
 2. Install root-level dependencies
 
    From the project root:
-    ~~~bash
-    npm install
-    ~~~
+
+   ```bash
+   npm install
+   ```
+
    or
-    ~~~bash
-    npm install deps:root
-    ~~~
+
+   ```bash
+   npm install deps:root
+   ```
+
    This installs Hardhat, TypeScript tooling and shared top-level dependencies.
 
-4. Install dependencies in all component directories
+3. Install dependencies in all component directories
 
    From the project root, run the per-folder scripts:
-    ~~~bash
-    npm run deps:sdk
-    npm run deps:cli
-    npm run deps:ext
-    npm run deps:gateway
-    npm run deps:mobile
-    ~~~
-   or
-    ~~~bash
-    npm run deps:all
-    ~~~
 
-5. (Optional) Build the core components once
+   ```bash
+   npm run deps:sdk
+   npm run deps:cli
+   npm run deps:ext
+   npm run deps:gateway
+   npm run deps:mobile
+   ```
+
+   or
+
+   ```bash
+   npm run deps:all
+   ```
+
+4. (Optional) Build the core components once
 
    To ensure the toolchain compiles correctly:
-    ~~~bash
-    npm run build
-    ~~~
+
+   ```bash
+   npm run build
+   ```
+
    This will:
 
    - Compile the smart contracts via Hardhat.
@@ -275,9 +285,9 @@ These steps prepare the whole monorepo for development.
 ### Run a local blockchain and deploy contracts
 
 1. Start a local Hardhat chain from the project root:
-    ~~~bash
-    npx hardhat node
-    ~~~
+   ```bash
+   npx hardhat node
+   ```
 2. In a separate terminal, deploy the contracts using the CLI or dedicated
    deployment scripts (see the documentation in `cli/` and `contracts/`).
    Deployment will print the addresses of:
@@ -293,25 +303,25 @@ These steps prepare the whole monorepo for development.
 
 1. Configure the gateway using environment variables (for example in
    `gateway/.env`):
-    ~~~
-    PORT=3000
-    RPC_URL=http://localhost:8545
-    STUDENTS_REGISTER_ADDRESS=0x...
-    ENTRY_POINT_ADDRESS=0x...
-    PAYMASTER_ADDRESS=0x...
-    CHAIN_ID=31337
-    ~~~
+   ```
+   PORT=3000
+   RPC_URL=http://localhost:8545
+   STUDENTS_REGISTER_ADDRESS=0x...
+   ENTRY_POINT_ADDRESS=0x...
+   PAYMASTER_ADDRESS=0x...
+   CHAIN_ID=31337
+   ```
 2. Install dependencies (if not already done) and start the gateway in
    development mode:
-    ~~~bash
-    cd gateway
-    npm install
-    npm run dev
-    ~~~
+   ```bash
+   cd gateway
+   npm install
+   npm run dev
+   ```
    The HTTP API should now be reachable at:
-    ~~~
-    http://localhost:3000
-    ~~~
+   ```
+   http://localhost:3000
+   ```
    On authentication failure (e.g. wrong ID/password), the gateway responds
    with a clean JSON error (HTTP 401) so that the mobile app and browser
    extension can show a user-friendly message instead of an internal stack
@@ -322,25 +332,28 @@ These steps prepare the whole monorepo for development.
 1. Ensure backend components are running:
 
    - Local blockchain via Hardhat:
-        ~~~
-        npx hardhat node
-        ~~~
+     ```
+     npx hardhat node
+     ```
    - Gateway:
-        ~~~bash
-        cd gateway
-        npm run dev
-        ~~~
+     ```bash
+     cd gateway
+     npm run dev
+     ```
+
 2. Configure the extension’s gateway base URL via environment variable, e.g.
    in `browser-extension/.env`:
-    ~~~
-    VITE_GATEWAY_BASE_URL=http://localhost:3000
-    ~~~
+   ```
+   VITE_GATEWAY_BASE_URL=http://localhost:3000
+   ```
 3. Build the extension:
-    ~~~bash
-    cd browser-extension
-    npm install
-    npm run build
-    ~~~
+
+   ```bash
+   cd browser-extension
+   npm install
+   npm run build
+   ```
+
    This produces a `dist/` folder with the packaged extension.
 
 4. Load the unpacked extension in your browser:
@@ -352,16 +365,16 @@ These steps prepare the whole monorepo for development.
 
 1. Configure the Expo app to point at the gateway, e.g. in
    `eduwallet-mobile/.env`:
-    ~~~
-    EXPO_PUBLIC_GATEWAY_BASE_URL=http://localhost:3000
-    ~~~
+   ```
+   EXPO_PUBLIC_GATEWAY_BASE_URL=http://localhost:3000
+   ```
 2. Install dependencies (if not already done) and start the Expo dev server:
-    ~~~bash
-    cd eduwallet-mobile
-    npm install
-    npm run start
-    (or: npx expo start)
-    ~~~
+   ```bash
+   cd eduwallet-mobile
+   npm install
+   npm run start
+   (or: npx expo start)
+   ```
 3. Open the app with an Android emulator, an iOS simulator, or a physical
    device using the Expo Go client.
 

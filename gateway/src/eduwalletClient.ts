@@ -34,16 +34,10 @@ export class EduWalletClient {
   /**
    * Authenticates a student and loads their academic data.
    */
-  async loginStudent(
-    id: string,
-    password: string
-  ): Promise<CredentialsResponse> {
+  async loginStudent(id: string, password: string): Promise<CredentialsResponse> {
     const studentWallet = this.getStudentWalletFromCredentials(id, password);
     const studentSca = await getStudentSmartAccount(studentWallet);
-    const rawStudentInfo = await readStudentInfoAsOwner(
-      studentWallet,
-      studentSca
-    );
+    const rawStudentInfo = await readStudentInfoAsOwner(studentWallet, studentSca);
     const student = await mapStudentPayload(rawStudentInfo);
 
     return {
@@ -59,7 +53,7 @@ export class EduWalletClient {
   async getAllPermissionsAsStudent(
     id: string,
     password: string,
-    studentSca: string
+    studentSca: string,
   ): Promise<AllPermissionsForStudent> {
     if (!id || !password) {
       throw new Error("id and password are required");
@@ -81,7 +75,7 @@ export class EduWalletClient {
     password: string,
     studentSca: string,
     kind: PermissionGrantKind,
-    targetUniversity: string | undefined
+    targetUniversity: string | undefined,
   ): Promise<void> {
     if (!id || !password) {
       throw new Error("id and password are required");
@@ -89,12 +83,7 @@ export class EduWalletClient {
 
     const studentWallet = this.getStudentWalletFromCredentials(id, password);
 
-    await grantPermissionAsStudent(
-      studentWallet,
-      studentSca,
-      kind,
-      targetUniversity
-    );
+    await grantPermissionAsStudent(studentWallet, studentSca, kind, targetUniversity);
   }
 
   /**
@@ -104,7 +93,7 @@ export class EduWalletClient {
     id: string,
     password: string,
     studentSca: string,
-    targetUniversity: string | undefined
+    targetUniversity: string | undefined,
   ): Promise<void> {
     if (!id || !password) {
       throw new Error("id and password are required");
@@ -112,10 +101,6 @@ export class EduWalletClient {
 
     const studentWallet = this.getStudentWalletFromCredentials(id, password);
 
-    await revokePermissionAsStudent(
-      studentWallet,
-      studentSca,
-      targetUniversity
-    );
+    await revokePermissionAsStudent(studentWallet, studentSca, targetUniversity);
   }
 }

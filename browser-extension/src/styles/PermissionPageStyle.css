@@ -1,27 +1,27 @@
 .permission-button {
-    font-size: 13px;
-    background-color: transparent;
-    border-width: 2px;
-    border-radius: 20px;
-    padding: 1px;
-    padding-right: 10px;
-    padding-left: 10px;
+  font-size: 13px;
+  background-color: transparent;
+  border-width: 2px;
+  border-radius: 20px;
+  padding: 1px;
+  padding-right: 10px;
+  padding-left: 10px;
 }
 
 .revoke {
-    color: red;
-    border-color: red;
+  color: red;
+  border-color: red;
 }
 
 .request {
-    color: green;
-    border-color: green;
+  color: green;
+  border-color: green;
 }
 
 .category-title {
-    font-weight: 600;
+  font-weight: 600;
 }
 
 .permissions-list {
-    height: 74vh;
+  height: 74vh;
 }

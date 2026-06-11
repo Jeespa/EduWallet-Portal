@@ -57,8 +57,7 @@ export default function LoginScreen() {
         <View style={styles.card}>
           <Text style={styles.title}>EduWallet Portal</Text>
           <Text style={styles.subtitle}>
-            Sign in with your personal portal account to access student academic
-            records.
+            Sign in with your personal portal account to access student academic records.
           </Text>
 
           <View style={styles.inputGroup}>

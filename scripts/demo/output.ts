@@ -11,11 +11,7 @@ import {
   UIO_ORG_NUMBER,
   UIO_PRIVATE_KEY,
 } from "./constants";
-import type {
-  GeneratedStudent,
-  OrganizationSmartAccounts,
-  OrganizationWallets,
-} from "./types";
+import type { GeneratedStudent, OrganizationSmartAccounts, OrganizationWallets } from "./types";
 
 export async function writeDemoFiles(input: {
   generatedStudents: GeneratedStudent[];
@@ -32,32 +28,28 @@ export async function writeDemoFiles(input: {
         name: "NTNU University",
         privateKey: NTNU_PRIVATE_KEY,
         address: input.organizationWallets.ntnuWallet.address,
-        smartAccountAddress:
-          input.organizationSmartAccounts.ntnuSmartAccountAddress,
+        smartAccountAddress: input.organizationSmartAccounts.ntnuSmartAccountAddress,
       },
       nordicHiring: {
         organizationNumber: NORDIC_HIRING_ORG_NUMBER,
         name: "Nordic Hiring AS",
         privateKey: NORDIC_HIRING_PRIVATE_KEY,
         address: input.organizationWallets.nordicHiringWallet.address,
-        smartAccountAddress:
-          input.organizationSmartAccounts.nordicHiringSmartAccountAddress,
+        smartAccountAddress: input.organizationSmartAccounts.nordicHiringSmartAccountAddress,
       },
       trondheimBusinessSchool: {
         organizationNumber: TBS_ORG_NUMBER,
         name: "Trondheim Business School",
         privateKey: TRONDHEIM_BUSINESS_SCHOOL_PRIVATE_KEY,
         address: input.organizationWallets.tbsWallet.address,
-        smartAccountAddress:
-          input.organizationSmartAccounts.tbsSmartAccountAddress,
+        smartAccountAddress: input.organizationSmartAccounts.tbsSmartAccountAddress,
       },
       uio: {
         organizationNumber: UIO_ORG_NUMBER,
         name: "University of Oslo",
         privateKey: UIO_PRIVATE_KEY,
         address: input.organizationWallets.uioWallet.address,
-        smartAccountAddress:
-          input.organizationSmartAccounts.uioSmartAccountAddress,
+        smartAccountAddress: input.organizationSmartAccounts.uioSmartAccountAddress,
       },
     },
     students: input.generatedStudents,
@@ -78,12 +70,7 @@ export async function writeDemoFiles(input: {
     },
   };
 
-  const portalDemoDir = path.join(
-    process.cwd(),
-    "portal-backend",
-    "src",
-    "demo",
-  );
+  const portalDemoDir = path.join(process.cwd(), "portal-backend", "src", "demo");
   mkdirSync(portalDemoDir, { recursive: true });
 
   writeFileSync(
@@ -97,10 +84,7 @@ export async function writeDemoFiles(input: {
     "",
   ].join("\n");
 
-  writeFileSync(
-    path.join(process.cwd(), "portal-backend", ".env.demo-chain"),
-    envSnippet,
-  );
+  writeFileSync(path.join(process.cwd(), "portal-backend", ".env.demo-chain"), envSnippet);
 
   const gatewayEnvSnippet = [
     "PORT=3001",
@@ -112,10 +96,7 @@ export async function writeDemoFiles(input: {
     "",
   ].join("\n");
 
-  writeFileSync(
-    path.join(process.cwd(), "gateway", ".env.demo-chain"),
-    gatewayEnvSnippet,
-  );
+  writeFileSync(path.join(process.cwd(), "gateway", ".env.demo-chain"), gatewayEnvSnippet);
 
   console.log("");
   console.log("Generated:");
@@ -136,18 +117,10 @@ export function printDemoSummary() {
   console.log("Mobile pending request:            NTNU view request for Maya Eide");
   console.log("");
   console.log("Expected portal statuses:");
-  console.log(
-    "NTNU: Anna write, Jonas write, Emil none, Sara write, Nora read, Maya pending read",
-  );
-  console.log(
-    "Nordic Hiring: Anna none, Jonas read, Emil none, Sara none, Nora read, Maya none",
-  );
+  console.log("NTNU: Anna write, Jonas write, Emil none, Sara write, Nora read, Maya pending read");
+  console.log("Nordic Hiring: Anna none, Jonas read, Emil none, Sara none, Nora read, Maya none");
   console.log("UiO: Maya write");
-  console.log(
-    "Maya Eide is registered by University of Oslo and reserved for mobile testing.",
-  );
+  console.log("Maya Eide is registered by University of Oslo and reserved for mobile testing.");
   console.log("");
-  console.log(
-    "Copy the contents of portal-backend/.env.demo-chain into portal-backend/.env",
-  );
+  console.log("Copy the contents of portal-backend/.env.demo-chain into portal-backend/.env");
 }

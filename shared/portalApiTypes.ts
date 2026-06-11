@@ -1,11 +1,6 @@
 export type PortalRole = "ADMIN" | "REQUESTER" | "VERIFIER" | "ISSUER";
 
-export type PermissionStatus =
-  | "none"
-  | "pending-read"
-  | "pending-write"
-  | "read"
-  | "write";
+export type PermissionStatus = "none" | "pending-read" | "pending-write" | "read" | "write";
 
 export type PortalUserDto = {
   id: string;

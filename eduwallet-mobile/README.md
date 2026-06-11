@@ -57,9 +57,9 @@ types and HTTP client.
 The app uses **Expo Router** for navigation and a dedicated
 `StudentContext` to store:
 
-- `id` – student ID  
-- `sca` – student smart account address  
-- `data` – full `CredentialsResponse` from the gateway  
+- `id` – student ID
+- `sca` – student smart account address
+- `data` – full `CredentialsResponse` from the gateway
 
 ---
 
@@ -68,8 +68,8 @@ The app uses **Expo Router** for navigation and a dedicated
 All HTTP calls go through `app/lib/api.ts`, which in turn uses the
 shared HTTP client:
 
-- `shared/clientApi.ts` – common HTTP client used by both frontends  
-- `shared/apiTypes.ts` – shared TypeScript types for all payloads  
+- `shared/clientApi.ts` – common HTTP client used by both frontends
+- `shared/apiTypes.ts` – shared TypeScript types for all payloads
 
 The base URL is configured via an Expo env variable:
 
@@ -84,9 +84,9 @@ The base URL is configured via an Expo env variable:
 
 Examples:
 
-- Android emulator (tested): `http://10.0.2.2:3000`  
-- iOS simulator (in principle): `http://127.0.0.1:3000`  
-- Physical device (Android or iOS): `http://<your-laptop-LAN-ip>:3000`  
+- Android emulator (tested): `http://10.0.2.2:3000`
+- iOS simulator (in principle): `http://127.0.0.1:3000`
+- Physical device (Android or iOS): `http://<your-laptop-LAN-ip>:3000`
 
 Create a `.env` file in `eduwallet-mobile/`:
 
@@ -124,18 +124,18 @@ From the repository root:
 
 Then, using the Expo CLI:
 
-- press `a` to open the **Android emulator** (this is the tested path),  
-- or `i` to open the **iOS simulator** (in principle supported, not tested),  
+- press `a` to open the **Android emulator** (this is the tested path),
+- or `i` to open the **iOS simulator** (in principle supported, not tested),
 - or scan the QR code with the Expo Go app on a physical device (Android or iOS),
   making sure the device can reach the gateway URL over the network.
 
 Once the app and gateway are running, you can:
 
-1. Log in with a test student ID/password set up via the CLI.  
-2. Browse the wallet (total ECTS + course list).  
-3. Tap a course to open the course details screen.  
-4. Open the **Permissions** tab to view and manage university permissions.  
-5. Open the **Profile** screen for personal details and the smart account.  
+1. Log in with a test student ID/password set up via the CLI.
+2. Browse the wallet (total ECTS + course list).
+3. Tap a course to open the course details screen.
+4. Open the **Permissions** tab to view and manage university permissions.
+5. Open the **Profile** screen for personal details and the smart account.
 
 ---
 
@@ -144,9 +144,9 @@ Once the app and gateway are running, you can:
 The `StudentProvider` in `context/StudentContext.tsx` wraps the
 entire navigation tree. It provides:
 
-- `id`, `sca`, `data` – current student info  
-- `setStudent(id, sca, data)` – called after successful login  
-- `clearStudent()` – called on logout  
+- `id`, `sca`, `data` – current student info
+- `setStudent(id, sca, data)` – called after successful login
+- `clearStudent()` – called on logout
 
 Screens use the `useStudent()` hook to access this state.
 
@@ -157,11 +157,11 @@ Screens use the `useStudent()` hook to access this state.
 The `figures/` folder contains static screenshots of the app used in
 the thesis:
 
-- `Login.jpg`, `Login Filled.jpg`  
-- `Wallet.jpg`  
-- `Course Graded.jpg`, `Course Ungraded.jpg`  
-- `Permissions 1.jpg`, `Permissions 2.jpg`  
-- `Profile.jpg`  
+- `Login.jpg`, `Login Filled.jpg`
+- `Wallet.jpg`
+- `Course Graded.jpg`, `Course Ungraded.jpg`
+- `Permissions 1.jpg`, `Permissions 2.jpg`
+- `Profile.jpg`
 
 They are not required for running the app, but are useful in
 documentation and the thesis.
@@ -170,7 +170,7 @@ documentation and the thesis.
 
 ## 🔗 Related components
 
-- `gateway/` – the HTTP gateway that this app talks to  
-- `browser-extension/` – alternative student client in the browser  
+- `gateway/` – the HTTP gateway that this app talks to
+- `browser-extension/` – alternative student client in the browser
 - `shared/` – shared types and HTTP client (`apiTypes.ts`,
   `clientApi.ts`) reused across all frontends.

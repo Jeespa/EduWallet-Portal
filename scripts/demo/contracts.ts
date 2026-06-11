@@ -13,21 +13,15 @@ export async function deployDemoContracts(): Promise<DeployedDemoContracts> {
   const entryPoint = await EntryPointFactory.deploy();
   await entryPoint.waitForDeployment();
 
-  const StudentDeployerFactory = await ethers.getContractFactory(
-    "StudentDeployer",
-  );
+  const StudentDeployerFactory = await ethers.getContractFactory("StudentDeployer");
   const studentDeployer = await StudentDeployerFactory.deploy();
   await studentDeployer.waitForDeployment();
 
-  const UniversityDeployerFactory = await ethers.getContractFactory(
-    "UniversityDeployer",
-  );
+  const UniversityDeployerFactory = await ethers.getContractFactory("UniversityDeployer");
   const universityDeployer = await UniversityDeployerFactory.deploy();
   await universityDeployer.waitForDeployment();
 
-  const StudentsRegisterFactory = await ethers.getContractFactory(
-    "StudentsRegister",
-  );
+  const StudentsRegisterFactory = await ethers.getContractFactory("StudentsRegister");
   const studentsRegister = await StudentsRegisterFactory.deploy(
     await studentDeployer.getAddress(),
     await universityDeployer.getAddress(),

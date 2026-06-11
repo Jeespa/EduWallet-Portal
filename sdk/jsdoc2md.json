@@ -1,28 +1,22 @@
 {
-    "source": {
-        "includePattern": ".+\\.ts$",
-        "excludePattern": ".+\\.d\\.ts$"
-    },
-    "plugins": [
-        "node_modules/jsdoc-babel"
-    ],
-    "babel": {
-        "extensions": [
-            "ts"
-        ],
-        "ignore": [
-            "**/*.d.ts"
-        ],
-        "presets": [
-            [
-                "@babel/preset-env",
-                {
-                    "targets": {
-                        "node": true
-                    }
-                }
-            ],
-            "@babel/preset-typescript"
-        ]
-    }
+  "source": {
+    "includePattern": ".+\\.ts$",
+    "excludePattern": ".+\\.d\\.ts$"
+  },
+  "plugins": ["node_modules/jsdoc-babel"],
+  "babel": {
+    "extensions": ["ts"],
+    "ignore": ["**/*.d.ts"],
+    "presets": [
+      [
+        "@babel/preset-env",
+        {
+          "targets": {
+            "node": true
+          }
+        }
+      ],
+      "@babel/preset-typescript"
+    ]
+  }
 }

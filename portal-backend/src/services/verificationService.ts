@@ -1,8 +1,5 @@
 import { prisma } from "../lib/prisma";
-import {
-  getOnChainPermissionStatus,
-  readOnChainStudent,
-} from "../eduwallet/portalEduWalletClient";
+import { getOnChainPermissionStatus, readOnChainStudent } from "../eduwallet/portalEduWalletClient";
 import type {
   CreateVerificationBody,
   CreateVerificationResponse,
@@ -142,8 +139,7 @@ export async function createAcademicVerification(
     certificateCid?: string;
   };
 
-  const results =
-    (student as { results?: EduWalletAcademicResult[] }).results ?? [];
+  const results = (student as { results?: EduWalletAcademicResult[] }).results ?? [];
 
   const matchingCourse = requestedCourseCode
     ? results.find(
@@ -192,12 +188,9 @@ export async function createAcademicVerification(
             degreeCourse: matchingCourse.degreeCourse,
             ects: matchingCourse.ects,
             grade: matchingCourse.grade,
-            evaluationDate:
-              matchingCourse.evaluationDate ?? matchingCourse.date ?? null,
+            evaluationDate: matchingCourse.evaluationDate ?? matchingCourse.date ?? null,
             certificateHash:
-              matchingCourse.certificateHash ??
-              matchingCourse.certificateCid ??
-              null,
+              matchingCourse.certificateHash ?? matchingCourse.certificateCid ?? null,
           }
         : null,
     },
@@ -213,8 +206,7 @@ export async function listVerifications(
   const verifications = await prisma.verificationLog.findMany({
     where: {
       organizationId: input.organizationId,
-      ...(verificationType &&
-      ["ACADEMIC", "IDENTITY"].includes(verificationType)
+      ...(verificationType && ["ACADEMIC", "IDENTITY"].includes(verificationType)
         ? { verificationType: verificationType as "ACADEMIC" | "IDENTITY" }
         : {}),
       ...(q

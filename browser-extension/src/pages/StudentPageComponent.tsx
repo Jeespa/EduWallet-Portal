@@ -10,31 +10,36 @@ import type { JSX } from "react";
  * @returns {JSX.Element} The rendered UserPage component.
  */
 export default function StudentPage(): JSX.Element {
-    const student = useAuth().student;
-    const navigate = useNavigate();
-    const goBack = () => {
-        navigate(-1);
-    }
+  const student = useAuth().student;
+  const navigate = useNavigate();
+  const goBack = () => {
+    navigate(-1);
+  };
 
-    return (
-        <>
-            {/* Header */}
-            <Container>
-                <Row className="mb-3">
-                    <Col xs={1} className="my-auto">
-                        <Image src="images/icons/arrow.svg" alt="Arrow icon" className="cursor-pointer" onClick={goBack} />
-                    </Col>
-                    <Col className="text-start ">
-                        <strong className="text-24">Your profile</strong>
-                    </Col>
-                </Row>
-            </Container>
-            {/* Student's information */}
-            <Container>
-                <Row>
-                    <List object={student.toObject()} />
-                </Row>
-            </Container>
-        </>
-    );
+  return (
+    <>
+      {/* Header */}
+      <Container>
+        <Row className="mb-3">
+          <Col xs={1} className="my-auto">
+            <Image
+              src="images/icons/arrow.svg"
+              alt="Arrow icon"
+              className="cursor-pointer"
+              onClick={goBack}
+            />
+          </Col>
+          <Col className="text-start ">
+            <strong className="text-24">Your profile</strong>
+          </Col>
+        </Row>
+      </Container>
+      {/* Student's information */}
+      <Container>
+        <Row>
+          <List object={student.toObject()} />
+        </Row>
+      </Container>
+    </>
+  );
 }

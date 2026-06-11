@@ -27,9 +27,7 @@ type StudentContextValue = {
  * React context holding the current student session.
  * It is initialised as undefined and forced through the custom hook below.
  */
-const StudentContext = createContext<StudentContextValue | undefined>(
-  undefined,
-);
+const StudentContext = createContext<StudentContextValue | undefined>(undefined);
 
 /**
  * Provider component that wraps the app and keeps the student session in state.
@@ -45,11 +43,7 @@ export function StudentProvider({ children }: { children: ReactNode }) {
   /**
    * Store a new authenticated student session.
    */
-  const setStudent = (
-    newId: string,
-    newSca: string,
-    newData: CredentialsResponse,
-  ) => {
+  const setStudent = (newId: string, newSca: string, newData: CredentialsResponse) => {
     setId(newId);
     setSca(newSca);
     setSessionToken(newData.sessionToken ?? null);

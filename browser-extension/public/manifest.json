@@ -1,25 +1,18 @@
 {
-    "manifest_version": 3,
-    "name": "EduWallet Extension",
-    "short_name": "EdW",
-    "author": "diegoda@stud.ntnu.no",
-    "version": "1.0",
-    "description": "Extension to manage students' educational wallet",
-    "action": {
-        "default_popup": "index.html"
-    },
-    "permissions": [
-        "scripting",
-        "tabs",
-        "activeTab"
-    ],
-    "host_permissions": [
-        "https://*/*",
-        "http://*/*"
-    ],
-    "icons": {
-        "16": "images/icons/16.png",
-        "48": "images/icons/48.png",
-        "128": "images/icons/128.png"
-    }
+  "manifest_version": 3,
+  "name": "EduWallet Extension",
+  "short_name": "EdW",
+  "author": "diegoda@stud.ntnu.no",
+  "version": "1.0",
+  "description": "Extension to manage students' educational wallet",
+  "action": {
+    "default_popup": "index.html"
+  },
+  "permissions": ["scripting", "tabs", "activeTab"],
+  "host_permissions": ["https://*/*", "http://*/*"],
+  "icons": {
+    "16": "images/icons/16.png",
+    "48": "images/icons/48.png",
+    "128": "images/icons/128.png"
+  }
 }

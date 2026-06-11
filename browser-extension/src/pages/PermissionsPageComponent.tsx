@@ -17,14 +17,11 @@ import UniversityModel from "../models/university";
  */
 export default function PermissionsPage(): JSX.Element {
   // Get permissions data and functions from context
-  const { requests, read, write, updatePermissions, loadPermissions } =
-    usePermissions();
+  const { requests, read, write, updatePermissions, loadPermissions } = usePermissions();
 
   // Local state for the password modal
   const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [selectedPermission, setSelectedPermission] = useState<
-    Permission | null
-  >(null);
+  const [selectedPermission, setSelectedPermission] = useState<Permission | null>(null);
   const [passwordInput, setPasswordInput] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
 
@@ -82,18 +79,10 @@ export default function PermissionsPage(): JSX.Element {
           />
         </Container>
         <Container className="my-2">
-          <PermissionsByCategory
-            permissions={read}
-            title="Read"
-            handleClick={handleClick}
-          />
+          <PermissionsByCategory permissions={read} title="Read" handleClick={handleClick} />
         </Container>
         <Container className="my-2">
-          <PermissionsByCategory
-            permissions={write}
-            title="Write"
-            handleClick={handleClick}
-          />
+          <PermissionsByCategory permissions={write} title="Write" handleClick={handleClick} />
         </Container>
       </div>
 
@@ -117,9 +106,7 @@ export default function PermissionsPage(): JSX.Element {
             onChange={(e) => setPasswordInput(e.target.value)}
             placeholder="Password"
           />
-          {modalError && (
-            <div className="text-danger mt-2">{modalError}</div>
-          )}
+          {modalError && <div className="text-danger mt-2">{modalError}</div>}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={handleCloseModal}>
@@ -177,9 +164,7 @@ function PermissionsByCategory(props: PermissionsByCategoryProps): JSX.Element {
             key={p.university}
             permission={p}
             handleClick={handleClick}
-            university={universities.find(
-              (u) => u.accountAddress === p.university
-            )}
+            university={universities.find((u) => u.accountAddress === p.university)}
           />
         ))
       ) : (
@@ -241,11 +226,7 @@ function PermissionRow(props: PermissionRowProps): JSX.Element {
       </Col>
       <Col>
         <button
-          className={
-            "permission-button" +
-            " " +
-            (permission.request ? "request" : "revoke")
-          }
+          className={"permission-button" + " " + (permission.request ? "request" : "revoke")}
           onClick={() => handleClick(permission)}
         >
           {label}

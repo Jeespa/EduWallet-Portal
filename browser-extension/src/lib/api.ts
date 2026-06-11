@@ -11,8 +11,7 @@ import { createGatewayClient } from "../../../shared/clientApi";
  * extension. Read from Vite config but falls back to localhost to
  * match the original prototype.
  */
-export const GATEWAY_BASE_URL =
-  import.meta.env.VITE_GATEWAY_BASE_URL ?? "http://localhost:3000";
+export const GATEWAY_BASE_URL = import.meta.env.VITE_GATEWAY_BASE_URL ?? "http://localhost:3000";
 
 /**
  * Thin HTTP client shared between extension and mobile app.
@@ -33,9 +32,7 @@ const client = createGatewayClient(GATEWAY_BASE_URL);
  * @returns Structured login response including profile, results and
  *          optionally the multi-university permissions snapshot
  */
-export async function gatewayLogIn(
-  credentials: Credentials
-): Promise<CredentialsResponse> {
+export async function gatewayLogIn(credentials: Credentials): Promise<CredentialsResponse> {
   // Just adapt from Credentials → (id, password)
   return client.logIn(credentials.id, credentials.password);
 }
@@ -55,7 +52,7 @@ export async function gatewayLogIn(
 export async function gatewayGetPermissions(
   studentSca: string,
   id: string,
-  password: string
+  password: string,
 ): Promise<AllPermissionsForStudent> {
   return client.getPermissions(studentSca, id, password);
 }
@@ -78,7 +75,7 @@ export async function gatewayRevokePermissions(
   studentSca: string,
   id: string,
   password: string,
-  universityAddress?: string
+  universityAddress?: string,
 ): Promise<PermissionStatus> {
   return client.revokePermission(studentSca, id, password, universityAddress);
 }
@@ -101,13 +98,7 @@ export async function gatewayGrantPermission(
   id: string,
   password: string,
   type: "read" | "write",
-  universityAddress?: string
+  universityAddress?: string,
 ): Promise<PermissionStatus> {
-  return client.grantPermission(
-    studentSca,
-    id,
-    password,
-    type,
-    universityAddress
-  );
+  return client.grantPermission(studentSca, id, password, type, universityAddress);
 }

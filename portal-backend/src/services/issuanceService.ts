@@ -96,8 +96,7 @@ export async function createIssuanceDraft(
   if (permission !== "write") {
     return {
       statusCode: 403,
-      error:
-        "This organization does not have write access for the selected student.",
+      error: "This organization does not have write access for the selected student.",
     };
   }
 

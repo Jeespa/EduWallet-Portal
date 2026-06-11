@@ -146,9 +146,7 @@ export default function DashboardHome() {
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.title}>Dashboard</Text>
-      <Text style={styles.subtitle}>
-        Overview of the current organization workspace.
-      </Text>
+      <Text style={styles.subtitle}>Overview of the current organization workspace.</Text>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Current session</Text>
@@ -161,9 +159,7 @@ export default function DashboardHome() {
 
           <View style={styles.infoBlock}>
             <Text style={styles.label}>Organization number</Text>
-            <Text style={styles.value}>
-              {organization?.organizationNumber || "-"}
-            </Text>
+            <Text style={styles.value}>{organization?.organizationNumber || "-"}</Text>
           </View>
 
           <View style={styles.infoBlock}>
@@ -210,17 +206,15 @@ export default function DashboardHome() {
 
         {!loading && !loadError && recentRequests.length === 0 ? (
           <Text style={styles.emptyText}>
-            No recent activity yet. Activity will appear here when access
-            requests, verifications, or submissions are created.
+            No recent activity yet. Activity will appear here when access requests, verifications,
+            or submissions are created.
           </Text>
         ) : null}
 
         {recentRequests.map((request) => (
           <View key={request.id} style={styles.activityItem}>
             <View style={styles.activityHeader}>
-              <Text style={styles.activityTitle}>
-                {formatActivityText(request)}
-              </Text>
+              <Text style={styles.activityTitle}>{formatActivityText(request)}</Text>
 
               <View
                 style={[
@@ -232,30 +226,21 @@ export default function DashboardHome() {
                       : styles.statusPending,
                 ]}
               >
-                <Text style={styles.statusBadgeText}>
-                  {formatStatus(request.status)}
-                </Text>
+                <Text style={styles.statusBadgeText}>{formatStatus(request.status)}</Text>
               </View>
             </View>
 
             {request.homeInstitution ? (
-              <Text style={styles.activityMeta}>
-                {request.homeInstitution}
-              </Text>
+              <Text style={styles.activityMeta}>{request.homeInstitution}</Text>
             ) : null}
 
             <Text style={styles.activityMeta}>
-              EduWallet reference:{" "}
-              {shortenIdentifier(request.studentId ?? request.studentSca)}
+              EduWallet reference: {shortenIdentifier(request.studentId ?? request.studentSca)}
             </Text>
 
-            <Text style={styles.activityMeta}>
-              Created: {formatDateTime(request.createdAt)}
-            </Text>
+            <Text style={styles.activityMeta}>Created: {formatDateTime(request.createdAt)}</Text>
 
-            {request.reason ? (
-              <Text style={styles.activityReason}>{request.reason}</Text>
-            ) : null}
+            {request.reason ? <Text style={styles.activityReason}>{request.reason}</Text> : null}
           </View>
         ))}
       </View>

@@ -10,8 +10,7 @@ export function formatCamelCaseString(str: string): string {
     }
 
     const spacedString = str.replace(/([A-Z])/g, " $1").toLowerCase();
-    const formattedString =
-      spacedString.charAt(0).toUpperCase() + spacedString.slice(1);
+    const formattedString = spacedString.charAt(0).toUpperCase() + spacedString.slice(1);
     return formattedString;
   } catch (error) {
     logError("Failed to format camel case string:", error);

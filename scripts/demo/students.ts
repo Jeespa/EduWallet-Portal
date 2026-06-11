@@ -4,12 +4,7 @@ import { ethers } from "hardhat";
 import { enrollStudent, evaluateStudent, registerStudent } from "../../sdk/dist";
 import { deriveStudentOwnerPrivateKey } from "./crypto";
 import { grantPermissionLocally, requestPermissionLocally } from "./permissions";
-import type {
-  AccessOrganization,
-  GeneratedStudent,
-  PermissionLevel,
-  StudentSeed,
-} from "./types";
+import type { AccessOrganization, GeneratedStudent, PermissionLevel, StudentSeed } from "./types";
 
 function fullName(student: StudentSeed) {
   return `${student.name} ${student.surname}`;
@@ -39,10 +34,7 @@ export async function createDemoStudent(input: {
     country: input.student.country,
   });
 
-  const ownerPrivateKey = deriveStudentOwnerPrivateKey(
-    created.password,
-    created.id,
-  );
+  const ownerPrivateKey = deriveStudentOwnerPrivateKey(created.password, created.id);
 
   const ownerWallet = new ethers.Wallet(ownerPrivateKey, ethers.provider);
 

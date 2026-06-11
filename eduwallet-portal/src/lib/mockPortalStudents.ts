@@ -1,9 +1,4 @@
-export type PermissionStatus =
-  | "none"
-  | "pending-read"
-  | "pending-write"
-  | "read"
-  | "write";
+export type PermissionStatus = "none" | "pending-read" | "pending-write" | "read" | "write";
 
 export type PortalStudentReference = {
   studentId: string;

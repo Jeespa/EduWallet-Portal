@@ -28,21 +28,13 @@ export type StudentCredentials = {
   source: "session" | "body";
 };
 
-const STUDENT_SESSION_TTL_MS = Number(
-  process.env.STUDENT_SESSION_TTL_MS ?? 2 * 60 * 60 * 1000,
-);
+const STUDENT_SESSION_TTL_MS = Number(process.env.STUDENT_SESSION_TTL_MS ?? 2 * 60 * 60 * 1000);
 
-const STUDENT_SESSION_CLEANUP_MS = Number(
-  process.env.STUDENT_SESSION_CLEANUP_MS ?? 10 * 60 * 1000,
-);
+const STUDENT_SESSION_CLEANUP_MS = Number(process.env.STUDENT_SESSION_CLEANUP_MS ?? 10 * 60 * 1000);
 
 const studentSessions = new Map<string, StudentGatewaySession>();
 
-export function createStudentSession(input: {
-  id: string;
-  password: string;
-  studentSca: string;
-}) {
+export function createStudentSession(input: { id: string; password: string; studentSca: string }) {
   const token = randomBytes(32).toString("hex");
   const expiresAt = Date.now() + STUDENT_SESSION_TTL_MS;
 
@@ -90,10 +82,7 @@ export function getStudentSession(
     return null;
   }
 
-  if (
-    expectedStudentSca &&
-    session.studentSca.toLowerCase() !== expectedStudentSca.toLowerCase()
-  ) {
+  if (expectedStudentSca && session.studentSca.toLowerCase() !== expectedStudentSca.toLowerCase()) {
     return null;
   }
 
@@ -140,9 +129,7 @@ export function cleanupExpiredStudentSessions(now = Date.now()) {
   }
 }
 
-export function startStudentSessionCleanup(
-  intervalMs = STUDENT_SESSION_CLEANUP_MS,
-) {
+export function startStudentSessionCleanup(intervalMs = STUDENT_SESSION_CLEANUP_MS) {
   const timer = setInterval(() => {
     cleanupExpiredStudentSessions();
   }, intervalMs);

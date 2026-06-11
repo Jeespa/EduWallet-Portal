@@ -1,13 +1,6 @@
 // app/profile.tsx
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Modal,
-  Pressable,
-} from "react-native";
+import { View, Text, StyleSheet, ScrollView, Modal, Pressable } from "react-native";
 import { useStudent } from "../context/StudentContext";
 import { router } from "expo-router";
 
@@ -42,10 +35,7 @@ export default function ProfileScreen() {
 
   return (
     <>
-      <ScrollView
-        contentContainerStyle={styles.container}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
         {!student ? (
           <View style={styles.emptyStateBox}>
             <Text style={styles.emptyStateTitle}>No student loaded</Text>
@@ -95,9 +85,7 @@ export default function ProfileScreen() {
                   </Text>
                 </View>
 
-                <Text style={styles.expandIcon}>
-                  {technicalDetailsOpen ? "−" : "+"}
-                </Text>
+                <Text style={styles.expandIcon}>{technicalDetailsOpen ? "−" : "+"}</Text>
               </Pressable>
 
               {technicalDetailsOpen ? (

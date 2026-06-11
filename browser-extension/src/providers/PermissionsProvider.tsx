@@ -27,8 +27,7 @@ const PermissionsContext = createContext<PermissionsProviderProps>({
   read: [],
   write: [],
   loadPermissions: () => Promise.resolve(),
-  updatePermissions: (_permission: Permission, _password: string) =>
-    Promise.resolve(),
+  updatePermissions: (_permission: Permission, _password: string) => Promise.resolve(),
 });
 
 /**
@@ -78,13 +77,9 @@ export default function PermissionsProvider({
       const upd = updateUniversities(permissionsTmp.map((p) => p.university));
       const requestsTmp = permissionsTmp.filter((p) => p.request) || [];
       const readTmp =
-        permissionsTmp.filter(
-          (p) => !p.request && p.type === PermissionType.Read
-        ) || [];
+        permissionsTmp.filter((p) => !p.request && p.type === PermissionType.Read) || [];
       const writeTmp =
-        permissionsTmp.filter(
-          (p) => !p.request && p.type === PermissionType.Write
-        ) || [];
+        permissionsTmp.filter((p) => !p.request && p.type === PermissionType.Write) || [];
       setRequests(requestsTmp);
       setRead(readTmp);
       setWrite(writeTmp);
@@ -102,28 +97,18 @@ export default function PermissionsProvider({
    * @param {Permission} permission - The permission to update
    * @returns {Promise<void>} Promise that resolves when the transaction is confirmed or rejects on failure
    */
-  const updatePermissions = async (
-    permission: Permission,
-    password: string
-  ): Promise<void> => {
+  const updatePermissions = async (permission: Permission, password: string): Promise<void> => {
     try {
       if (!student) {
         throw new Error("No authenticated student found");
       }
 
       // Use the student’s ID from the StudentModel + the password from the modal
-      const transaction = performAction(
-        student,
-        permission,
-        student.id,
-        password
-      );
+      const transaction = performAction(student, permission, student.id, password);
 
       if (permission.request) {
         // Remove from requests when approving
-        setRequests((rs) =>
-          rs.filter((r) => r.university !== permission.university)
-        );
+        setRequests((rs) => rs.filter((r) => r.university !== permission.university));
 
         const newPermission: Permission = {
           request: false,
@@ -145,14 +130,10 @@ export default function PermissionsProvider({
         // Remove permission when revoking
         switch (permission.type) {
           case PermissionType.Read:
-            setRead((rs) =>
-              rs.filter((r) => r.university !== permission.university)
-            );
+            setRead((rs) => rs.filter((r) => r.university !== permission.university));
             break;
           case PermissionType.Write:
-            setWrite((ws) =>
-              ws.filter((w) => w.university !== permission.university)
-            );
+            setWrite((ws) => ws.filter((w) => w.university !== permission.university));
             break;
           default:
             throw Error("Unknown permission type.");
@@ -162,8 +143,7 @@ export default function PermissionsProvider({
       await transaction;
     } catch (error) {
       revertUpdate(permission);
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to update permissions";
+      const errorMessage = error instanceof Error ? error.message : "Failed to update permissions";
       showMessage(errorMessage, MessageType.Error);
     }
   };

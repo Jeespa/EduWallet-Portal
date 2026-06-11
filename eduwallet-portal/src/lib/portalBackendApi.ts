@@ -1,12 +1,7 @@
 import type { AuthSession } from "../types/auth";
-import type {
-  PermissionType,
-  PortalRequest,
-  VerifyResult,
-} from "../types/portal";
+import type { PermissionType, PortalRequest, VerifyResult } from "../types/portal";
 
-const API_BASE_URL =
-  process.env.EXPO_PUBLIC_PORTAL_BACKEND_BASE_URL ?? "http://localhost:4000";
+const API_BASE_URL = process.env.EXPO_PUBLIC_PORTAL_BACKEND_BASE_URL ?? "http://localhost:4000";
 
 async function apiRequest<T>(
   path: string,
@@ -29,9 +24,7 @@ async function apiRequest<T>(
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(
-      data.error || `Request failed with status ${response.status}`,
-    );
+    throw new Error(data.error || `Request failed with status ${response.status}`);
   }
 
   return data as T;
@@ -63,10 +56,7 @@ function normalizeRequest(request: any): PortalRequest {
   };
 }
 
-export async function loginPortal(
-  email: string,
-  password: string,
-): Promise<AuthSession> {
+export async function loginPortal(email: string, password: string): Promise<AuthSession> {
   const session = await apiRequest<any>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
@@ -80,12 +70,7 @@ export type PortalStudentReference = {
   studentSca: string;
   name?: string;
   homeInstitution?: string;
-  permissionStatus?:
-    | "none"
-    | "pending-read"
-    | "pending-write"
-    | "read"
-    | "write";
+  permissionStatus?: "none" | "pending-read" | "pending-write" | "read" | "write";
 };
 
 export async function searchPortalStudents(
@@ -121,9 +106,7 @@ export async function createPortalPermissionRequest(
   return normalizeRequest(result.request);
 }
 
-export async function listPortalRequests(
-  token: string,
-): Promise<PortalRequest[]> {
+export async function listPortalRequests(token: string): Promise<PortalRequest[]> {
   const result = await apiRequest<{ requests: any[] }>("/requests", {
     method: "GET",
     token,
@@ -151,9 +134,7 @@ export async function verifyAcademicRecord(
     valid: result.verification.valid,
     message: result.verification.message,
     courseCode:
-      result.verification.course?.code ??
-      result.verification.courseCode ??
-      input.courseCode,
+      result.verification.course?.code ?? result.verification.courseCode ?? input.courseCode,
     courseName: result.verification.course?.name,
     degreeCourse: result.verification.course?.degreeCourse,
     ects: result.verification.course?.ects,
@@ -191,13 +172,10 @@ export async function createIssuanceDraft(
 }
 
 export async function submitIssuanceDraft(token: string, draftId: string) {
-  const result = await apiRequest<{ draft: any }>(
-    `/issue/drafts/${draftId}/submit`,
-    {
-      method: "POST",
-      token,
-    },
-  );
+  const result = await apiRequest<{ draft: any }>(`/issue/drafts/${draftId}/submit`, {
+    method: "POST",
+    token,
+  });
 
   return result.draft;
 }

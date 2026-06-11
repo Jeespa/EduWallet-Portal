@@ -1,21 +1,21 @@
 footer {
-    width: 100%;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    z-index: 1000;
-  }
+  width: 100%;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  z-index: 1000;
+}
 
 .selected-option {
-    font-weight: 700;
-    opacity: 1;
+  font-weight: 700;
+  opacity: 1;
 }
 
 .not-selected-option img {
-    opacity: 0.6;
+  opacity: 0.6;
 }
 
 .selected-option:hover,
 .not-selected-option:hover {
-    cursor: pointer;
+  cursor: pointer;
 }

@@ -25,8 +25,7 @@ export function createPermissionRouter(client: EduWalletClient) {
 
       if (!session) {
         return res.status(401).json({
-          error:
-            "Student session is missing, expired, or does not match this student",
+          error: "Student session is missing, expired, or does not match this student",
         });
       }
 
@@ -63,8 +62,7 @@ export function createPermissionRouter(client: EduWalletClient) {
 
       if (!credentials) {
         return res.status(401).json({
-          error:
-            "Student credentials or a valid student session token are required",
+          error: "Student credentials or a valid student session token are required",
         });
       }
 
@@ -119,9 +117,7 @@ export function createPermissionRouter(client: EduWalletClient) {
       res.json({ status: "ok" });
     } catch (err: any) {
       console.error("Failed to revoke permission", err);
-      res
-        .status(500)
-        .json({ error: err?.message || "Failed to revoke permission" });
+      res.status(500).json({ error: err?.message || "Failed to revoke permission" });
     }
   });
 
@@ -154,9 +150,7 @@ export function createPermissionRouter(client: EduWalletClient) {
       }
 
       if (type !== "read" && type !== "write") {
-        return res
-          .status(400)
-          .json({ error: "type must be 'read' or 'write'" });
+        return res.status(400).json({ error: "type must be 'read' or 'write'" });
       }
 
       await client.grantPermissionAsStudent(
@@ -170,9 +164,7 @@ export function createPermissionRouter(client: EduWalletClient) {
       res.json({ status: "ok" });
     } catch (err: any) {
       console.error("Failed to grant permission", err);
-      res
-        .status(500)
-        .json({ error: err?.message || "Failed to grant permission" });
+      res.status(500).json({ error: err?.message || "Failed to grant permission" });
     }
   });
 

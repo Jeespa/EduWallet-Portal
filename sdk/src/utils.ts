@@ -1,22 +1,26 @@
-import type { Student as StudentInterface, University as UniversityInterface, AcademicResult, StudentEthWalletInfo } from "./types";
+import type {
+  Student as StudentInterface,
+  University as UniversityInterface,
+  AcademicResult,
+  StudentEthWalletInfo,
+} from "./types";
 import { blockchainConfig, DEBUG, ipfsConfig, logError, provider, s3Client } from "./conf";
-import type { StudentsRegister } from '@typechain/contracts/StudentsRegister';
-import { StudentsRegister__factory } from "@typechain/factories/contracts/StudentsRegister__factory"
-import type { Student } from '@typechain/contracts/Student';
-import { Student__factory } from '@typechain/factories/contracts/Student__factory';
-import { University__factory } from '@typechain/factories/contracts/University__factory';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc.js';
-import { randomBytes, pbkdf2Sync } from 'node:crypto';
-import { readFileSync } from 'fs';
-import { Wallet } from 'ethers';
-import type { BaseContract, Result } from 'ethers';
-import { EntryPoint__factory } from '@typechain/factories/@account-abstraction/contracts/core/EntryPoint__factory';
-import type { EntryPoint } from '@typechain/@account-abstraction/contracts/core/EntryPoint';
-import type { University } from '@typechain/contracts/University';
+import type { StudentsRegister } from "@typechain/contracts/StudentsRegister";
+import { StudentsRegister__factory } from "@typechain/factories/contracts/StudentsRegister__factory";
+import type { Student } from "@typechain/contracts/Student";
+import { Student__factory } from "@typechain/factories/contracts/Student__factory";
+import { University__factory } from "@typechain/factories/contracts/University__factory";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc.js";
+import { randomBytes, pbkdf2Sync } from "node:crypto";
+import { readFileSync } from "fs";
+import { Wallet } from "ethers";
+import type { BaseContract, Result } from "ethers";
+import { EntryPoint__factory } from "@typechain/factories/@account-abstraction/contracts/core/EntryPoint__factory";
+import type { EntryPoint } from "@typechain/@account-abstraction/contracts/core/EntryPoint";
+import type { University } from "@typechain/contracts/University";
 import { AccountAbstraction } from "./AccountAbstraction";
-
 
 /**
  * Creates a new wallet for a student with random credentials.
@@ -25,20 +29,23 @@ import { AccountAbstraction } from "./AccountAbstraction";
  * @returns {StudentEthWalletInfo} Object containing student ID, password and Ethereum wallet
  */
 export function createStudentWallet(): StudentEthWalletInfo {
-    try {
-        const studentId = generateRandomString(10);
-        const randomString = generateRandomString(16);
-        const privateKey = derivePrivateKey(randomString, studentId);
-        const wallet = new Wallet(privateKey);
-        return {
-            password: randomString,
-            id: studentId,
-            ethWallet: wallet
-        };
-    } catch (error) {
-        logError('Failed to create student wallet:', error);
-        throw new Error('Failed to create student wallet: ' + (error instanceof Error ? error.message : String(error)));
-    }
+  try {
+    const studentId = generateRandomString(10);
+    const randomString = generateRandomString(16);
+    const privateKey = derivePrivateKey(randomString, studentId);
+    const wallet = new Wallet(privateKey);
+    return {
+      password: randomString,
+      id: studentId,
+      ethWallet: wallet,
+    };
+  } catch (error) {
+    logError("Failed to create student wallet:", error);
+    throw new Error(
+      "Failed to create student wallet: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -49,12 +56,15 @@ export function createStudentWallet(): StudentEthWalletInfo {
  * @returns {string} Hexadecimal random string
  */
 function generateRandomString(length: number): string {
-    try {
-        return randomBytes(length).toString('hex');
-    } catch (error) {
-        logError('Failed to generate random string:', error);
-        throw new Error('Failed to generate secure random string: ' + (error instanceof Error ? error.message : String(error)));
-    }
+  try {
+    return randomBytes(length).toString("hex");
+  } catch (error) {
+    logError("Failed to generate random string:", error);
+    throw new Error(
+      "Failed to generate secure random string: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -66,15 +76,19 @@ function generateRandomString(length: number): string {
  * @returns {string} Ethereum-compatible private key with 0x prefix
  */
 function derivePrivateKey(password: string, studentId: string): string {
-    try {
-        const iterations = 100000;
-        const keyLength = 32;
-        const derivedKey = pbkdf2Sync(password, studentId, iterations, keyLength, 'sha256').toString('hex');
-        return '0x' + derivedKey;
-    } catch (error) {
-        logError('Failed to derive private key:', error);
-        throw new Error('Failed to derive private key: ' + (error instanceof Error ? error.message : String(error)));
-    }
+  try {
+    const iterations = 100000;
+    const keyLength = 32;
+    const derivedKey = pbkdf2Sync(password, studentId, iterations, keyLength, "sha256").toString(
+      "hex",
+    );
+    return "0x" + derivedKey;
+  } catch (error) {
+    logError("Failed to derive private key:", error);
+    throw new Error(
+      "Failed to derive private key: " + (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -85,12 +99,15 @@ function derivePrivateKey(password: string, studentId: string): string {
  * @throws {Error} If connection to the contract fails
  */
 export function getEntryPoint(): EntryPoint {
-    try {
-        return EntryPoint__factory.connect(blockchainConfig.entryPointAddress, provider);
-    } catch (error) {
-        logError('Failed to get EntryPoint contract:', error);
-        throw new Error('Failed to connect to EntryPoint contract: ' + (error instanceof Error ? error.message : String(error)));
-    }
+  try {
+    return EntryPoint__factory.connect(blockchainConfig.entryPointAddress, provider);
+  } catch (error) {
+    logError("Failed to get EntryPoint contract:", error);
+    throw new Error(
+      "Failed to connect to EntryPoint contract: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -102,14 +119,19 @@ export function getEntryPoint(): EntryPoint {
  * @throws {Error} If retrieval of the smart account address fails
  */
 export async function getUniversityAccountAddress(universityEthWallet: Wallet): Promise<string> {
-    try {
-        const studentsRegister = getStudentsRegister();
-        const universityAccountAddress = await studentsRegister.connect(universityEthWallet).getUniversityAccount();
-        return universityAccountAddress;
-    } catch (error) {
-        logError('Failed to get University smart account address:', error);
-        throw new Error('Failed to retrieve University smart account address: ' + (error instanceof Error ? error.message : String(error)));
-    }
+  try {
+    const studentsRegister = getStudentsRegister();
+    const universityAccountAddress = await studentsRegister
+      .connect(universityEthWallet)
+      .getUniversityAccount();
+    return universityAccountAddress;
+  } catch (error) {
+    logError("Failed to get University smart account address:", error);
+    throw new Error(
+      "Failed to retrieve University smart account address: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -119,12 +141,15 @@ export async function getUniversityAccountAddress(universityEthWallet: Wallet): 
  * @returns {StudentsRegister} Connected contract instance
  */
 export function getStudentsRegister(): StudentsRegister {
-    try {
-        return StudentsRegister__factory.connect(blockchainConfig.registerAddress, provider);
-    } catch (error) {
-        logError('Failed to get StudentsRegister contract:', error);
-        throw new Error('Failed to connect to StudentsRegister contract: ' + (error instanceof Error ? error.message : String(error)));
-    }
+  try {
+    return StudentsRegister__factory.connect(blockchainConfig.registerAddress, provider);
+  } catch (error) {
+    logError("Failed to get StudentsRegister contract:", error);
+    throw new Error(
+      "Failed to connect to StudentsRegister contract: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -135,12 +160,15 @@ export function getStudentsRegister(): StudentsRegister {
  * @returns {Student} Connected student contract instance
  */
 export function getStudentContract(contractAddress: string): Student {
-    try {
-        return Student__factory.connect(contractAddress, provider);
-    } catch (error) {
-        logError('Failed to get Student contract:', error);
-        throw new Error('Failed to connect to Student contract: ' + (error instanceof Error ? error.message : String(error)));
-    }
+  try {
+    return Student__factory.connect(contractAddress, provider);
+  } catch (error) {
+    logError("Failed to get Student contract:", error);
+    throw new Error(
+      "Failed to connect to Student contract: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -152,12 +180,15 @@ export function getStudentContract(contractAddress: string): Student {
  * @throws {Error} If connection to the contract fails
  */
 export function getUniversitySmartAccount(contractAddress: string): University {
-    try {
-        return University__factory.connect(contractAddress, provider);
-    } catch (error) {
-        logError('Failed to get University contract:', error);
-        throw new Error('Failed to connect to University contract: ' + (error instanceof Error ? error.message : String(error)));
-    }
+  try {
+    return University__factory.connect(contractAddress, provider);
+  } catch (error) {
+    logError("Failed to get University contract:", error);
+    throw new Error(
+      "Failed to connect to University contract: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -168,8 +199,8 @@ export function getUniversitySmartAccount(contractAddress: string): University {
  * @returns {string} Date formatted as 'YYYY-MM-DD'
  */
 export function computeDate(date: bigint): string {
-    dayjs.extend(utc);
-    return dayjs.utc(Number(date) * 1000).format('YYYY-MM-DD');
+  dayjs.extend(utc);
+  return dayjs.utc(Number(date) * 1000).format("YYYY-MM-DD");
 }
 
 /**
@@ -180,65 +211,69 @@ export function computeDate(date: bigint): string {
  * @returns {Promise<string>} The IPFS content identifier (CID)
  */
 export async function publishCertificate(certificate: Buffer | string): Promise<string> {
-    try {
-        // Convert file path to buffer if string was provided
-        let bufferFile: Buffer;
-        if (typeof certificate === "string") {
-            bufferFile = readFileSync(certificate);
-        } else {
-            bufferFile = certificate;
-        }
-
-        // Prepare upload parameters
-        const uploadParams = {
-            Bucket: ipfsConfig.bucketName,
-            Key: `${dayjs().valueOf()}`,
-            Body: bufferFile,
-            ContentType: "application/pdf",
-        };
-
-        // Create command for S3 upload
-        const command = new PutObjectCommand(uploadParams);
-        let cid = "";
-
-        // Add middleware to extract CID from response headers
-        command.middlewareStack.add(
-            (next) => async (args) => {
-                try {
-                    const response = await next(args);
-                    if (!response.response || typeof response.response !== 'object') return response;
-                    const apiResponse = response.response as {
-                        statusCode?: number;
-                        headers?: Record<string, string>
-                    };
-                    if (apiResponse.headers && "x-amz-meta-cid" in apiResponse.headers) {
-                        cid = apiResponse.headers["x-amz-meta-cid"];
-                    }
-                    return response;
-                } catch (error) {
-                    logError('Middleware error:', error);
-                    throw error;
-                }
-            }, {
-            step: "build",
-            name: "addCidToOutput",
-        });
-
-        // Execute upload
-        await s3Client.send(command);
-
-        if (!cid) {
-            throw new Error('Failed to get CID from upload response');
-        }
-
-        return cid;
-    } catch (error) {
-        if (error instanceof Error && error.message.includes('ENOENT')) {
-            throw new Error(`Certificate file not found: ${certificate}`);
-        }
-        logError('Failed to publish certificate:', error);
-        throw new Error('Failed to publish certificate: ' + (error instanceof Error ? error.message : String(error)));
+  try {
+    // Convert file path to buffer if string was provided
+    let bufferFile: Buffer;
+    if (typeof certificate === "string") {
+      bufferFile = readFileSync(certificate);
+    } else {
+      bufferFile = certificate;
     }
+
+    // Prepare upload parameters
+    const uploadParams = {
+      Bucket: ipfsConfig.bucketName,
+      Key: `${dayjs().valueOf()}`,
+      Body: bufferFile,
+      ContentType: "application/pdf",
+    };
+
+    // Create command for S3 upload
+    const command = new PutObjectCommand(uploadParams);
+    let cid = "";
+
+    // Add middleware to extract CID from response headers
+    command.middlewareStack.add(
+      (next) => async (args) => {
+        try {
+          const response = await next(args);
+          if (!response.response || typeof response.response !== "object") return response;
+          const apiResponse = response.response as {
+            statusCode?: number;
+            headers?: Record<string, string>;
+          };
+          if (apiResponse.headers && "x-amz-meta-cid" in apiResponse.headers) {
+            cid = apiResponse.headers["x-amz-meta-cid"];
+          }
+          return response;
+        } catch (error) {
+          logError("Middleware error:", error);
+          throw error;
+        }
+      },
+      {
+        step: "build",
+        name: "addCidToOutput",
+      },
+    );
+
+    // Execute upload
+    await s3Client.send(command);
+
+    if (!cid) {
+      throw new Error("Failed to get CID from upload response");
+    }
+
+    return cid;
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("ENOENT")) {
+      throw new Error(`Certificate file not found: ${certificate}`);
+    }
+    logError("Failed to publish certificate:", error);
+    throw new Error(
+      "Failed to publish certificate: " + (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -250,29 +285,35 @@ export async function publishCertificate(certificate: Buffer | string): Promise<
  * @returns {Promise<StudentInterface>} Complete student object with formatted results
  * @throws {Error} If a university cannot be found for a result
  */
-export async function generateStudent(student: StudentInterface, results: Student.ResultStructOutput[]): Promise<StudentInterface> {
-    try {
-        // Get universities information for all results
-        const universities = await getUniversities(new Set(results.map(r => r.university)));
+export async function generateStudent(
+  student: StudentInterface,
+  results: Student.ResultStructOutput[],
+): Promise<StudentInterface> {
+  try {
+    // Get universities information for all results
+    const universities = await getUniversities(new Set(results.map((r) => r.university)));
 
-        // Process each result with its university information
-        const resultsDef = results.map(r => {
-            const university = universities.get(r.university);
-            if (!university) {
-                throw new Error(`University not found for address: ${r.university}`);
-            }
-            return generateResult(r, university);
-        });
+    // Process each result with its university information
+    const resultsDef = results.map((r) => {
+      const university = universities.get(r.university);
+      if (!university) {
+        throw new Error(`University not found for address: ${r.university}`);
+      }
+      return generateResult(r, university);
+    });
 
-        // Return complete student object
-        return {
-            ...student,
-            results: resultsDef,
-        };
-    } catch (error) {
-        logError('Failed to generate student data:', error);
-        throw new Error('Failed to generate student data: ' + (error instanceof Error ? error.message : String(error)));
-    }
+    // Return complete student object
+    return {
+      ...student,
+      results: resultsDef,
+    };
+  } catch (error) {
+    logError("Failed to generate student data:", error);
+    throw new Error(
+      "Failed to generate student data: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -283,22 +324,30 @@ export async function generateStudent(student: StudentInterface, results: Studen
  * @param {University} university - University information for this result
  * @returns {AcademicResult} Formatted academic result
  */
-function generateResult(result: Student.ResultStructOutput, university: UniversityInterface): AcademicResult {
-    try {
-        return {
-            name: result.name,
-            code: result.code,
-            university,
-            degreeCourse: result.degreeCourse,
-            ects: Number(result.ects) / 100,  // Convert ECTS from stored integer (x100) to decimal
-            grade: result.grade || undefined, // Use undefined for empty grades
-            evaluationDate: result.date ? computeDate(result.date) : undefined,
-            certificate: result.certificateHash ? `${ipfsConfig.gatewayUrl}${result.certificateHash}` : undefined,
-        };
-    } catch (error) {
-        logError('Failed to generate result:', error);
-        throw new Error('Failed to generate academic result: ' + (error instanceof Error ? error.message : String(error)));
-    }
+function generateResult(
+  result: Student.ResultStructOutput,
+  university: UniversityInterface,
+): AcademicResult {
+  try {
+    return {
+      name: result.name,
+      code: result.code,
+      university,
+      degreeCourse: result.degreeCourse,
+      ects: Number(result.ects) / 100, // Convert ECTS from stored integer (x100) to decimal
+      grade: result.grade || undefined, // Use undefined for empty grades
+      evaluationDate: result.date ? computeDate(result.date) : undefined,
+      certificate: result.certificateHash
+        ? `${ipfsConfig.gatewayUrl}${result.certificateHash}`
+        : undefined,
+    };
+  } catch (error) {
+    logError("Failed to generate result:", error);
+    throw new Error(
+      "Failed to generate academic result: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -308,55 +357,59 @@ function generateResult(result: Student.ResultStructOutput, university: Universi
  * @param {Set<string>} universitiesAddresses - Set of university blockchain addresses
  * @returns {Promise<Map<string, University>>} Map of university addresses to university details
  */
-async function getUniversities(universitiesAddresses: Set<string>): Promise<Map<string, UniversityInterface>> {
-    if (universitiesAddresses.size === 0) {
-        return new Map<string, UniversityInterface>();
+async function getUniversities(
+  universitiesAddresses: Set<string>,
+): Promise<Map<string, UniversityInterface>> {
+  if (universitiesAddresses.size === 0) {
+    return new Map<string, UniversityInterface>();
+  }
+
+  try {
+    // Create a map to store university details by address
+    const universitiesPromises = new Map<string, Promise<UniversityInterface>>();
+
+    for (let address of universitiesAddresses) {
+      try {
+        universitiesPromises.set(address, getUniversity(address));
+      } catch (uniError: any) {
+        logError(`Failed to get university data for ${address}:`, uniError);
+        // Continue with other universities instead of failing completely
+      }
     }
 
-    try {
-        // Create a map to store university details by address
-        const universitiesPromises = new Map<string, Promise<UniversityInterface>>();
-
-        for (let address of universitiesAddresses) {
-            try {
-                universitiesPromises.set(
-                    address,
-                    getUniversity(address)
-                );
-            } catch (uniError: any) {
-                logError(`Failed to get university data for ${address}:`, uniError);
-                // Continue with other universities instead of failing completely
-            }
+    // Resolve all promises in parallel and create the result map
+    const results = await Promise.allSettled(
+      [...universitiesPromises.entries()].map(async ([address, promise]) => {
+        try {
+          const university = await promise;
+          return [address, university];
+        } catch (promError: any) {
+          logError(`Failed to get university data for ${address}:`, promError);
+          return null;
         }
+      }),
+    );
 
-        // Resolve all promises in parallel and create the result map
-        const results = await Promise.allSettled([...universitiesPromises.entries()].map(
-            async ([address, promise]) => {
-                try {
-                    const university = await promise;
-                    return [address, university];
-                } catch (promError: any) {
-                    logError(`Failed to get university data for ${address}:`, promError);
-                    return null;
-                }
-            }
-        ));
+    // Process results and create the universities map
+    const universities = new Map<string, UniversityInterface>();
 
-        // Process results and create the universities map
-        const universities = new Map<string, UniversityInterface>();
+    results
+      .filter((result) => result.status === "fulfilled" && result.value !== null)
+      .forEach((result) => {
+        const [address, university] = (
+          result as PromiseFulfilledResult<[string, UniversityInterface]>
+        ).value;
+        universities.set(address, university);
+      });
 
-        results
-            .filter(result => result.status === 'fulfilled' && result.value !== null)
-            .forEach(result => {
-                const [address, university] = (result as PromiseFulfilledResult<[string, UniversityInterface]>).value;
-                universities.set(address, university);
-            });
-
-        return universities;
-    } catch (error) {
-        logError('Failed to get universities:', error);
-        throw new Error('Failed to retrieve university information: ' + (error instanceof Error ? error.message : String(error)));
-    }
+    return universities;
+  } catch (error) {
+    logError("Failed to get universities:", error);
+    throw new Error(
+      "Failed to retrieve university information: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -368,27 +421,26 @@ async function getUniversities(universitiesAddresses: Set<string>): Promise<Map<
  * @throws {Error} If university information cannot be retrieved
  */
 async function getUniversity(universityAccountAddress: string): Promise<UniversityInterface> {
-    try {
-        // Connect to university contract
-        const contract = University__factory.connect(universityAccountAddress, provider);
+  try {
+    // Connect to university contract
+    const contract = University__factory.connect(universityAccountAddress, provider);
 
-        // Fetch university information
-        const {
-            name,
-            country,
-            shortName
-        } = await contract.getUniversityInfo();
+    // Fetch university information
+    const { name, country, shortName } = await contract.getUniversityInfo();
 
-        // Return formatted university object
-        return {
-            name,
-            country,
-            shortName,
-        };
-    } catch (error) {
-        logError(`Failed to get university at address ${universityAccountAddress}:`, error);
-        throw new Error('Failed to retrieve university details: ' + (error instanceof Error ? error.message : String(error)));
-    }
+    // Return formatted university object
+    return {
+      name,
+      country,
+      shortName,
+    };
+  } catch (error) {
+    logError(`Failed to get university at address ${universityAccountAddress}:`, error);
+    throw new Error(
+      "Failed to retrieve university details: " +
+        (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -403,41 +455,44 @@ async function getUniversity(universityAccountAddress: string): Promise<Universi
  * @returns {Promise<void>}
  * @throws {Error} If transaction execution fails
  */
-export async function sendTransaction(universityEthWallet: Wallet, targetContract: BaseContract, targetContractAddress: string, functionName: string, params: any[]): Promise<void> {
-    try {
-        const connectedUniversity = universityEthWallet.connect(provider);
+export async function sendTransaction(
+  universityEthWallet: Wallet,
+  targetContract: BaseContract,
+  targetContractAddress: string,
+  functionName: string,
+  params: any[],
+): Promise<void> {
+  try {
+    const connectedUniversity = universityEthWallet.connect(provider);
 
-        const smartAccountAddress = await getUniversityAccountAddress(connectedUniversity);
+    const smartAccountAddress = await getUniversityAccountAddress(connectedUniversity);
 
-        // Initialize account abstraction manager
-        const accountAbstraction = new AccountAbstraction(
-            provider,
-            universityEthWallet
-        );
+    // Initialize account abstraction manager
+    const accountAbstraction = new AccountAbstraction(provider, universityEthWallet);
 
-        // Create contract interface for test contract
-        const targetContractInterface = targetContract.interface;
+    // Create contract interface for test contract
+    const targetContractInterface = targetContract.interface;
 
-        const callData = targetContractInterface.encodeFunctionData(functionName, params);
+    const callData = targetContractInterface.encodeFunctionData(functionName, params);
 
-        // Create user operation
-        const userOp = await accountAbstraction.createUserOp({
-            sender: smartAccountAddress,
-            target: targetContractAddress,
-            value: 0n,
-            data: callData,
-        });
+    // Create user operation
+    const userOp = await accountAbstraction.createUserOp({
+      sender: smartAccountAddress,
+      target: targetContractAddress,
+      value: 0n,
+      data: callData,
+    });
 
-        // Execute the operation
-        const tx = await accountAbstraction.executeUserOps([userOp], connectedUniversity.address);
-        const receipt = await tx.wait();
-        if (receipt) {
-            accountAbstraction.verifyTransaction(receipt, targetContract);
-        }
-    } catch (error) {
-        logError(`Failed to transaction ${functionName}:`, error);
-        throw new Error(error instanceof Error ? error.message : String(error));
+    // Execute the operation
+    const tx = await accountAbstraction.executeUserOps([userOp], connectedUniversity.address);
+    const receipt = await tx.wait();
+    if (receipt) {
+      accountAbstraction.verifyTransaction(receipt, targetContract);
     }
+  } catch (error) {
+    logError(`Failed to transaction ${functionName}:`, error);
+    throw new Error(error instanceof Error ? error.message : String(error));
+  }
 }
 
 /**
@@ -452,30 +507,38 @@ export async function sendTransaction(universityEthWallet: Wallet, targetContrac
  * @returns {Promise<Result>} Decoded results from the function call
  * @throws {Error} If the view call fails
  */
-export async function executeSmartAccountViewCall(universityEthWallet: Wallet, targetContract: BaseContract, targetContractAddress: string, functionName: string, params: any[]): Promise<Result> {
-    try {
-        const connectedUniversity = universityEthWallet.connect(provider);
+export async function executeSmartAccountViewCall(
+  universityEthWallet: Wallet,
+  targetContract: BaseContract,
+  targetContractAddress: string,
+  functionName: string,
+  params: any[],
+): Promise<Result> {
+  try {
+    const connectedUniversity = universityEthWallet.connect(provider);
 
-        // Create a contract instance for the smart account
-        const smartAccountAddress = await getUniversityAccountAddress(connectedUniversity);
-        const smartAccount = getUniversitySmartAccount(smartAccountAddress);
+    // Create a contract instance for the smart account
+    const smartAccountAddress = await getUniversityAccountAddress(connectedUniversity);
+    const smartAccount = getUniversitySmartAccount(smartAccountAddress);
 
-        // Encode the function call
-        const calldata = targetContract.interface.encodeFunctionData(functionName, params);
+    // Encode the function call
+    const calldata = targetContract.interface.encodeFunctionData(functionName, params);
 
-        // Execute the view call through the smart account
-        const results = await smartAccount.connect(connectedUniversity).executeViewCall(targetContractAddress, calldata);
+    // Execute the view call through the smart account
+    const results = await smartAccount
+      .connect(connectedUniversity)
+      .executeViewCall(targetContractAddress, calldata);
 
-        // Decode the result
-        const decodedResults = targetContract.interface.decodeFunctionResult(functionName, results);
+    // Decode the result
+    const decodedResults = targetContract.interface.decodeFunctionResult(functionName, results);
 
-        if (DEBUG) {
-            console.log("DEC RES = ", decodedResults);
-        }
-
-        return decodedResults;
-    } catch (error) {
-        logError('Smart account view call failed:', error);
-        throw new Error(`Failed to execute view call to ${functionName}`);
+    if (DEBUG) {
+      console.log("DEC RES = ", decodedResults);
     }
+
+    return decodedResults;
+  } catch (error) {
+    logError("Smart account view call failed:", error);
+    throw new Error(`Failed to execute view call to ${functionName}`);
+  }
 }

@@ -1,15 +1,19 @@
-import { JsonRpcProvider, Wallet, NonceManager, parseEther } from 'ethers';
-import { randomBytes, pbkdf2Sync } from 'node:crypto';
-import type { Paymaster, StudentDeployer, StudentsRegister, UniversityDeployer } from '@typechain/contracts';
-import { StudentsRegister__factory } from "@typechain/factories/contracts/StudentsRegister__factory"
-import { StudentDeployer__factory } from '@typechain/factories/contracts/StudentDeployer__factory';
-import { UniversityDeployer__factory } from '@typechain/factories/contracts/UniversityDeployer__factory';
-import { EntryPoint__factory } from '@typechain/factories/@account-abstraction/contracts/core/EntryPoint__factory';
-import { Paymaster__factory } from '@typechain/factories/contracts/Paymaster__factory';
-import type { EntryPoint } from '@typechain/@account-abstraction/contracts/core/EntryPoint';
-import * as eduwallet from 'eduwallet-sdk';
-import * as dotenv from 'dotenv';
-
+import { JsonRpcProvider, Wallet, NonceManager, parseEther } from "ethers";
+import { randomBytes, pbkdf2Sync } from "node:crypto";
+import type {
+  Paymaster,
+  StudentDeployer,
+  StudentsRegister,
+  UniversityDeployer,
+} from "@typechain/contracts";
+import { StudentsRegister__factory } from "@typechain/factories/contracts/StudentsRegister__factory";
+import { StudentDeployer__factory } from "@typechain/factories/contracts/StudentDeployer__factory";
+import { UniversityDeployer__factory } from "@typechain/factories/contracts/UniversityDeployer__factory";
+import { EntryPoint__factory } from "@typechain/factories/@account-abstraction/contracts/core/EntryPoint__factory";
+import { Paymaster__factory } from "@typechain/factories/contracts/Paymaster__factory";
+import type { EntryPoint } from "@typechain/@account-abstraction/contracts/core/EntryPoint";
+import * as eduwallet from "eduwallet-sdk";
+import * as dotenv from "dotenv";
 
 /**
  * Load environment variables from .env file
@@ -20,13 +24,12 @@ const VERBOSE = process.env.VERBOSE || false;
 // Initialize provider with the RPC URL from environment or use localhost as fallback
 const PROVIDER = new JsonRpcProvider(process.env.RPC_URL || "http://localhost:8545");
 
-
 // Core contract references used throughout the application.
 // These get initialized during deployment process
 const deployer = getDeployer();
-let entryP: EntryPoint | undefined;        // EntryPoint contract for account abstraction
-let studentsRegister: StudentsRegister | undefined;  // Main registry contract 
-export let uni: Wallet | undefined;        // Active university wallet
+let entryP: EntryPoint | undefined; // EntryPoint contract for account abstraction
+let studentsRegister: StudentsRegister | undefined; // Main registry contract
+export let uni: Wallet | undefined; // Active university wallet
 
 /**
  * Retrieves the deployer wallet using the private key from environment variables.
@@ -36,20 +39,20 @@ export let uni: Wallet | undefined;        // Active university wallet
  * @throws {Error} If the deployer private key is not found in environment variables
  */
 function getDeployer(): Wallet {
-    const deployerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY;
-    if (!deployerPrivateKey) {
-        throw new Error("Deployer private key not found in environment variables");
-    }
-    const deployer = new Wallet(deployerPrivateKey, PROVIDER);
+  const deployerPrivateKey = process.env.DEPLOYER_PRIVATE_KEY;
+  if (!deployerPrivateKey) {
+    throw new Error("Deployer private key not found in environment variables");
+  }
+  const deployer = new Wallet(deployerPrivateKey, PROVIDER);
 
-    if (VERBOSE) {
-        console.log(`---------------------------------------------------`);
-        console.log(`DEPLOYER:`);
-        console.log(`Address: ${deployer.address}`)
-        console.log(`---------------------------------------------------`);
-    }
+  if (VERBOSE) {
+    console.log(`---------------------------------------------------`);
+    console.log(`DEPLOYER:`);
+    console.log(`Address: ${deployer.address}`);
+    console.log(`---------------------------------------------------`);
+  }
 
-    return deployer;
+  return deployer;
 }
 
 /**
@@ -63,43 +66,44 @@ function getDeployer(): Wallet {
  * @throws {Error} If any deployment step fails
  */
 export async function deployStudentsRegister(): Promise<void> {
-    try {
-        // Create a managed deployer to handle transaction nonces
-        const managedDeployer = new NonceManager(deployer);
+  try {
+    // Create a managed deployer to handle transaction nonces
+    const managedDeployer = new NonceManager(deployer);
 
-        // Deploy core contracts in parallel
-        const [entryPoint, studentDeployer, universityDeployer] = await deployInfrastructureContracts(managedDeployer);
+    // Deploy core contracts in parallel
+    const [entryPoint, studentDeployer, universityDeployer] =
+      await deployInfrastructureContracts(managedDeployer);
 
-        // Store EntryPoint reference globally for later use
-        entryP = entryPoint;
+    // Store EntryPoint reference globally for later use
+    entryP = entryPoint;
 
-        // Deploy registry and paymaster contracts
-        const [register, paymaster] = await deployApplicationContracts(
-            managedDeployer,
-            entryPoint,
-            studentDeployer,
-            universityDeployer
-        );
+    // Deploy registry and paymaster contracts
+    const [register, paymaster] = await deployApplicationContracts(
+      managedDeployer,
+      entryPoint,
+      studentDeployer,
+      universityDeployer,
+    );
 
-        // Fund the paymaster with ETH to cover user operations
-        await fundPaymaster(entryPoint, paymaster);
+    // Fund the paymaster with ETH to cover user operations
+    await fundPaymaster(entryPoint, paymaster);
 
-        // Log deployment information if verbose mode is enabled
-        if (VERBOSE) {
-            logDeploymentAddresses(
-                await entryPoint.getAddress(),
-                await studentDeployer.getAddress(),
-                await universityDeployer.getAddress(),
-                await paymaster.getAddress(),
-                await register.getAddress()
-            );
-        }
-
-        // Store reference to register for subsequent operations
-        studentsRegister = register;
-    } catch (error) {
-        throw new Error(`Deployment failed: ${error}`);
+    // Log deployment information if verbose mode is enabled
+    if (VERBOSE) {
+      logDeploymentAddresses(
+        await entryPoint.getAddress(),
+        await studentDeployer.getAddress(),
+        await universityDeployer.getAddress(),
+        await paymaster.getAddress(),
+        await register.getAddress(),
+      );
     }
+
+    // Store reference to register for subsequent operations
+    studentsRegister = register;
+  } catch (error) {
+    throw new Error(`Deployment failed: ${error}`);
+  }
 }
 
 /**
@@ -110,27 +114,29 @@ export async function deployStudentsRegister(): Promise<void> {
  * @param deployer - NonceManager instance that handles transaction ordering
  * @returns {Promise<[EntryPoint, StudentDeployer, UniversityDeployer]>} Triple of deployed contract instances
  */
-async function deployInfrastructureContracts(deployer: NonceManager): Promise<[EntryPoint, StudentDeployer, UniversityDeployer]> {
-    // Deploy EntryPoint contract using TypeChain factory
-    const entryPointFactory = new EntryPoint__factory(deployer);
-    const entryPoint = await entryPointFactory.deploy();
+async function deployInfrastructureContracts(
+  deployer: NonceManager,
+): Promise<[EntryPoint, StudentDeployer, UniversityDeployer]> {
+  // Deploy EntryPoint contract using TypeChain factory
+  const entryPointFactory = new EntryPoint__factory(deployer);
+  const entryPoint = await entryPointFactory.deploy();
 
-    // Deploy StudentDeployer contract using TypeChain factory
-    const studentDeployerFactory = new StudentDeployer__factory(deployer);
-    const studentDeployer = await studentDeployerFactory.deploy();
+  // Deploy StudentDeployer contract using TypeChain factory
+  const studentDeployerFactory = new StudentDeployer__factory(deployer);
+  const studentDeployer = await studentDeployerFactory.deploy();
 
-    // Deploy UniversityDeployer contract using TypeChain factory
-    const universityDeployerFactory = new UniversityDeployer__factory(deployer);
-    const universityDeployer = await universityDeployerFactory.deploy();
+  // Deploy UniversityDeployer contract using TypeChain factory
+  const universityDeployerFactory = new UniversityDeployer__factory(deployer);
+  const universityDeployer = await universityDeployerFactory.deploy();
 
-    // Wait for deployments to be mined
-    await Promise.all([
-        entryPoint.waitForDeployment(),
-        studentDeployer.waitForDeployment(),
-        universityDeployer.waitForDeployment()
-    ]);
+  // Wait for deployments to be mined
+  await Promise.all([
+    entryPoint.waitForDeployment(),
+    studentDeployer.waitForDeployment(),
+    universityDeployer.waitForDeployment(),
+  ]);
 
-    return [entryPoint, studentDeployer, universityDeployer];
+  return [entryPoint, studentDeployer, universityDeployer];
 }
 
 /**
@@ -144,34 +150,34 @@ async function deployInfrastructureContracts(deployer: NonceManager): Promise<[E
  * @returns {Promise<[StudentsRegister, Paymaster]>} Pair of deployed contract instances
  */
 async function deployApplicationContracts(
-    deployer: NonceManager,
-    entryPoint: EntryPoint,
-    studentDeployer: any,
-    universityDeployer: any
+  deployer: NonceManager,
+  entryPoint: EntryPoint,
+  studentDeployer: any,
+  universityDeployer: any,
 ): Promise<[StudentsRegister, Paymaster]> {
-    // Get deployed contract addresses
-    const [entryPointAddress, studentDeployerAddress, universityDeployerAddress] =
-        await Promise.all([
-            entryPoint.getAddress(),
-            studentDeployer.getAddress(),
-            universityDeployer.getAddress()
-        ]);
+  // Get deployed contract addresses
+  const [entryPointAddress, studentDeployerAddress, universityDeployerAddress] = await Promise.all([
+    entryPoint.getAddress(),
+    studentDeployer.getAddress(),
+    universityDeployer.getAddress(),
+  ]);
 
-    // Deploy StudentsRegister contract using TypeChain factory
-    const studentsRegisterFactory = new StudentsRegister__factory(deployer);
-    const register = await studentsRegisterFactory.deploy(studentDeployerAddress, universityDeployerAddress, entryPoint);
+  // Deploy StudentsRegister contract using TypeChain factory
+  const studentsRegisterFactory = new StudentsRegister__factory(deployer);
+  const register = await studentsRegisterFactory.deploy(
+    studentDeployerAddress,
+    universityDeployerAddress,
+    entryPoint,
+  );
 
-    // Deploy Paymaster contract using TypeChain factory
-    const paymasterFactory = new Paymaster__factory(deployer);
-    const paymaster = await paymasterFactory.deploy(entryPointAddress);
+  // Deploy Paymaster contract using TypeChain factory
+  const paymasterFactory = new Paymaster__factory(deployer);
+  const paymaster = await paymasterFactory.deploy(entryPointAddress);
 
-    // Wait for deployments to be mined
-    await Promise.all([
-        register.waitForDeployment(),
-        paymaster.waitForDeployment()
-    ]);
+  // Wait for deployments to be mined
+  await Promise.all([register.waitForDeployment(), paymaster.waitForDeployment()]);
 
-    return [register, paymaster];
+  return [register, paymaster];
 }
 
 /**
@@ -181,15 +187,15 @@ async function deployApplicationContracts(
  * @returns {Promise<void>} Promise that resolves when funding is complete
  */
 async function fundPaymaster(entryPoint: EntryPoint, paymaster: any): Promise<void> {
-    const paymasterAddress = await paymaster.getAddress();
+  const paymasterAddress = await paymaster.getAddress();
 
-    // Deposit 1M ETH to the paymaster (this is for testing purposes)
-    const tx = await entryPoint.depositTo(paymasterAddress, {
-        value: parseEther("1000000")
-    });
+  // Deposit 1M ETH to the paymaster (this is for testing purposes)
+  const tx = await entryPoint.depositTo(paymasterAddress, {
+    value: parseEther("1000000"),
+  });
 
-    // Wait for transaction confirmation
-    await tx.wait();
+  // Wait for transaction confirmation
+  await tx.wait();
 }
 
 /**
@@ -201,28 +207,28 @@ async function fundPaymaster(entryPoint: EntryPoint, paymaster: any): Promise<vo
  * @param studentsRegisterAddress - Address of the StudentsRegister contract
  */
 function logDeploymentAddresses(
-    entryPointAddress: string,
-    studentDeployerAddress: string,
-    universityDeployerAddress: string,
-    paymasterAddress: string,
-    studentsRegisterAddress: string
+  entryPointAddress: string,
+  studentDeployerAddress: string,
+  universityDeployerAddress: string,
+  paymasterAddress: string,
+  studentsRegisterAddress: string,
 ): void {
-    console.log(`\n---------------------------------------------------`);
-    console.log(`ENTRY POINT:`);
-    console.log(`Address: ${entryPointAddress}`);
-    console.log(`---------------------------------------------------`);
-    console.log(`STUDENT DEPLOYER:`);
-    console.log(`Address: ${studentDeployerAddress}`);
-    console.log(`---------------------------------------------------`);
-    console.log(`UNIVERSITY DEPLOYER:`);
-    console.log(`Address: ${universityDeployerAddress}`);
-    console.log(`---------------------------------------------------`);
-    console.log(`PAYMASTER:`);
-    console.log(`Address: ${paymasterAddress}`);
-    console.log(`---------------------------------------------------`);
-    console.log(`STUDENT REGISTER:`);
-    console.log(`Address: ${studentsRegisterAddress}`);
-    console.log(`---------------------------------------------------\n`);
+  console.log(`\n---------------------------------------------------`);
+  console.log(`ENTRY POINT:`);
+  console.log(`Address: ${entryPointAddress}`);
+  console.log(`---------------------------------------------------`);
+  console.log(`STUDENT DEPLOYER:`);
+  console.log(`Address: ${studentDeployerAddress}`);
+  console.log(`---------------------------------------------------`);
+  console.log(`UNIVERSITY DEPLOYER:`);
+  console.log(`Address: ${universityDeployerAddress}`);
+  console.log(`---------------------------------------------------`);
+  console.log(`PAYMASTER:`);
+  console.log(`Address: ${paymasterAddress}`);
+  console.log(`---------------------------------------------------`);
+  console.log(`STUDENT REGISTER:`);
+  console.log(`Address: ${studentsRegisterAddress}`);
+  console.log(`---------------------------------------------------\n`);
 }
 
 /**
@@ -233,25 +239,25 @@ function logDeploymentAddresses(
  * @throws {Error} If wallet creation fails, with the error message from the underlying error
  */
 function getUniversityWallet(): Wallet {
-    try {
-        // Generate a random private key for the university
-        const privateKey = randomBytes(32).toString('hex');
-        const universityPrivateKey = `0x${privateKey}`;
-        const wallet = new Wallet(universityPrivateKey, PROVIDER);
+  try {
+    // Generate a random private key for the university
+    const privateKey = randomBytes(32).toString("hex");
+    const universityPrivateKey = `0x${privateKey}`;
+    const wallet = new Wallet(universityPrivateKey, PROVIDER);
 
-        // Display university credentials
-        console.log(`\n---------------------------------------------------`);
-        console.log(`UNIVERSITY:`);
-        console.log(`Private key: ${universityPrivateKey}`);
-        if (VERBOSE) {
-            console.log(`Address: ${wallet.address}`)
-        }
-        console.log(`---------------------------------------------------\n`);
-
-        return wallet;
-    } catch (error) {
-        throw new Error(`${error}`);
+    // Display university credentials
+    console.log(`\n---------------------------------------------------`);
+    console.log(`UNIVERSITY:`);
+    console.log(`Private key: ${universityPrivateKey}`);
+    if (VERBOSE) {
+      console.log(`Address: ${wallet.address}`);
     }
+    console.log(`---------------------------------------------------\n`);
+
+    return wallet;
+  } catch (error) {
+    throw new Error(`${error}`);
+  }
 }
 
 /**
@@ -264,42 +270,40 @@ function getUniversityWallet(): Wallet {
  * @returns {Promise<void>} Promise that resolves when the university is successfully subscribed
  * @throws {Error} If the students register contract is not deployed or if any part of the subscription process fails, with the error message from the underlying error
  */
-export async function subscribeUniversity(name: string, country: string, shortName: string): Promise<void> {
-    if (!studentsRegister) {
-        throw new Error("Students register not deployed - run deployStudentsRegister first");
-    }
+export async function subscribeUniversity(
+  name: string,
+  country: string,
+  shortName: string,
+): Promise<void> {
+  if (!studentsRegister) {
+    throw new Error("Students register not deployed - run deployStudentsRegister first");
+  }
 
-    if (!entryP) {
-        throw new Error("Entry point not deployed - run deployStudentsRegister first");
-    }
+  if (!entryP) {
+    throw new Error("Entry point not deployed - run deployStudentsRegister first");
+  }
 
-    try {
-        // Store the university wallet for future operations
-        uni = getUniversityWallet();
+  try {
+    // Store the university wallet for future operations
+    uni = getUniversityWallet();
 
-        const managedDeployer = new NonceManager(deployer);
+    const managedDeployer = new NonceManager(deployer);
 
-        const fundTx = await managedDeployer.sendTransaction({
-            to: uni.address,
-            value: parseEther('10000'),
-        });
+    const fundTx = await managedDeployer.sendTransaction({
+      to: uni.address,
+      value: parseEther("10000"),
+    });
 
-        // Subscribe the university to the register
-        const universityTx = await studentsRegister.connect(managedDeployer).subscribe(
-            uni.address,
-            name,
-            country,
-            shortName
-        );
+    // Subscribe the university to the register
+    const universityTx = await studentsRegister
+      .connect(managedDeployer)
+      .subscribe(uni.address, name, country, shortName);
 
-        // Wait for the transactions to be confirmed
-        await Promise.all([
-            universityTx.wait(),
-            fundTx.wait()
-        ]);
-    } catch (error) {
-        throw new Error(`${error}`);
-    }
+    // Wait for the transactions to be confirmed
+    await Promise.all([universityTx.wait(), fundTx.wait()]);
+  } catch (error) {
+    throw new Error(`${error}`);
+  }
 }
 
 /**
@@ -315,42 +319,46 @@ export async function subscribeUniversity(name: string, country: string, shortNa
  * @returns {Promise<void>} Promise that resolves when the student is successfully registered
  * @throws {Error} If no university wallet is available for registration or if any part of the registration process fails, with the error message from the underlying error
  */
-export async function registerStudent(name: string, surname: string, birthDate: string, birthPlace: string, country: string): Promise<void> {
-    if (!uni) {
-        throw new Error("University not present")
-    }
-    try {
-        // Register the student using the SDK
-        const student = await eduwallet.registerStudent(
-            uni,
-            {
-                name,
-                surname,
-                birthDate,
-                birthPlace,
-                country,
-            });
+export async function registerStudent(
+  name: string,
+  surname: string,
+  birthDate: string,
+  birthPlace: string,
+  country: string,
+): Promise<void> {
+  if (!uni) {
+    throw new Error("University not present");
+  }
+  try {
+    // Register the student using the SDK
+    const student = await eduwallet.registerStudent(uni, {
+      name,
+      surname,
+      birthDate,
+      birthPlace,
+      country,
+    });
 
-        // Fund student's ETH wallet
-        const studentEthWallet = await getStudentWallet(student.id, student.password);
+    // Fund student's ETH wallet
+    const studentEthWallet = await getStudentWallet(student.id, student.password);
 
-        const fundTx = await deployer.sendTransaction({
-            to: studentEthWallet.address,
-            value: parseEther('10000'),
-        });
+    const fundTx = await deployer.sendTransaction({
+      to: studentEthWallet.address,
+      value: parseEther("10000"),
+    });
 
-        await fundTx.wait();
+    await fundTx.wait();
 
-        // Display student credentials
-        console.log(`\n---------------------------------------------------`);
-        console.log(`STUDENT:`);
-        console.log(`Wallet address: ${student.academicWalletAddress}`);
-        console.log(`Id: ${student.id}`);
-        console.log(`Password: ${student.password}`);
-        console.log(`---------------------------------------------------\n`);
-    } catch (error) {
-        throw new Error(`${error}`);
-    }
+    // Display student credentials
+    console.log(`\n---------------------------------------------------`);
+    console.log(`STUDENT:`);
+    console.log(`Wallet address: ${student.academicWalletAddress}`);
+    console.log(`Id: ${student.id}`);
+    console.log(`Password: ${student.password}`);
+    console.log(`---------------------------------------------------\n`);
+  } catch (error) {
+    throw new Error(`${error}`);
+  }
 }
 
 /**
@@ -363,15 +371,15 @@ export async function registerStudent(name: string, surname: string, birthDate: 
  * @throws {Error} If credentials are missing or key derivation fails
  */
 export async function getStudentWallet(id: string, password: string): Promise<Wallet> {
-    try {
-        if (!password || !id) {
-            throw new Error('Invalid credentials: Missing password or ID');
-        }
-        const privateKey = derivePrivateKey(password, id);
-        return new Wallet(privateKey);
-    } catch (error) {
-        throw new Error('Could not create student wallet from credentials');
+  try {
+    if (!password || !id) {
+      throw new Error("Invalid credentials: Missing password or ID");
     }
+    const privateKey = derivePrivateKey(password, id);
+    return new Wallet(privateKey);
+  } catch (error) {
+    throw new Error("Could not create student wallet from credentials");
+  }
 }
 
 /**
@@ -385,19 +393,23 @@ export async function getStudentWallet(id: string, password: string): Promise<Wa
  * @throws {Error} If the key derivation process fails
  */
 function derivePrivateKey(password: string, studentId: string): string {
-    try {
-        // Number of PBKDF2 iterations for security
-        const iterations = 100000;
+  try {
+    // Number of PBKDF2 iterations for security
+    const iterations = 100000;
 
-        // 32 bytes = 256 bits for Ethereum compatibility
-        const keyLength = 32;
+    // 32 bytes = 256 bits for Ethereum compatibility
+    const keyLength = 32;
 
-        const derivedKey = pbkdf2Sync(password, studentId, iterations, keyLength, 'sha256').toString('hex');
-        // Add Ethereum hex prefix
-        return '0x' + derivedKey;
-    } catch (error) {
-        throw new Error('Failed to derive private key: ' + (error instanceof Error ? error.message : String(error)));
-    }
+    const derivedKey = pbkdf2Sync(password, studentId, iterations, keyLength, "sha256").toString(
+      "hex",
+    );
+    // Add Ethereum hex prefix
+    return "0x" + derivedKey;
+  } catch (error) {
+    throw new Error(
+      "Failed to derive private key: " + (error instanceof Error ? error.message : String(error)),
+    );
+  }
 }
 
 /**
@@ -409,26 +421,26 @@ function derivePrivateKey(password: string, studentId: string): string {
  * @throws {Error} If no university wallet is available for retrieval or if the retrieval process fails, with the error message from the underlying error
  */
 export async function getStudentInfo(studentWallet: string): Promise<void> {
-    if (!uni) {
-        throw new Error("University not present - subscribe a university first");
-    }
+  if (!uni) {
+    throw new Error("University not present - subscribe a university first");
+  }
 
-    try {
-        // Retrieve student information using the SDK
-        const studentNew = await eduwallet.getStudentInfo(uni, studentWallet);
+  try {
+    // Retrieve student information using the SDK
+    const studentNew = await eduwallet.getStudentInfo(uni, studentWallet);
 
-        // Display student information
-        console.log(`---------------------------------------------------`);
-        console.log(`STUDENT:`);
-        console.log(`Name: ${studentNew.name}`);
-        console.log(`Surname: ${studentNew.surname}`);
-        console.log(`Birth date: ${studentNew.birthDate}`);
-        console.log(`Birth place: ${studentNew.birthPlace}`);
-        console.log(`Country: ${studentNew.country}`);
-        console.log(`---------------------------------------------------`);
-    } catch (error) {
-        throw new Error(`${error}`);
-    }
+    // Display student information
+    console.log(`---------------------------------------------------`);
+    console.log(`STUDENT:`);
+    console.log(`Name: ${studentNew.name}`);
+    console.log(`Surname: ${studentNew.surname}`);
+    console.log(`Birth date: ${studentNew.birthDate}`);
+    console.log(`Birth place: ${studentNew.birthPlace}`);
+    console.log(`Country: ${studentNew.country}`);
+    console.log(`---------------------------------------------------`);
+  } catch (error) {
+    throw new Error(`${error}`);
+  }
 }
 
 /**
@@ -440,39 +452,39 @@ export async function getStudentInfo(studentWallet: string): Promise<void> {
  * @throws {Error} If no university wallet is available for retrieval or if the retrieval process fails, with the error message from the underlying error
  */
 export async function getStudentInfoResults(studentWallet: string): Promise<void> {
-    if (!uni) {
-        throw new Error("University not present - subscribe a university first");
+  if (!uni) {
+    throw new Error("University not present - subscribe a university first");
+  }
+
+  try {
+    // Retrieve complete student information with results using the SDK
+    const studentComplete = await eduwallet.getStudentWithResult(uni, studentWallet);
+
+    // Display comprehensive student information and results
+    console.log(`\n---------------------------------------------------`);
+    console.log(`STUDENT:`);
+    console.log(`Name: ${studentComplete.name}`);
+    console.log(`Surname: ${studentComplete.surname}`);
+    console.log(`Birth date: ${studentComplete.birthDate}`);
+    console.log(`Birth place: ${studentComplete.birthPlace}`);
+    console.log(`Country: ${studentComplete.country}`);
+    console.log(`Results:`);
+
+    // Iterate through and display each academic result
+    for (const result of studentComplete.results ?? []) {
+      console.log(`\tCourse Code: ${result.code}`);
+      console.log(`\tCourse Name: ${result.name}`);
+      console.log(`\tUniversity: ${result.university.name}`);
+      console.log(`\tDegree course: ${result.degreeCourse}`);
+      console.log(`\tECTS: ${result.ects || "N/A"}`);
+      console.log(`\tDate: ${result.evaluationDate ? result.evaluationDate : "N/A"}`);
+      console.log(`\tGrade: ${result.grade || "N/A"}`);
+      console.log(`\tCertificate: ${result.certificate || "N/A"}\n`);
     }
-
-    try {
-        // Retrieve complete student information with results using the SDK
-        const studentComplete = await eduwallet.getStudentWithResult(uni, studentWallet);
-
-        // Display comprehensive student information and results
-        console.log(`\n---------------------------------------------------`);
-        console.log(`STUDENT:`);
-        console.log(`Name: ${studentComplete.name}`);
-        console.log(`Surname: ${studentComplete.surname}`);
-        console.log(`Birth date: ${studentComplete.birthDate}`);
-        console.log(`Birth place: ${studentComplete.birthPlace}`);
-        console.log(`Country: ${studentComplete.country}`);
-        console.log(`Results:`);
-
-        // Iterate through and display each academic result
-        for (const result of studentComplete.results ?? []) {
-            console.log(`\tCourse Code: ${result.code}`);
-            console.log(`\tCourse Name: ${result.name}`);
-            console.log(`\tUniversity: ${result.university.name}`);
-            console.log(`\tDegree course: ${result.degreeCourse}`);
-            console.log(`\tECTS: ${result.ects || "N/A"}`);
-            console.log(`\tDate: ${result.evaluationDate ? result.evaluationDate : "N/A"}`);
-            console.log(`\tGrade: ${result.grade || "N/A"}`);
-            console.log(`\tCertificate: ${result.certificate || "N/A"}\n`);
-        }
-        console.log(`---------------------------------------------------\n`);
-    } catch (error) {
-        throw new Error(`${error}`);
-    }
+    console.log(`---------------------------------------------------\n`);
+  } catch (error) {
+    throw new Error(`${error}`);
+  }
 }
 
 /**
@@ -484,21 +496,24 @@ export async function getStudentInfoResults(studentWallet: string): Promise<void
  * @returns {Promise<void>} Promise that resolves when the student is successfully enrolled in all courses
  * @throws {Error} If no university wallet is available for enrollment, if any enrollments fail, or if the enrollment process encounters an error, with the error message from the underlying error
  */
-export async function enrollStudent(studentWallet: string, courses: eduwallet.CourseInfo[]): Promise<void> {
-    if (!uni) {
-        throw new Error("University not present - subscribe a university first");
+export async function enrollStudent(
+  studentWallet: string,
+  courses: eduwallet.CourseInfo[],
+): Promise<void> {
+  if (!uni) {
+    throw new Error("University not present - subscribe a university first");
+  }
+
+  try {
+    if (VERBOSE) {
+      console.log("\nEnrolling student...");
     }
 
-    try {
-        if (VERBOSE) {
-            console.log("\nEnrolling student...");
-        }
-
-        // Use the SDK to enroll the student in the courses
-        await eduwallet.enrollStudent(uni, studentWallet, courses);
-    } catch (error) {
-        throw new Error(`${error}`);
-    }
+    // Use the SDK to enroll the student in the courses
+    await eduwallet.enrollStudent(uni, studentWallet, courses);
+  } catch (error) {
+    throw new Error(`${error}`);
+  }
 }
 
 /**
@@ -510,21 +525,24 @@ export async function enrollStudent(studentWallet: string, courses: eduwallet.Co
  * @returns {Promise<void>} Promise that resolves when the student is successfully evaluated for all submitted courses
  * @throws {Error} If no university wallet is available for evaluation, if any evaluations fail, or if the evaluation process encounters an error, with the error message from the underlying error
  */
-export async function evaluateStudent(studentWallet: string, evaluations: eduwallet.Evaluation[]): Promise<void> {
-    if (!uni) {
-        throw new Error("University not present - subscribe a university first");
+export async function evaluateStudent(
+  studentWallet: string,
+  evaluations: eduwallet.Evaluation[],
+): Promise<void> {
+  if (!uni) {
+    throw new Error("University not present - subscribe a university first");
+  }
+
+  try {
+    if (VERBOSE) {
+      console.log("\nEvaluating student...");
     }
 
-    try {
-        if (VERBOSE) {
-            console.log("\nEvaluating student...");
-        }
-
-        // Use the SDK to record evaluations for the student
-        await eduwallet.evaluateStudent(uni, studentWallet, evaluations);
-    } catch (error) {
-        throw new Error(`${error}`);
-    }
+    // Use the SDK to record evaluations for the student
+    await eduwallet.evaluateStudent(uni, studentWallet, evaluations);
+  } catch (error) {
+    throw new Error(`${error}`);
+  }
 }
 
 /**
@@ -536,21 +554,26 @@ export async function evaluateStudent(studentWallet: string, evaluations: eduwal
  * @returns {Promise<void>} Promise that resolves when the permission request is submitted and confirmed
  * @throws {Error} If no university wallet is available for requesting permission or if the permission request process fails, with the error message from the underlying error
  */
-export async function requestPermission(studentWallet: string, permission: eduwallet.PermissionType): Promise<void> {
-    if (!uni) {
-        throw new Error("University not present - subscribe a university first");
+export async function requestPermission(
+  studentWallet: string,
+  permission: eduwallet.PermissionType,
+): Promise<void> {
+  if (!uni) {
+    throw new Error("University not present - subscribe a university first");
+  }
+
+  try {
+    if (VERBOSE) {
+      console.log(
+        `\nAsking for ${permission === eduwallet.PermissionType.Read ? "read" : "write"} permission...`,
+      );
     }
 
-    try {
-        if (VERBOSE) {
-            console.log(`\nAsking for ${permission === eduwallet.PermissionType.Read ? 'read' : 'write'} permission...`)
-        }
-
-        // Use the SDK to request permission for the student's wallet
-        await eduwallet.askForPermission(uni, studentWallet, permission);
-    } catch (error) {
-        throw new Error(`${error}`);
-    }
+    // Use the SDK to request permission for the student's wallet
+    await eduwallet.askForPermission(uni, studentWallet, permission);
+  } catch (error) {
+    throw new Error(`${error}`);
+  }
 }
 
 /**
@@ -562,25 +585,26 @@ export async function requestPermission(studentWallet: string, permission: eduwa
  * @throws {Error} If no university wallet is available for verification or if the verification process fails, with the error message from the underlying error
  */
 export async function verifyPermission(studentWallet: string): Promise<void> {
-    if (!uni) {
-        throw new Error("University not present - subscribe a university first");
+  if (!uni) {
+    throw new Error("University not present - subscribe a university first");
+  }
+
+  try {
+    if (VERBOSE) {
+      console.log(`\nVerifying permission...`);
     }
 
-    try {
-        if (VERBOSE) {
-            console.log(`\nVerifying permission...`)
-        }
+    // Use the SDK to check the current permission level
+    const permission = await eduwallet.verifyPermission(uni, studentWallet);
 
-        // Use the SDK to check the current permission level
-        const permission = await eduwallet.verifyPermission(uni, studentWallet);
-
-        // Display the permission level
-        console.log(`\nPERMISSION:`);
-        console.log(`Type: ${permission === null ? 'None' : permission === eduwallet.PermissionType.Read ? 'Read' : 'Write'}\n`);
-    } catch (error) {
-        throw new Error(`${error}`);
-
-    }
+    // Display the permission level
+    console.log(`\nPERMISSION:`);
+    console.log(
+      `Type: ${permission === null ? "None" : permission === eduwallet.PermissionType.Read ? "Read" : "Write"}\n`,
+    );
+  } catch (error) {
+    throw new Error(`${error}`);
+  }
 }
 
 /**
@@ -592,10 +616,10 @@ export async function verifyPermission(studentWallet: string): Promise<void> {
  * @throws {Error} If connecting the new university wallet fails, with the error message from the underlying error
  */
 export function changeUniversity(newUniversity: Wallet): void {
-    try {
-        // Connect the new university wallet to the provider
-        uni = newUniversity.connect(PROVIDER);
-    } catch (error) {
-        throw new Error(`${error}`);
-    }
+  try {
+    // Connect the new university wallet to the provider
+    uni = newUniversity.connect(PROVIDER);
+  } catch (error) {
+    throw new Error(`${error}`);
+  }
 }

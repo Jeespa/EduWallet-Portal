@@ -51,8 +51,7 @@ async function main() {
     },
     organizationSmartAccounts: {
       ntnuSmartAccountAddress: organizations.ntnuSmartAccountAddress,
-      nordicHiringSmartAccountAddress:
-        organizations.nordicHiringSmartAccountAddress,
+      nordicHiringSmartAccountAddress: organizations.nordicHiringSmartAccountAddress,
       tbsSmartAccountAddress: organizations.tbsSmartAccountAddress,
       uioSmartAccountAddress: organizations.uioSmartAccountAddress,
     },

@@ -32,17 +32,11 @@ type IssuanceDraftListParams = {
 };
 
 async function parseJsonOrThrow<T>(response: Response): Promise<T> {
-  const data = (await response.json().catch(() => null)) as
-    | ErrorResponse
-    | T
-    | null;
+  const data = (await response.json().catch(() => null)) as ErrorResponse | T | null;
 
   if (!response.ok) {
     const message =
-      data &&
-      typeof data === "object" &&
-      "error" in data &&
-      typeof data.error === "string"
+      data && typeof data === "object" && "error" in data && typeof data.error === "string"
         ? data.error
         : `Request failed with status ${response.status}`;
 
@@ -56,11 +50,7 @@ function normalizeBaseUrl(baseUrl: string) {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
 }
 
-function buildUrl(
-  baseUrl: string,
-  path: string,
-  params?: Record<string, string | undefined>
-) {
+function buildUrl(baseUrl: string, path: string, params?: Record<string, string | undefined>) {
   const url = new URL(`${baseUrl}${path}`);
 
   if (params) {
@@ -83,10 +73,7 @@ export function createPortalClient(baseUrl: string) {
   });
 
   return {
-    async login(
-      email: string,
-      password: string
-    ): Promise<PortalSessionResponse> {
+    async login(email: string, password: string): Promise<PortalSessionResponse> {
       const response = await fetch(`${normalizedBaseUrl}/auth/login`, {
         method: "POST",
         headers: buildHeaders(),
@@ -105,24 +92,18 @@ export function createPortalClient(baseUrl: string) {
       return parseJsonOrThrow<PortalMeResponse>(response);
     },
 
-    async searchStudents(
-      token: string,
-      q?: string
-    ): Promise<StudentSearchResponse> {
-      const response = await fetch(
-        buildUrl(normalizedBaseUrl, "/students/search", { q }),
-        {
-          method: "GET",
-          headers: buildHeaders(token),
-        }
-      );
+    async searchStudents(token: string, q?: string): Promise<StudentSearchResponse> {
+      const response = await fetch(buildUrl(normalizedBaseUrl, "/students/search", { q }), {
+        method: "GET",
+        headers: buildHeaders(token),
+      });
 
       return parseJsonOrThrow<StudentSearchResponse>(response);
     },
 
     async createRequest(
       token: string,
-      body: CreatePermissionRequestBody
+      body: CreatePermissionRequestBody,
     ): Promise<CreatePermissionRequestResponse> {
       const response = await fetch(`${normalizedBaseUrl}/requests`, {
         method: "POST",
@@ -135,7 +116,7 @@ export function createPortalClient(baseUrl: string) {
 
     async listRequests(
       token: string,
-      params?: RequestListParams
+      params?: RequestListParams,
     ): Promise<PermissionRequestListResponse> {
       const response = await fetch(
         buildUrl(normalizedBaseUrl, "/requests", {
@@ -146,16 +127,13 @@ export function createPortalClient(baseUrl: string) {
         {
           method: "GET",
           headers: buildHeaders(token),
-        }
+        },
       );
 
       return parseJsonOrThrow<PermissionRequestListResponse>(response);
     },
 
-    async verify(
-      token: string,
-      body: CreateVerificationBody
-    ): Promise<CreateVerificationResponse> {
+    async verify(token: string, body: CreateVerificationBody): Promise<CreateVerificationResponse> {
       const response = await fetch(`${normalizedBaseUrl}/verifications`, {
         method: "POST",
         headers: buildHeaders(token),
@@ -167,7 +145,7 @@ export function createPortalClient(baseUrl: string) {
 
     async listVerifications(
       token: string,
-      params?: VerificationListParams
+      params?: VerificationListParams,
     ): Promise<VerificationListResponse> {
       const response = await fetch(
         buildUrl(normalizedBaseUrl, "/verifications", {
@@ -177,7 +155,7 @@ export function createPortalClient(baseUrl: string) {
         {
           method: "GET",
           headers: buildHeaders(token),
-        }
+        },
       );
 
       return parseJsonOrThrow<VerificationListResponse>(response);
@@ -185,7 +163,7 @@ export function createPortalClient(baseUrl: string) {
 
     async createIssuanceDraft(
       token: string,
-      body: CreateIssuanceDraftBody
+      body: CreateIssuanceDraftBody,
     ): Promise<CreateIssuanceDraftResponse> {
       const response = await fetch(`${normalizedBaseUrl}/issue/drafts`, {
         method: "POST",
@@ -198,7 +176,7 @@ export function createPortalClient(baseUrl: string) {
 
     async listIssuanceDrafts(
       token: string,
-      params?: IssuanceDraftListParams
+      params?: IssuanceDraftListParams,
     ): Promise<IssuanceDraftListResponse> {
       const response = await fetch(
         buildUrl(normalizedBaseUrl, "/issue/drafts", {
@@ -208,7 +186,7 @@ export function createPortalClient(baseUrl: string) {
         {
           method: "GET",
           headers: buildHeaders(token),
-        }
+        },
       );
 
       return parseJsonOrThrow<IssuanceDraftListResponse>(response);
@@ -216,15 +194,12 @@ export function createPortalClient(baseUrl: string) {
 
     async submitIssuanceDraft(
       token: string,
-      draftId: string
+      draftId: string,
     ): Promise<SubmitIssuanceDraftResponse> {
-      const response = await fetch(
-        `${normalizedBaseUrl}/issue/drafts/${draftId}/submit`,
-        {
-          method: "POST",
-          headers: buildHeaders(token),
-        }
-      );
+      const response = await fetch(`${normalizedBaseUrl}/issue/drafts/${draftId}/submit`, {
+        method: "POST",
+        headers: buildHeaders(token),
+      });
 
       return parseJsonOrThrow<SubmitIssuanceDraftResponse>(response);
     },

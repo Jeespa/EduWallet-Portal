@@ -30,11 +30,7 @@ export default function CourseDetailsScreen() {
   const results = data.student.results;
 
   // Guard against malformed or out-of-range indices
-  if (
-    Number.isNaN(courseIndex) ||
-    courseIndex < 0 ||
-    courseIndex >= results.length
-  ) {
+  if (Number.isNaN(courseIndex) || courseIndex < 0 || courseIndex >= results.length) {
     return (
       <View style={styles.container}>
         <Text style={styles.errorText}>No course data available.</Text>
@@ -45,11 +41,9 @@ export default function CourseDetailsScreen() {
   const course = results[courseIndex];
 
   // Only show grade / evaluation date if we actually have non-empty values
-  const hasGrade =
-    typeof course.grade === "string" && course.grade.trim().length > 0;
+  const hasGrade = typeof course.grade === "string" && course.grade.trim().length > 0;
   const hasEvaluationDate =
-    typeof course.evaluationDate === "string" &&
-    course.evaluationDate.trim().length > 0;
+    typeof course.evaluationDate === "string" && course.evaluationDate.trim().length > 0;
 
   return (
     <ScrollView style={styles.container}>

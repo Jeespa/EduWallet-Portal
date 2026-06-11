@@ -1,8 +1,4 @@
-export type PortalPermissionLevel =
-  | "admin"
-  | "requester"
-  | "verifier"
-  | "issuer";
+export type PortalPermissionLevel = "admin" | "requester" | "verifier" | "issuer";
 
 export type Organization = {
   id: string;

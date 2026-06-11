@@ -48,18 +48,14 @@ export function mockLogin(email: string, password: string): AuthSession {
   const normalizedEmail = email.trim().toLowerCase();
 
   const matchedUser = USERS.find(
-    (user) =>
-      user.email.toLowerCase() === normalizedEmail &&
-      user.password === password
+    (user) => user.email.toLowerCase() === normalizedEmail && user.password === password,
   );
 
   if (!matchedUser) {
     throw new Error("Invalid email or password.");
   }
 
-  const organization = ORGANIZATIONS.find(
-    (org) => org.id === matchedUser.organizationId
-  );
+  const organization = ORGANIZATIONS.find((org) => org.id === matchedUser.organizationId);
 
   if (!organization) {
     throw new Error("Organization not found for this user.");

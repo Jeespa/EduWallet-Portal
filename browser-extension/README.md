@@ -84,5 +84,5 @@ Serves as the interface layer between the EduWallet extension's UI components an
 Configures the build process for the EduWallet Chrome extension using Vite as the build tool.
 **Key plugins:**
 
-- Compression Plugin (*viteCompression*): Compresses the output files using the Brotli algorithm to reduce the extension's size.
-- Visualizer Plugin (*visualizer*): Generates a visual representation of the bundle size in `dist/stats.html`.
+- Compression Plugin (_viteCompression_): Compresses the output files using the Brotli algorithm to reduce the extension's size.
+- Visualizer Plugin (_visualizer_): Generates a visual representation of the bundle size in `dist/stats.html`.

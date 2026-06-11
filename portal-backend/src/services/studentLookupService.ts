@@ -29,9 +29,7 @@ async function getPendingRequestStatus(input: {
     return null;
   }
 
-  return pendingRequest.permissionType === "WRITE"
-    ? "pending-write"
-    : "pending-read";
+  return pendingRequest.permissionType === "WRITE" ? "pending-write" : "pending-read";
 }
 
 async function getOrganizationPermissionStatus(input: {
@@ -56,10 +54,7 @@ async function getOrganizationPermissionStatus(input: {
 
     return pendingStatus ?? "none";
   } catch (error) {
-    console.error(
-      "Failed to compute organization-specific student permission status:",
-      error,
-    );
+    console.error("Failed to compute organization-specific student permission status:", error);
 
     return "none";
   }

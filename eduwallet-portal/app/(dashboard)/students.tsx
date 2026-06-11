@@ -1,26 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { router } from "expo-router";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
-import {
-  searchPortalStudents,
-  type PortalStudentReference,
-} from "../../src/lib/portalBackendApi";
+import { searchPortalStudents, type PortalStudentReference } from "../../src/lib/portalBackendApi";
 import { usePortalAuth } from "../../src/context/PortalAuthContext";
 
-type PermissionStatus =
-  | "none"
-  | "pending-read"
-  | "pending-write"
-  | "read"
-  | "write";
+type PermissionStatus = "none" | "pending-read" | "pending-write" | "read" | "write";
 
 type PermissionFilter = "all" | PermissionStatus;
 
@@ -102,11 +87,9 @@ export default function StudentsPage() {
         student.studentId.toLowerCase().includes(normalizedQuery) ||
         student.studentSca.toLowerCase().includes(normalizedQuery) ||
         (student.name?.toLowerCase().includes(normalizedQuery) ?? false) ||
-        (student.homeInstitution?.toLowerCase().includes(normalizedQuery) ??
-          false);
+        (student.homeInstitution?.toLowerCase().includes(normalizedQuery) ?? false);
 
-      const matchesStatus =
-        selectedFilter === "all" || status === selectedFilter;
+      const matchesStatus = selectedFilter === "all" || status === selectedFilter;
 
       return matchesQuery && matchesStatus;
     });
@@ -177,12 +160,7 @@ export default function StudentsPage() {
                 style={[styles.filterChip, isActive && styles.filterChipActive]}
                 onPress={() => setSelectedFilter(option.value)}
               >
-                <Text
-                  style={[
-                    styles.filterChipText,
-                    isActive && styles.filterChipTextActive,
-                  ]}
-                >
+                <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
                   {option.label}
                 </Text>
               </Pressable>
@@ -200,9 +178,7 @@ export default function StudentsPage() {
           </Text>
         </View>
 
-        {loading ? (
-          <Text style={styles.emptyText}>Loading students...</Text>
-        ) : null}
+        {loading ? <Text style={styles.emptyText}>Loading students...</Text> : null}
 
         {loadError ? <Text style={styles.error}>{loadError}</Text> : null}
 
@@ -215,25 +191,20 @@ export default function StudentsPage() {
               const permissionStatus = student.permissionStatus ?? "none";
               const canIssueResult = permissionStatus === "write";
               const requestPending =
-                permissionStatus === "pending-read" ||
-                permissionStatus === "pending-write";
+                permissionStatus === "pending-read" || permissionStatus === "pending-write";
               const canRequestAccess = permissionStatus !== "write";
 
               return (
                 <View key={student.studentId} style={styles.studentCard}>
                   <View style={styles.studentHeader}>
                     <View style={styles.studentHeaderText}>
-                      <Text style={styles.studentName}>
-                        {student.name || "Unknown student"}
-                      </Text>
+                      <Text style={styles.studentName}>{student.name || "Unknown student"}</Text>
                       <Text style={styles.studentMeta}>
                         {student.homeInstitution || "Unknown institution"}
                       </Text>
                     </View>
 
-                    <View
-                      style={[styles.badge, getBadgeStyle(permissionStatus)]}
-                    >
+                    <View style={[styles.badge, getBadgeStyle(permissionStatus)]}>
                       <Text style={styles.badgeText}>
                         {renderPermissionLabel(permissionStatus)}
                       </Text>
@@ -248,9 +219,7 @@ export default function StudentsPage() {
                     {canRequestAccess ? (
                       requestPending ? (
                         <View style={styles.disabledButton}>
-                          <Text style={styles.disabledButtonText}>
-                            Request pending
-                          </Text>
+                          <Text style={styles.disabledButtonText}>Request pending</Text>
                         </View>
                       ) : (
                         <Pressable
@@ -262,10 +231,8 @@ export default function StudentsPage() {
                                 studentId: student.studentId,
                                 studentSca: student.studentSca,
                                 studentName: student.name ?? "",
-                                homeInstitution:
-                                  student.homeInstitution ?? "",
-                                permissionType:
-                                  getRequestPermissionType(permissionStatus),
+                                homeInstitution: student.homeInstitution ?? "",
+                                permissionType: getRequestPermissionType(permissionStatus),
                               },
                             })
                           }
@@ -309,9 +276,7 @@ export default function StudentsPage() {
                           })
                         }
                       >
-                        <Text style={styles.secondaryButtonText}>
-                          Issue result
-                        </Text>
+                        <Text style={styles.secondaryButtonText}>Issue result</Text>
                       </Pressable>
                     ) : null}
                   </View>

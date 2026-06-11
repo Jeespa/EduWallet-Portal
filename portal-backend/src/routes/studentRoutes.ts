@@ -17,10 +17,7 @@ studentRoutes.get(
         });
       }
 
-      const result = await searchStudents(
-        String(req.query.q ?? ""),
-        req.auth.organizationId,
-      );
+      const result = await searchStudents(String(req.query.q ?? ""), req.auth.organizationId);
 
       return res.json(result);
     } catch (err) {

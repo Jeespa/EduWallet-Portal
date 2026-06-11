@@ -53,6 +53,7 @@ http://localhost:4000
 ```
 
 ### Terminal 5: Start portal frontend
+
 ```cmd
 cd <repo-root>\eduwallet-portal
 npx expo start

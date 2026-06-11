@@ -64,10 +64,7 @@ async function proxyApiRequest(req, res) {
 
     const responseHeaders = {};
     response.headers.forEach((value, key) => {
-      if (
-        key.toLowerCase() !== "content-encoding" &&
-        key.toLowerCase() !== "transfer-encoding"
-      ) {
+      if (key.toLowerCase() !== "content-encoding" && key.toLowerCase() !== "transfer-encoding") {
         responseHeaders[key] = value;
       }
     });

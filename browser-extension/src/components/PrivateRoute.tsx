@@ -10,14 +10,14 @@ import type { JSX } from "react";
  * @returns {JSX.Element} The rendered private route component.
  */
 export default function PrivateRoute(): JSX.Element {
-    const student = useAuth();
+  const student = useAuth();
 
-    // Check if the student is authenticated
-    if (student.student.id === "") {
-        // If not authenticated, redirect to the login page
-        return (<Navigate to="/login" />);
-    }
+  // Check if the student is authenticated
+  if (student.student.id === "") {
+    // If not authenticated, redirect to the login page
+    return <Navigate to="/login" />;
+  }
 
-    // If authenticated, render the child routes
-    return (<Outlet />);
+  // If authenticated, render the child routes
+  return <Outlet />;
 }

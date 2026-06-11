@@ -1,0 +1,13 @@
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+.expo/
+.next/
+artifacts/
+cache/
+typechain-types/
+portal-backend/src/generated/prisma/
+*.zip
+*.log

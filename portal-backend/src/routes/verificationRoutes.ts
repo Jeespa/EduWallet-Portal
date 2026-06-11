@@ -2,10 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { requireAuth } from "../auth/requireAuth";
 import { requireRole } from "../auth/requireRole";
-import {
-  createAcademicVerification,
-  listVerifications,
-} from "../services/verificationService";
+import { createAcademicVerification, listVerifications } from "../services/verificationService";
 
 export const verificationRoutes = Router();
 
@@ -57,7 +54,7 @@ verificationRoutes.post(
         error: "Internal server error.",
       });
     }
-  }
+  },
 );
 
 verificationRoutes.get(
@@ -85,5 +82,5 @@ verificationRoutes.get(
         error: "Internal server error.",
       });
     }
-  }
+  },
 );

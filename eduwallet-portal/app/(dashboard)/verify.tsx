@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
 import type { VerifyResult } from "../../src/types/portal";
 import { verifyAcademicRecord } from "../../src/lib/portalBackendApi";
@@ -51,18 +44,10 @@ export default function VerifyPage() {
       setStudentName(params.studentName);
     }
 
-    if (
-      typeof params.homeInstitution === "string" &&
-      params.homeInstitution.trim()
-    ) {
+    if (typeof params.homeInstitution === "string" && params.homeInstitution.trim()) {
       setHomeInstitution(params.homeInstitution);
     }
-  }, [
-    params.studentId,
-    params.studentSca,
-    params.studentName,
-    params.homeInstitution,
-  ]);
+  }, [params.studentId, params.studentSca, params.studentName, params.homeInstitution]);
 
   const hasSelectedStudent = Boolean(studentId || studentSca);
   const hasHumanReadableStudent = Boolean(studentName || homeInstitution);
@@ -192,9 +177,7 @@ export default function VerifyPage() {
           onPress={handleVerify}
           disabled={verifying}
         >
-          <Text style={styles.verifyButtonText}>
-            {verifying ? "Checking..." : "Check record"}
-          </Text>
+          <Text style={styles.verifyButtonText}>{verifying ? "Checking..." : "Check record"}</Text>
         </Pressable>
       </View>
 
@@ -204,14 +187,9 @@ export default function VerifyPage() {
             <Text style={styles.cardTitle}>Verification result</Text>
 
             <View
-              style={[
-                styles.resultBadge,
-                result.valid ? styles.resultValid : styles.resultInvalid,
-              ]}
+              style={[styles.resultBadge, result.valid ? styles.resultValid : styles.resultInvalid]}
             >
-              <Text style={styles.resultBadgeText}>
-                {result.valid ? "Valid" : "Invalid"}
-              </Text>
+              <Text style={styles.resultBadgeText}>{result.valid ? "Valid" : "Invalid"}</Text>
             </View>
           </View>
 
@@ -268,9 +246,7 @@ export default function VerifyPage() {
 
           <View style={styles.resultBlock}>
             <Text style={styles.resultLabel}>On-chain match</Text>
-            <Text style={styles.resultValue}>
-              {result.onChainMatch ? "Yes" : "No"}
-            </Text>
+            <Text style={styles.resultValue}>{result.onChainMatch ? "Yes" : "No"}</Text>
           </View>
         </View>
       ) : null}

@@ -22,14 +22,12 @@ export default function SettingsPage() {
 
         <View style={styles.infoBlock}>
           <Text style={styles.label}>Organization number</Text>
-          <Text style={styles.value}>
-            {organization?.organizationNumber || "-"}
-          </Text>
+          <Text style={styles.value}>{organization?.organizationNumber || "-"}</Text>
         </View>
 
         <Text style={styles.note}>
-          In a later version, this section can include onboarding status,
-          organization verification, and integration settings.
+          In a later version, this section can include onboarding status, organization verification,
+          and integration settings.
         </Text>
       </View>
 
@@ -52,8 +50,8 @@ export default function SettingsPage() {
         </View>
 
         <Text style={styles.note}>
-          Per-user roles are organization-specific. Later, admins can manage
-          additional portal users and assign permissions here.
+          Per-user roles are organization-specific. Later, admins can manage additional portal users
+          and assign permissions here.
         </Text>
       </View>
 
@@ -75,8 +73,7 @@ export default function SettingsPage() {
           <View style={styles.statusTextWrap}>
             <Text style={styles.statusTitle}>Permission requests</Text>
             <Text style={styles.statusText}>
-              Available through the Requests page with mocked creation and
-              filtering.
+              Available through the Requests page with mocked creation and filtering.
             </Text>
           </View>
         </View>
@@ -96,8 +93,7 @@ export default function SettingsPage() {
           <View style={styles.statusTextWrap}>
             <Text style={styles.statusTitle}>Issuing new records</Text>
             <Text style={styles.statusText}>
-              Planned for a later phase when the backend and permission model are
-              ready.
+              Planned for a later phase when the backend and permission model are ready.
             </Text>
           </View>
         </View>
@@ -129,8 +125,8 @@ export default function SettingsPage() {
         </View>
 
         <Text style={styles.note}>
-          This page should later expose real environment values, backend health,
-          organization onboarding status, and role-management tools.
+          This page should later expose real environment values, backend health, organization
+          onboarding status, and role-management tools.
         </Text>
       </View>
     </ScrollView>

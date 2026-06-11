@@ -1,27 +1,25 @@
 {
-  "name": "eduwallet",
+  "name": "eduwallet-gateway",
   "version": "1.0.0",
+  "private": true,
   "description": "HTTP gateway for student-facing EduWallet clients.",
   "main": "dist/index.js",
-  "private": true,
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
-    "build": "npx hardhat compile && npm run build-sdk && npm run build-cli && cd browser-extension && npm run build && cd ../gateway && npm run build && cd ..",
+    "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js"
   },
-  "keywords": [],
-  "author": "Diego Da Giau",
-  "license": "ISC",
   "dependencies": {
-    "@account-abstraction/contracts": "^0.8.0",
-    "@openzeppelin/contracts": "^5.2.0",
-    "ethers": "^6.13.5"
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "ethers": "^6.13.5",
+    "express": "^5.2.1"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "@types/node": "^22.15.15",
-    "hardhat": "^2.22.18",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.7.3"
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.10.1",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.9.3"
   }
 }

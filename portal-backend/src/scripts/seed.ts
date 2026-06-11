@@ -280,9 +280,7 @@ async function main() {
   console.log("  emma@nordichiring.no / password123    (ADMIN)");
   console.log("  oliver@nordichiring.no / password123  (VERIFIER)");
   console.log("");
-  console.log(
-    "Portal-side request, verification, and issuance logs were cleared.",
-  );
+  console.log("Portal-side request, verification, and issuance logs were cleared.");
   console.log(
     "Student metadata is loaded from portalDemoBlockchain.json, while course data and permissions come from EduWallet.",
   );

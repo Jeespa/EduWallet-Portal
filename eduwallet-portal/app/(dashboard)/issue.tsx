@@ -1,19 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
 import { usePortalAuth } from "../../src/context/PortalAuthContext";
-import {
-  createIssuanceDraft,
-  submitIssuanceDraft,
-} from "../../src/lib/portalBackendApi";
+import { createIssuanceDraft, submitIssuanceDraft } from "../../src/lib/portalBackendApi";
 
 type SubmissionState =
   | {
@@ -88,18 +78,10 @@ export default function IssuePage() {
       setStudentName(params.studentName);
     }
 
-    if (
-      typeof params.homeInstitution === "string" &&
-      params.homeInstitution.trim()
-    ) {
+    if (typeof params.homeInstitution === "string" && params.homeInstitution.trim()) {
       setHomeInstitution(params.homeInstitution);
     }
-  }, [
-    params.studentId,
-    params.studentSca,
-    params.studentName,
-    params.homeInstitution,
-  ]);
+  }, [params.studentId, params.studentSca, params.studentName, params.homeInstitution]);
 
   const canIssue = canUseIssuancePage({
     role: user?.permissionLevel,
@@ -120,15 +102,7 @@ export default function IssuePage() {
       !!grade.trim() &&
       !!evaluationDate.trim()
     );
-  }, [
-    studentId,
-    studentSca,
-    courseCode,
-    courseName,
-    ects,
-    grade,
-    evaluationDate,
-  ]);
+  }, [studentId, studentSca, courseCode, courseName, ects, grade, evaluationDate]);
 
   const handleSubmitResult = async () => {
     setError("");
@@ -217,8 +191,7 @@ export default function IssuePage() {
       >
         <Text style={styles.title}>Issue result</Text>
         <Text style={styles.subtitle}>
-          Submit course results to a student’s EduWallet when update access is
-          available.
+          Submit course results to a student’s EduWallet when update access is available.
         </Text>
 
         <View style={styles.card}>
@@ -384,17 +357,12 @@ export default function IssuePage() {
         {submission.status === "submitted" ? (
           <View style={styles.successBox}>
             <Text style={styles.successTitle}>Result submitted</Text>
-            <Text style={styles.successText}>
-              The academic result was submitted successfully.
-            </Text>
+            <Text style={styles.successText}>The academic result was submitted successfully.</Text>
           </View>
         ) : null}
 
         <Pressable
-          style={[
-            styles.createButton,
-            submitting && styles.createButtonDisabled,
-          ]}
+          style={[styles.createButton, submitting && styles.createButtonDisabled]}
           onPress={handleSubmitResult}
           disabled={submitting}
         >
@@ -411,9 +379,7 @@ export default function IssuePage() {
           <>
             <View style={styles.infoBlock}>
               <Text style={styles.label}>Student</Text>
-              <Text style={styles.value}>
-                {studentName || shortenIdentifier(studentId)}
-              </Text>
+              <Text style={styles.value}>{studentName || shortenIdentifier(studentId)}</Text>
             </View>
 
             {homeInstitution ? (

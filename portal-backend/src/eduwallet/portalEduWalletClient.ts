@@ -34,9 +34,7 @@ function parseWalletMap(): Record<string, string> {
   }
 }
 
-async function getOrganizationWallet(
-  organizationId: string,
-): Promise<EduWalletSdkWallet> {
+async function getOrganizationWallet(organizationId: string): Promise<EduWalletSdkWallet> {
   const organization = await prisma.organization.findUnique({
     where: { id: organizationId },
   });
@@ -68,10 +66,7 @@ export async function requestOnChainPermission(input: {
 }) {
   const wallet = await getOrganizationWallet(input.organizationId);
 
-  const permission =
-    input.permissionType === "write"
-      ? PermissionType.Write
-      : PermissionType.Read;
+  const permission = input.permissionType === "write" ? PermissionType.Write : PermissionType.Read;
 
   await askForPermission(wallet, input.studentSca, permission);
 }
@@ -90,10 +85,7 @@ export async function getOnChainPermissionStatus(input: {
   return "none";
 }
 
-export async function readOnChainStudent(input: {
-  organizationId: string;
-  studentSca: string;
-}) {
+export async function readOnChainStudent(input: { organizationId: string; studentSca: string }) {
   const wallet = await getOrganizationWallet(input.organizationId);
 
   return getStudentWithResult(wallet, input.studentSca);
@@ -114,9 +106,7 @@ export async function submitOnChainCourseResult(input: {
   const permission = await verifyPermission(wallet, input.studentSca);
 
   if (permission !== PermissionType.Write) {
-    throw new Error(
-      "Organization does not have write access for this student.",
-    );
+    throw new Error("Organization does not have write access for this student.");
   }
 
   const student = await getStudentWithResult(wallet, input.studentSca);
@@ -129,8 +119,7 @@ export async function submitOnChainCourseResult(input: {
     ects?: number;
   };
 
-  const results =
-    (student as { results?: EduWalletAcademicResult[] }).results ?? [];
+  const results = (student as { results?: EduWalletAcademicResult[] }).results ?? [];
 
   const courseAlreadyExists = results.some(
     (result: EduWalletAcademicResult) => result.code === input.courseCode,

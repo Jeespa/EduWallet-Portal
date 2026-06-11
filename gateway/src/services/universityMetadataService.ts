@@ -26,20 +26,15 @@ function isContractAddress(value: string | undefined): value is string {
  * not break the whole student login or permission overview response.
  */
 export async function fetchUniversitiesMeta(
-  addresses: string[]
+  addresses: string[],
 ): Promise<Map<string, UniversityMetadata>> {
-  const uniqueAddresses = Array.from(
-    new Set(addresses.filter(isContractAddress))
-  );
+  const uniqueAddresses = Array.from(new Set(addresses.filter(isContractAddress)));
 
   const map = new Map<string, UniversityMetadata>();
 
   for (const address of uniqueAddresses) {
     try {
-      const universityContract = University__factory.connect(
-        address,
-        provider as any
-      );
+      const universityContract = University__factory.connect(address, provider as any);
       const info = await universityContract.getUniversityInfo();
 
       map.set(address, {

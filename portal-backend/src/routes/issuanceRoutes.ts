@@ -22,98 +22,88 @@ const createIssuanceDraftSchema = z.object({
   certificateCid: z.string().trim().optional(),
 });
 
-issuanceRoutes.post(
-  "/drafts",
-  requireAuth,
-  requireRole(["ADMIN", "ISSUER"]),
-  async (req, res) => {
-    try {
-      const parsed = createIssuanceDraftSchema.safeParse(req.body);
+issuanceRoutes.post("/drafts", requireAuth, requireRole(["ADMIN", "ISSUER"]), async (req, res) => {
+  try {
+    const parsed = createIssuanceDraftSchema.safeParse(req.body);
 
-      if (!parsed.success) {
-        return res.status(400).json({
-          error: "Invalid request body.",
-          details: parsed.error.issues,
-        });
-      }
-
-      if (!req.auth) {
-        return res.status(401).json({
-          error: "Missing auth context.",
-        });
-      }
-
-      const {
-        studentId,
-        studentSca,
-        courseCode,
-        courseName,
-        degreeCourse,
-        ects,
-        grade,
-        evaluationDate,
-        certificateCid,
-      } = parsed.data;
-
-      const result = await createIssuanceDraft({
-        studentId,
-        studentSca,
-        courseCode,
-        courseName,
-        degreeCourse,
-        ects,
-        grade,
-        evaluationDate,
-        certificateCid,
-        organizationId: req.auth.organizationId,
-        createdByUserId: req.auth.userId,
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: "Invalid request body.",
+        details: parsed.error.issues,
       });
+    }
 
-      if ("error" in result) {
-        return res.status(result.statusCode).json({
-          error: result.error,
-        });
-      }
+    if (!req.auth) {
+      return res.status(401).json({
+        error: "Missing auth context.",
+      });
+    }
 
+    const {
+      studentId,
+      studentSca,
+      courseCode,
+      courseName,
+      degreeCourse,
+      ects,
+      grade,
+      evaluationDate,
+      certificateCid,
+    } = parsed.data;
+
+    const result = await createIssuanceDraft({
+      studentId,
+      studentSca,
+      courseCode,
+      courseName,
+      degreeCourse,
+      ects,
+      grade,
+      evaluationDate,
+      certificateCid,
+      organizationId: req.auth.organizationId,
+      createdByUserId: req.auth.userId,
+    });
+
+    if ("error" in result) {
       return res.status(result.statusCode).json({
-        draft: result.draft,
-      });
-    } catch (err) {
-      console.error(err);
-      return res.status(500).json({
-        error: "Internal server error.",
+        error: result.error,
       });
     }
+
+    return res.status(result.statusCode).json({
+      draft: result.draft,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      error: "Internal server error.",
+    });
   }
-);
+});
 
-issuanceRoutes.get(
-  "/drafts",
-  requireAuth,
-  requireRole(["ADMIN", "ISSUER"]),
-  async (req, res) => {
-    try {
-      if (!req.auth) {
-        return res.status(401).json({
-          error: "Missing auth context.",
-        });
-      }
-
-      const result = await listIssuanceDrafts({
-        organizationId: req.auth.organizationId,
-        q: String(req.query.q ?? ""),
-        status: String(req.query.status ?? ""),
-      });
-
-      return res.json(result);
-    } catch (err) {
-      console.error(err);
-      return res.status(500).json({
-        error: "Internal server error.",
+issuanceRoutes.get("/drafts", requireAuth, requireRole(["ADMIN", "ISSUER"]), async (req, res) => {
+  try {
+    if (!req.auth) {
+      return res.status(401).json({
+        error: "Missing auth context.",
       });
     }
+
+    const result = await listIssuanceDrafts({
+      organizationId: req.auth.organizationId,
+      q: String(req.query.q ?? ""),
+      status: String(req.query.status ?? ""),
+    });
+
+    return res.json(result);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      error: "Internal server error.",
+    });
   }
-);
+});
 
 issuanceRoutes.post(
   "/drafts/:id/submit",
@@ -125,9 +115,7 @@ issuanceRoutes.post(
         return res.status(401).json({ error: "Missing auth context." });
       }
 
-      const draftId = Array.isArray(req.params.id)
-        ? req.params.id[0]
-        : req.params.id;
+      const draftId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
 
       if (!draftId) {
         return res.status(400).json({
@@ -155,5 +143,5 @@ issuanceRoutes.post(
         error: "Internal server error.",
       });
     }
-  }
+  },
 );

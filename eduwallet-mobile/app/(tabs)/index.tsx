@@ -119,10 +119,7 @@ export default function HomeScreen() {
             autoCapitalize="none"
             secureTextEntry
           />
-          <Button
-            title={loading ? "Logging in..." : "Login"}
-            onPress={loginAndLoadWallet}
-          />
+          <Button title={loading ? "Logging in..." : "Login"} onPress={loginAndLoadWallet} />
           {error && <Text style={styles.error}>{error}</Text>}
         </>
       ) : (
@@ -164,8 +161,7 @@ export default function HomeScreen() {
                   <View style={styles.courseRow}>
                     <View style={{ flex: 1 }}>
                       <Text style={styles.courseTitle}>
-                        {r.name}{" "}
-                        <Text style={styles.courseCode}>({r.code})</Text>
+                        {r.name} <Text style={styles.courseCode}>({r.code})</Text>
                       </Text>
                       <Text style={styles.courseSub}>
                         {r.degreeCourse} • {r.university.shortName}

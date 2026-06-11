@@ -18,15 +18,13 @@ export class GatewayStudentSource implements StudentSource {
 
   async search(_query?: string): Promise<PortalStudentReference[]> {
     throw new Error(
-      "GatewayStudentSource.search is not implemented yet. The current student gateway does not expose a portal-safe student search endpoint."
+      "GatewayStudentSource.search is not implemented yet. The current student gateway does not expose a portal-safe student search endpoint.",
     );
   }
 
-  async findByIdOrSca(
-    _input: FindStudentInput
-  ): Promise<PortalStudentReference | null> {
+  async findByIdOrSca(_input: FindStudentInput): Promise<PortalStudentReference | null> {
     throw new Error(
-      "GatewayStudentSource.findByIdOrSca is not implemented yet. The current student gateway does not expose a portal-safe student lookup endpoint."
+      "GatewayStudentSource.findByIdOrSca is not implemented yet. The current student gateway does not expose a portal-safe student lookup endpoint.",
     );
   }
 }
