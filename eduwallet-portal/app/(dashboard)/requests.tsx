@@ -6,6 +6,7 @@ import { usePortalAuth } from "../../src/context/PortalAuthContext";
 import type { PermissionType, PortalRequest } from "../../src/types/portal";
 import { createPortalPermissionRequest, listPortalRequests } from "../../src/lib/portalBackendApi";
 
+// Request filters use portal wording, while the backend still stores read/write permission types.
 type RequestStatusFilter = "all" | "pending" | "approved" | "rejected";
 type RequestPermissionFilter = "all" | PermissionType;
 
@@ -45,6 +46,7 @@ function formatStatus(status: PortalRequest["status"]) {
   }
 }
 
+/** Maps backend permission types to the friendlier portal labels used in the UI. */
 function formatPermission(permissionType: PermissionType) {
   return permissionType === "write" ? "Update access" : "View access";
 }
@@ -113,6 +115,7 @@ export default function RequestsPage() {
   const [permissionFilter, setPermissionFilter] = useState<RequestPermissionFilter>("all");
 
   useEffect(() => {
+    // StudentsPage passes these route params when a request starts from a student card.
     const hasStudentId = typeof params.studentId === "string" && params.studentId.trim();
     const hasStudentSca = typeof params.studentSca === "string" && params.studentSca.trim();
 
@@ -169,6 +172,7 @@ export default function RequestsPage() {
   }, [loadRequests]);
 
   const displayedRequests = useMemo(() => {
+    // Filtering is local because listPortalRequests already returns the organization-scoped history.
     const normalized = requestQuery.trim().toLowerCase();
 
     return requests.filter((request) => {
@@ -205,6 +209,10 @@ export default function RequestsPage() {
     setOpenedFromStudentCard(false);
   };
 
+  /**
+   * Creates a portal-side access request.
+   * The student still has to approve it in the mobile app before access changes on-chain.
+   */
   const handleCreateRequest = async () => {
     setError("");
     setSuccessMessage("");
@@ -399,6 +407,7 @@ export default function RequestsPage() {
     </View>
   ) : null;
 
+  // The request list is historical. Current access state is shown on the Students page.
   const requestsList = (
     <View style={styles.card}>
       <View style={styles.resultsHeader}>

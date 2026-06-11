@@ -32,6 +32,7 @@ export default function VerifyPage() {
   const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
+    // The Students page pre-fills these values when verification starts from a student card.
     if (typeof params.studentId === "string" && params.studentId.trim()) {
       setStudentId(params.studentId);
     }
@@ -52,6 +53,10 @@ export default function VerifyPage() {
   const hasSelectedStudent = Boolean(studentId || studentSca);
   const hasHumanReadableStudent = Boolean(studentName || homeInstitution);
 
+  /**
+   * Asks the portal backend to verify the selected course or certificate against EduWallet.
+   * The backend also enforces whether the organization has sufficient access.
+   */
   const handleVerify = async () => {
     setError("");
     setResult(null);
@@ -73,6 +78,7 @@ export default function VerifyPage() {
         studentId: studentId.trim() || undefined,
         studentSca: studentSca.trim(),
         courseCode: courseCode.trim() || undefined,
+        // Both fields are optional so the same page supports course-code and certificate checks.
         certificateCid: certificateCid.trim() || undefined,
       });
 

@@ -5,6 +5,7 @@ import { PORTAL_COLORS as COLORS } from "../../src/constants/portalTheme";
 import { searchPortalStudents, type PortalStudentReference } from "../../src/lib/portalBackendApi";
 import { usePortalAuth } from "../../src/context/PortalAuthContext";
 
+// Portal wording maps low-level read/write permissions to View/Update access.
 type PermissionStatus = "none" | "pending-read" | "pending-write" | "read" | "write";
 
 type PermissionFilter = "all" | PermissionStatus;
@@ -23,6 +24,10 @@ function getRequestButtonLabel(status: PermissionStatus) {
   return "Request access";
 }
 
+/**
+ * A student with View access can be asked for Update access.
+ * Students with no access are first asked for View access.
+ */
 function getRequestPermissionType(status: PermissionStatus) {
   if (status === "read") return "write";
   return "read";
@@ -68,6 +73,7 @@ export default function StudentsPage() {
       }
     }
 
+    // Debounce the search so typing in the lookup field does not call the backend on every keypress.
     const timeout = setTimeout(loadStudents, 250);
 
     return () => {
@@ -189,9 +195,11 @@ export default function StudentsPage() {
         {!loading && !loadError
           ? filteredStudents.map((student) => {
               const permissionStatus = student.permissionStatus ?? "none";
+              // Update access is the only portal state that allows issuing new results.
               const canIssueResult = permissionStatus === "write";
               const requestPending =
                 permissionStatus === "pending-read" || permissionStatus === "pending-write";
+              // Existing Update access is the highest level, so no further request button is needed.
               const canRequestAccess = permissionStatus !== "write";
 
               return (

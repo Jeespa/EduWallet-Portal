@@ -15,6 +15,10 @@ type SubmissionState =
       updatedAt?: string;
     };
 
+/**
+ * Frontend guard for the demo issuer workflow.
+ * The backend still performs its own authorization, so this only controls what the UI exposes.
+ */
 function canUseIssuancePage(input: {
   role?: string;
   organizationName?: string;
@@ -66,6 +70,7 @@ export default function IssuePage() {
   });
 
   useEffect(() => {
+    // StudentsPage passes the selected student here when an organization has Update access.
     if (typeof params.studentId === "string" && params.studentId.trim()) {
       setStudentId(params.studentId);
     }
@@ -93,6 +98,7 @@ export default function IssuePage() {
   const hasHumanReadableStudent = Boolean(studentName || homeInstitution);
 
   const draftReady = useMemo(() => {
+    // Optional fields such as degree course and certificate CID should not block a demo issuance.
     return (
       !!studentId.trim() &&
       !!studentSca.trim() &&
@@ -104,6 +110,10 @@ export default function IssuePage() {
     );
   }, [studentId, studentSca, courseCode, courseName, ects, grade, evaluationDate]);
 
+  /**
+   * Creates an issuance draft and immediately submits it.
+   * The draft step is kept because the backend records portal-side issuance history.
+   */
   const handleSubmitResult = async () => {
     setError("");
     setSubmission({ status: "idle" });
@@ -114,6 +124,7 @@ export default function IssuePage() {
     }
 
     if (!canIssue) {
+    // Non-issuer accounts can reach this route manually, but should not see the form.
       setError("Your account does not have permission to issue results.");
       return;
     }
@@ -183,6 +194,7 @@ export default function IssuePage() {
   };
 
   if (!canIssue) {
+    // Non-issuer accounts can reach this route manually, but should not see the form.
     return (
       <ScrollView
         style={styles.container}

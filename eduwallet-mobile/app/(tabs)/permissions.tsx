@@ -1,4 +1,10 @@
 // app/(tabs)/permissions.tsx
+// Student-facing access management screen.
+//
+// Portal users can request View or Update access from the EduWallet Portal.
+// This screen is the student-side approval point where those pending requests
+// are reviewed, approved, or where existing access is removed.
+
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -39,6 +45,13 @@ export default function PermissionsScreen() {
   const [submittingOrganization, setSubmittingOrganization] = useState<string | null>(null);
   const [confirmationDialog, setConfirmationDialog] = useState<ConfirmationDialog | null>(null);
 
+  /**
+   * Converts the gateway's multi-organization permission view into the local
+   * UI model used by this screen.
+   *
+   * The legacy `level` field is kept for compatibility with older mobile
+   * types, while the UI now uses the clearer read/write flags directly.
+   */
   const mapPermissionsToStatuses = (all: {
     studentSca: string;
     permissions: {
@@ -75,6 +88,8 @@ export default function PermissionsScreen() {
     });
   };
 
+  // Login already returns the first access snapshot. Use it immediately so
+  // the screen has useful content before the user manually refreshes.
   useEffect(() => {
     if (!data?.allPermissions) return;
     const mapped = mapPermissionsToStatuses(data.allPermissions);
@@ -99,6 +114,10 @@ export default function PermissionsScreen() {
     );
   }
 
+  /**
+   * Presents the underlying read/write permissions using the user-facing
+   * terminology used throughout the thesis prototype.
+   */
   function getCurrentAccessLabel(perm: PermissionStatus) {
     const hasViewAccess = perm.read || perm.write;
     const hasUpdateAccess = perm.write;
@@ -134,6 +153,12 @@ export default function PermissionsScreen() {
     return `This will allow ${organizationLabel} to view and check your academic records.`;
   }
 
+  /**
+   * Refreshes the current access state and pending requests from the gateway.
+   *
+   * The mobile app uses the temporary session token returned by login, so the
+   * student does not need to re-enter their password for every access action.
+   */
   async function refreshPermissions() {
     if (!sca || !sessionToken) {
       setError("Your EduWallet session has expired. Please log in again.");
@@ -158,6 +183,11 @@ export default function PermissionsScreen() {
     }
   }
 
+  /**
+   * Removes the selected organization's current access on chain through the
+   * gateway. The list is refreshed afterwards because the backend is the source
+   * of truth for both current access and pending requests.
+   */
   async function revokeAccess(perm: PermissionStatus) {
     if (!sca || !sessionToken) {
       setError("Your EduWallet session has expired. Please log in again.");
@@ -190,6 +220,13 @@ export default function PermissionsScreen() {
     });
   }
 
+  /**
+   * Approves a portal-created access request.
+   *
+   * "read" maps to View access and "write" maps to Update access. The gateway
+   * submits the corresponding blockchain transaction on the student's behalf
+   * using the temporary session created during login.
+   */
   async function approveRequest(perm: PermissionStatus, type: "read" | "write") {
     if (!sca || !sessionToken) {
       setError("Your EduWallet session has expired. Please log in again.");
@@ -225,6 +262,8 @@ export default function PermissionsScreen() {
     setConfirmationDialog(null);
   }
 
+  // Confirmation dialogs keep the main access actions explicit. This matters
+  // because approvals and removals change what organizations can do on chain.
   function handleConfirmDialog() {
     const onConfirm = confirmationDialog?.onConfirm;
     setConfirmationDialog(null);
@@ -289,6 +328,8 @@ export default function PermissionsScreen() {
 
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
         {perms.map((perm) => {
+          // Write/Update access implies View access in the EduWallet permission
+          // model, so the UI treats write as effective read access as well.
           const effectiveView = perm.read || perm.write;
           const effectiveUpdate = perm.write;
 
