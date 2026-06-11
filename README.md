@@ -60,7 +60,7 @@ Clone the repository and install dependencies:
 
 ```cmd
 git clone https://github.com/Jeespa/EduWallet-V3.0.git
-cd EduWallet-V3.0
+cd <repo-root>
 npm install
 npm run deps:all
 ```
