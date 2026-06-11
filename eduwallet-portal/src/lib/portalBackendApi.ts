@@ -1,8 +1,17 @@
+/**
+ * Frontend API wrapper for EduWallet Portal.
+ *
+ * The React pages call this module instead of using fetch directly. It keeps
+ * token handling, error handling, and response normalization in one place.
+ */
 import type { AuthSession } from "../types/auth";
 import type { PermissionType, PortalRequest, VerifyResult } from "../types/portal";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_PORTAL_BACKEND_BASE_URL ?? "http://localhost:4000";
 
+/**
+ * Shared request helper that adds JSON headers and the portal bearer token.
+ */
 async function apiRequest<T>(
   path: string,
   options: RequestInit & { token?: string } = {},
@@ -30,6 +39,9 @@ async function apiRequest<T>(
   return data as T;
 }
 
+/**
+ * Normalizes backend session data to the frontend AuthSession shape.
+ */
 function normalizeSession(session: any): AuthSession {
   return {
     token: session.token,
@@ -41,6 +53,10 @@ function normalizeSession(session: any): AuthSession {
   };
 }
 
+/**
+ * Normalizes request rows because backend timestamps and optional fields can
+ * vary between newly created and listed requests.
+ */
 function normalizeRequest(request: any): PortalRequest {
   return {
     id: request.id,
@@ -56,6 +72,9 @@ function normalizeRequest(request: any): PortalRequest {
   };
 }
 
+/**
+ * Logs a university or organization user into the portal backend.
+ */
 export async function loginPortal(email: string, password: string): Promise<AuthSession> {
   const session = await apiRequest<any>("/auth/login", {
     method: "POST",
@@ -73,6 +92,10 @@ export type PortalStudentReference = {
   permissionStatus?: "none" | "pending-read" | "pending-write" | "read" | "write";
 };
 
+/**
+ * Searches students available to the portal and returns the current access
+ * status for the logged-in organization.
+ */
 export async function searchPortalStudents(
   token: string,
   query: string,
@@ -88,6 +111,9 @@ export async function searchPortalStudents(
   return result.results;
 }
 
+/**
+ * Requests View access (read) or Update access (write) for a student.
+ */
 export async function createPortalPermissionRequest(
   token: string,
   input: {
@@ -106,6 +132,9 @@ export async function createPortalPermissionRequest(
   return normalizeRequest(result.request);
 }
 
+/**
+ * Lists access requests for the logged-in organization.
+ */
 export async function listPortalRequests(token: string): Promise<PortalRequest[]> {
   const result = await apiRequest<{ requests: any[] }>("/requests", {
     method: "GET",
@@ -115,6 +144,9 @@ export async function listPortalRequests(token: string): Promise<PortalRequest[]
   return result.requests.map(normalizeRequest);
 }
 
+/**
+ * Verifies a student's academic record or a specific course through the portal backend.
+ */
 export async function verifyAcademicRecord(
   token: string,
   input: {
@@ -148,6 +180,9 @@ export async function verifyAcademicRecord(
   };
 }
 
+/**
+ * Creates a local result draft before it is submitted to EduWallet.
+ */
 export async function createIssuanceDraft(
   token: string,
   input: {
@@ -171,6 +206,9 @@ export async function createIssuanceDraft(
   return result.draft;
 }
 
+/**
+ * Submits an issuance draft so the backend writes the result to EduWallet.
+ */
 export async function submitIssuanceDraft(token: string, draftId: string) {
   const result = await apiRequest<{ draft: any }>(`/issue/drafts/${draftId}/submit`, {
     method: "POST",

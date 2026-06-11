@@ -1,3 +1,10 @@
+/**
+ * Academic verification service for portal users.
+ *
+ * A verification is both an EduWallet read operation and a portal-side audit
+ * log. The contracts decide whether the organization has read access. The
+ * database stores the outcome shown in the portal history.
+ */
 import { prisma } from "../lib/prisma";
 import { getOnChainPermissionStatus, readOnChainStudent } from "../eduwallet/portalEduWalletClient";
 import type {
@@ -28,6 +35,9 @@ type VerificationResult =
       verification: CreateVerificationResponse["verification"];
     };
 
+/**
+ * Converts stored verification logs to the DTO used by the portal frontend.
+ */
 function mapVerificationDto(verification: {
   id: string;
   verificationType: { toLowerCase(): string };
@@ -52,9 +62,16 @@ function mapVerificationDto(verification: {
   };
 }
 
+/**
+ * Verifies that an organization can read a student record and optionally that
+ * a specific course exists in that record. Failed checks are logged too, so the
+ * portal history reflects both successful and denied verification attempts.
+ */
 export async function createAcademicVerification(
   input: CreateAcademicVerificationInput,
 ): Promise<VerificationResult> {
+  // The portal does not trust its own request logs for verification. It checks
+  // the current contract state before reading any academic data.
   const permission = await getOnChainPermissionStatus({
     organizationId: input.organizationId,
     studentSca: input.studentSca,
@@ -141,6 +158,8 @@ export async function createAcademicVerification(
 
   const results = (student as { results?: EduWalletAcademicResult[] }).results ?? [];
 
+  // The prototype verifies course existence by matching course code in the
+  // student's on-chain result list. Certificate CID matching can be added later.
   const matchingCourse = requestedCourseCode
     ? results.find(
         (result: EduWalletAcademicResult) =>
@@ -197,6 +216,9 @@ export async function createAcademicVerification(
   };
 }
 
+/**
+ * Lists verification history for the logged-in organization only.
+ */
 export async function listVerifications(
   input: ListVerificationsInput,
 ): Promise<VerificationListResponse> {

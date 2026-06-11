@@ -1,3 +1,9 @@
+/**
+ * Issuance service for creating and submitting portal-side result drafts.
+ *
+ * Drafts are stored in PostgreSQL first. Submission is the boundary where the
+ * draft is written to the student's EduWallet account through the SDK.
+ */
 import { prisma } from "../lib/prisma";
 import { studentSource } from "../students";
 import { submitOnChainCourseResult } from "../eduwallet/portalEduWalletClient";
@@ -41,6 +47,9 @@ type SubmitIssuanceDraftSuccessResult = {
   draft: SubmitIssuanceDraftResponse["draft"];
 };
 
+/**
+ * Converts Prisma issuance draft rows into the portal API shape.
+ */
 function mapIssuanceDraftDto(draft: {
   id: string;
   studentId: string | null;
@@ -73,6 +82,10 @@ function mapIssuanceDraftDto(draft: {
   };
 }
 
+/**
+ * Creates a local issuance draft after checking that the organization has
+ * Update access to the student. No blockchain write happens at this stage.
+ */
 export async function createIssuanceDraft(
   input: CreateIssuanceDraftInput,
 ): Promise<CreateIssuanceDraftSuccessResult | IssuanceErrorResult> {
@@ -135,6 +148,9 @@ export async function createIssuanceDraft(
   };
 }
 
+/**
+ * Lists issuance drafts owned by the logged-in organization.
+ */
 export async function listIssuanceDrafts(
   input: ListIssuanceDraftsInput,
 ): Promise<IssuanceDraftListResponse> {
@@ -170,6 +186,9 @@ export async function listIssuanceDrafts(
   };
 }
 
+/**
+ * Submits a draft to EduWallet and records whether the chain write succeeded.
+ */
 export async function submitIssuanceDraft(input: SubmitIssuanceDraftInput) {
   const draft = await prisma.issuanceDraft.findFirst({
     where: {
@@ -193,6 +212,7 @@ export async function submitIssuanceDraft(input: SubmitIssuanceDraftInput) {
   }
 
   try {
+    // This is the only step in the issuance flow that mutates EduWallet.
     await submitOnChainCourseResult({
       organizationId: input.organizationId,
       studentSca: draft.studentSca,

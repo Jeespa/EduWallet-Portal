@@ -22,6 +22,12 @@ type DemoBlockchainFile = {
   }>;
 };
 
+/**
+ * Loads the generated demo metadata file on demand.
+ *
+ * Keeping this as a file read makes it easy to restart the demo chain and
+ * regenerate student addresses without reseeding static data in TypeScript.
+ */
 function loadDemoStudents(): PortalStudentReference[] {
   const relativeFile =
     process.env.PORTAL_DEMO_STUDENTS_FILE ?? "src/demo/portalDemoBlockchain.json";
@@ -63,7 +69,13 @@ function loadDemoStudents(): PortalStudentReference[] {
   }));
 }
 
+/**
+ * StudentSource implementation backed by bootstrapPortalDemo.ts output.
+ */
 export class DemoStudentSource implements StudentSource {
+  /**
+   * Searches generated demo students by ID, smart account, name, or institution.
+   */
   async search(query?: string): Promise<PortalStudentReference[]> {
     const q = (query ?? "").trim().toLowerCase();
     const students = loadDemoStudents();
@@ -80,6 +92,9 @@ export class DemoStudentSource implements StudentSource {
     });
   }
 
+  /**
+   * Finds the exact generated student referenced by portal requests or forms.
+   */
   async findByIdOrSca(input: FindStudentInput): Promise<PortalStudentReference | null> {
     const studentId = input.studentId?.trim();
     const studentSca = input.studentSca?.trim().toLowerCase();

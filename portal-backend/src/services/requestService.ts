@@ -1,3 +1,10 @@
+/**
+ * Portal access-request service.
+ *
+ * Access requests have two representations:
+ * - the EduWallet contracts contain the real current access state,
+ * - PostgreSQL stores portal-side request history for display and filtering.
+ */
 import { prisma } from "../lib/prisma";
 import { requestOnChainPermission } from "../eduwallet/portalEduWalletClient";
 import { getOnChainPermissionStatus } from "../eduwallet/portalEduWalletClient";
@@ -20,15 +27,12 @@ type ListRequestsInput = {
   permissionType?: string;
 };
 
-type StoredPermissionType = "READ" | "WRITE";
-type StoredPermissionStatus = "PENDING" | "APPROVED" | "REJECTED";
-
 type StoredPermissionRequest = {
   id: string;
   studentId: string | null;
   studentSca: string;
-  permissionType: StoredPermissionType;
-  status: StoredPermissionStatus;
+  permissionType: { toLowerCase(): string };
+  status: { toLowerCase(): string };
   reason: string;
   createdAt: Date;
 };
@@ -37,39 +41,12 @@ function normalizeSearchValue(value?: string | null) {
   return value?.trim().toLowerCase() ?? "";
 }
 
-function normalizeStatusFilter(value?: string) {
-  const status = (value ?? "").trim().toUpperCase();
-
-  if (["PENDING", "APPROVED", "REJECTED"].includes(status)) {
-    return status as StoredPermissionStatus;
-  }
-
-  return null;
-}
-
-function normalizePermissionTypeFilter(value?: string) {
-  const permissionType = (value ?? "").trim().toUpperCase();
-
-  if (["READ", "WRITE"].includes(permissionType)) {
-    return permissionType as StoredPermissionType;
-  }
-
-  return null;
-}
-
-function requestIsApprovedByCurrentPermission(input: {
-  requestedPermissionType: StoredPermissionType;
-  currentPermission: "none" | "read" | "write";
-}) {
-  if (input.requestedPermissionType === "READ") {
-    return input.currentPermission === "read" || input.currentPermission === "write";
-  }
-
-  return input.currentPermission === "write";
-}
-
+/**
+ * Enriches a stored portal request with demo student metadata for the UI.
+ */
 async function mapPermissionRequestDto(
   request: StoredPermissionRequest,
+  statusOverride?: "pending" | "approved" | "rejected",
 ): Promise<PermissionRequestDto> {
   const student = await findStudentByIdOrSca({
     studentId: request.studentId,
@@ -83,7 +60,7 @@ async function mapPermissionRequestDto(
     studentName: student?.name ?? null,
     homeInstitution: student?.homeInstitution ?? null,
     permissionType: request.permissionType.toLowerCase(),
-    status: request.status.toLowerCase(),
+    status: statusOverride ?? request.status.toLowerCase(),
     reason: request.reason,
     createdAt: request.createdAt,
   };
@@ -101,54 +78,18 @@ function requestMatchesQuery(request: PermissionRequestDto, query: string) {
     String(request.createdAt),
   ];
 
-  return searchableValues.some((value) => normalizeSearchValue(value).includes(query));
+  return searchableValues.some((value) =>
+    normalizeSearchValue(value).includes(query),
+  );
 }
 
-async function syncPendingRequestStatus(input: {
-  request: StoredPermissionRequest;
-  organizationId: string;
-}): Promise<StoredPermissionRequest> {
-  if (input.request.status !== "PENDING") {
-    return input.request;
-  }
-
-  try {
-    const permission = await getOnChainPermissionStatus({
-      organizationId: input.organizationId,
-      studentSca: input.request.studentSca,
-    });
-
-    const isApproved = requestIsApprovedByCurrentPermission({
-      requestedPermissionType: input.request.permissionType,
-      currentPermission: permission,
-    });
-
-    if (!isApproved) {
-      return input.request;
-    }
-
-    // Important: once the student has approved a request, the request log is a
-    // historical record. It should stay approved even if the student later
-    // removes the current permission from the mobile app.
-    const updated = await prisma.permissionRequestLog.update({
-      where: {
-        id: input.request.id,
-      },
-      data: {
-        status: "APPROVED",
-      },
-    });
-
-    return updated as StoredPermissionRequest;
-  } catch (error) {
-    console.warn(
-      `Could not sync request ${input.request.id} with EduWallet. Keeping stored status.`,
-    );
-
-    return input.request;
-  }
-}
-
+/**
+ * Creates an access request for View access (read) or Update access (write).
+ *
+ * The blockchain transaction is attempted first. The portal log is only
+ * written after that succeeds, so the request list does not claim that a
+ * request exists when EduWallet rejected it.
+ */
 export async function createPermissionRequest(
   input: CreateRequestInput,
 ): Promise<PermissionRequestDto> {
@@ -171,44 +112,78 @@ export async function createPermissionRequest(
     },
   });
 
-  return mapPermissionRequestDto(created as StoredPermissionRequest);
+  return mapPermissionRequestDto(created);
 }
 
+/**
+ * Lists portal request history and synchronizes pending rows with on-chain state.
+ *
+ * If the student has already approved the matching access request in the
+ * mobile app, a pending portal row is shown as approved without rewriting the
+ * historical database row.
+ */
 export async function listPermissionRequests(
   input: ListRequestsInput,
 ): Promise<PermissionRequestListResponse> {
   const q = normalizeSearchValue(input.q);
-  const statusFilter = normalizeStatusFilter(input.status);
-  const permissionTypeFilter = normalizePermissionTypeFilter(input.permissionType);
+  const status = (input.status ?? "").trim().toUpperCase();
+  const permissionType = (input.permissionType ?? "").trim().toUpperCase();
 
   const requests = await prisma.permissionRequestLog.findMany({
     where: {
       organizationId: input.organizationId,
-      ...(permissionTypeFilter ? { permissionType: permissionTypeFilter } : {}),
+      ...(status && ["PENDING", "APPROVED", "REJECTED"].includes(status)
+        ? { status: status as "PENDING" | "APPROVED" | "REJECTED" }
+        : {}),
+      ...(permissionType && ["READ", "WRITE"].includes(permissionType)
+        ? { permissionType: permissionType as "READ" | "WRITE" }
+        : {}),
     },
     orderBy: {
       createdAt: "desc",
     },
   });
 
-  const syncedRequests = await Promise.all(
-    requests.map((request) =>
-      syncPendingRequestStatus({
-        request: request as StoredPermissionRequest,
-        organizationId: input.organizationId,
-      }),
-    ),
-  );
-
   const requestDtos = await Promise.all(
-    syncedRequests.map((request) => mapPermissionRequestDto(request)),
+    requests.map(async (request) => {
+      let computedStatus = request.status.toLowerCase() as
+        | "pending"
+        | "approved"
+        | "rejected";
+
+      // Pending requests are checked against EduWallet because approval happens
+      // outside the portal, in the student-facing mobile app.
+      if (computedStatus === "pending") {
+        try {
+          const permission = await getOnChainPermissionStatus({
+            organizationId: input.organizationId,
+            studentSca: request.studentSca,
+          });
+
+          if (
+            request.permissionType === "READ" &&
+            (permission === "read" || permission === "write")
+          ) {
+            computedStatus = "approved";
+          }
+
+          if (request.permissionType === "WRITE" && permission === "write") {
+            computedStatus = "approved";
+          }
+        } catch (error) {
+          console.warn(
+            `Could not sync request ${request.id} with EduWallet. Keeping stored status.`,
+          );
+        }
+      }
+
+      return mapPermissionRequestDto(request, computedStatus);
+    }),
   );
 
-  const filteredDtos = requestDtos.filter((request) => {
-    const matchesStatus = !statusFilter || request.status.toUpperCase() === statusFilter;
-
-    return matchesStatus && requestMatchesQuery(request, q);
-  });
+  const filteredDtos = requestDtos.filter((request) =>
+    requestMatchesQuery(request, q),
+  );
 
   return {
     requests: filteredDtos,

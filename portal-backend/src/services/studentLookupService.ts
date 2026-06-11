@@ -1,3 +1,10 @@
+/**
+ * Student lookup service used by the portal backend.
+ *
+ * The selected StudentSource supplies searchable demo student metadata. This
+ * service adds organization-specific access status from EduWallet and pending
+ * request information from PostgreSQL.
+ */
 import { prisma } from "../lib/prisma";
 import { studentSource } from "../students";
 import { getOnChainPermissionStatus } from "../eduwallet/portalEduWalletClient";
@@ -7,6 +14,10 @@ import type {
   StudentSearchResponse,
 } from "../../../shared/portalApiTypes";
 
+/**
+ * Reads the newest pending portal request for a student.
+ * This is only used when the organization has no current on-chain access.
+ */
 async function getPendingRequestStatus(input: {
   organizationId: string;
   studentSca: string;
@@ -29,9 +40,17 @@ async function getPendingRequestStatus(input: {
     return null;
   }
 
-  return pendingRequest.permissionType === "WRITE" ? "pending-write" : "pending-read";
+  return pendingRequest.permissionType === "WRITE"
+    ? "pending-write"
+    : "pending-read";
 }
 
+/**
+ * Computes the access badge shown on the Students page.
+ *
+ * Current on-chain access takes precedence over pending portal requests, because
+ * the student may have approved a request in the mobile app after it was logged.
+ */
 async function getOrganizationPermissionStatus(input: {
   organizationId: string;
   studentSca: string;
@@ -54,7 +73,10 @@ async function getOrganizationPermissionStatus(input: {
 
     return pendingStatus ?? "none";
   } catch (error) {
-    console.error("Failed to compute organization-specific student permission status:", error);
+    console.error(
+      "Failed to compute organization-specific student permission status:",
+      error,
+    );
 
     return "none";
   }
@@ -75,6 +97,10 @@ async function enrichStudentWithPermissionStatus(input: {
   };
 }
 
+/**
+ * Searches portal-visible students and adds the logged-in organization
+ * permission status used by the frontend buttons.
+ */
 export async function searchStudents(
   query: string,
   organizationId: string,
@@ -96,6 +122,9 @@ export async function searchStudents(
   };
 }
 
+/**
+ * Resolves student metadata for request, verification, and issuance logs.
+ */
 export async function findStudentByIdOrSca(input: {
   studentId?: string | null;
   studentSca?: string | null;
