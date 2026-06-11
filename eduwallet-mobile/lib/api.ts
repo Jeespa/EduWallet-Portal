@@ -6,7 +6,7 @@ import { createGatewayClient } from "shared/clientApi";
  * Base URL for the EduWallet HTTP gateway as seen from the mobile app.
  * Read from Expo config, with a localhost fallback for development.
  */
-export const API_BASE_URL = process.env.EXPO_PUBLIC_GATEWAY_BASE_URL ?? "http://localhost:3000";
+export const API_BASE_URL = process.env.EXPO_PUBLIC_GATEWAY_BASE_URL ?? "http://localhost:3001";
 
 /**
  * Thin HTTP client shared between browser extension and mobile app.

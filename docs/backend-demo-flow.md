@@ -1,75 +1,28 @@
-# EduWallet Portal Backend Demo Flow
+# EduWallet Portal Demo Flow
 
-## Start services
+This document describes the manual demo flows for EduWallet Portal and the mobile app.
 
-### Terminal 1: Start local blockchain
+It assumes that the setup in the root `README.md` has already been completed. Use the root README for installation, environment files, database setup, service startup, and generated demo data.
 
-```cmd
-cd <repo-root>
-npx hardhat node
-```
+## Required running services
 
-### Terminal 2: Bootstrap EduWallet demo blockchain data
-
-```cmd
-cd <repo-root>
-npx hardhat run scripts\bootstrapPortalDemo.ts --network localhost
-```
-
-This generates:
+Keep these services running while testing the flows:
 
 ```text
-portal-backend\src\demo\portalDemoBlockchain.json
-portal-backend\.env.demo-chain
-gateway\.env.demo-chain
+Hardhat local blockchain        npm run hardhat:node
+gateway                         npm run dev:gateway
+portal-backend                  npm run dev:portal-backend
+EduWallet Portal                npm run dev:portal
+mobile app, if testing approval npm run dev:mobile
 ```
 
-### Terminal 3: Start student gateway
-
-```cmd
-cd <repo-root>\gateway
-copy .env.demo-chain .env
-npm run dev
-```
-
-The student gateway should run on:
+The expected local URLs are:
 
 ```text
-http://localhost:3001
-```
-
-### Terminal 4: Start portal backend
-
-```cmd
-cd <repo-root>\portal-backend
-npm run seed
-npm run dev
-```
-
-The portal backend should run on:
-
-```text
-http://localhost:4000
-```
-
-### Terminal 5: Start portal frontend
-
-```cmd
-cd <repo-root>\eduwallet-portal
-npx expo start
-```
-
-### Terminal 6: Web Demo Server
-
-```cmd
-cd <repo-root>\eduwallet-portal
-npm run demo:web
-```
-
-### Terminal 7: Launch Ngrok
-
-```cmd
-ngrok http 8080
+gateway:        http://localhost:3001
+portal-backend: http://localhost:4000
+portal:         shown by Expo web
+mobile app:     shown by Expo
 ```
 
 ## Important generated demo data
@@ -80,55 +33,38 @@ The generated blockchain demo data is stored in:
 portal-backend\src\demo\portalDemoBlockchain.json
 ```
 
-Use this file to find:
+Use this file to find generated student credentials and blockchain addresses. The values change every time the demo chain is bootstrapped.
 
-- generated student ID
-- generated student password
-- generated student smart account address
-- NTNU organization address
-- Nordic Hiring organization address
-- Nordic Hiring smart account address
-
-## University flow
-
-Goal:
+The most useful generated values are:
 
 ```text
-NTNU logs in
-→ creates an issuance draft
-→ submits the draft
-→ course result is written to EduWallet
-→ verification confirms the new course exists on-chain
+studentId
+password
+student smart account address
+organization contract addresses
+organization smart account addresses
 ```
 
-### Login as NTNU admin
+## Access terminology
 
-Use:
+The portal uses user-facing access terms:
 
 ```text
-Email: ingrid@ntnu.no
-Password: password123
+View access   = read permission
+Update access = write permission
 ```
 
-### Expected result
+A student approves or rejects access requests in the mobile app.
 
-After creating and submitting an issuance draft, a new course result should be written to the student’s EduWallet smart wallet.
-
-The result can be verified through the portal backend using the verification endpoint.
-
-## Company flow
+## Nordic Hiring flow
 
 Goal:
 
 ```text
 Nordic Hiring logs in
-→ requests read access to the student
-→ verification fails before approval
-→ student approves access through the student gateway
-→ verification succeeds after approval
+→ requests View access for a student
+→ verifies an existing result for a student it can already view
 ```
-
-### Login as Nordic Hiring
 
 Use:
 
@@ -137,27 +73,102 @@ Email: emma@nordichiring.no
 Password: password123
 ```
 
-### Expected result before approval
-
-Nordic Hiring should not be able to verify the student record before the student has approved read access.
-
-Expected message:
+Recommended tasks:
 
 ```text
-Organization does not have read access for this student.
+Request View access for Anna Berg.
+Verify Jonas Holm's existing result.
 ```
 
-## Notes
+Expected result:
+
+```text
+The access request is created and shown in the portal request list.
+The verification flow succeeds for a student Nordic Hiring can already view.
+```
+
+## NTNU flow
+
+Goal:
+
+```text
+NTNU logs in
+→ requests Update access for a student
+→ issues a new result to a student where Update access already exists
+```
+
+Use:
+
+```text
+Email: ingrid@ntnu.no
+Password: password123
+```
+
+Recommended tasks:
+
+```text
+Request Update access for Emil Nilsen.
+Issue a new result to Sara Lund.
+```
+
+Example result values:
+
+```text
+Course code: TEST1001
+Course name: Programming
+Programme: Computer Science
+ECTS: 5
+Grade: B
+Evaluation date: 2026-05-05
+```
+
+Expected result:
+
+```text
+The update access request is created and shown in the portal request list.
+The new result is written through the EduWallet SDK/contracts.
+The result can be seen when the student data is loaded again.
+```
+
+## Mobile approval flow
+
+Goal:
+
+```text
+Maya Eide logs in to the mobile app
+→ sees the pending NTNU View access request
+→ approves the request
+→ can later remove the granted access
+```
+
+Maya's credentials are generated during bootstrap. Find them in:
+
+```text
+portal-backend\src\demo\portalDemoBlockchain.json
+```
+
+Expected result:
+
+```text
+The pending NTNU request is visible in the mobile Access screen.
+Approving it grants View access to NTNU.
+Removing it revokes NTNU's access again.
+```
+
+## Restarting the local demo
 
 The local Hardhat blockchain state is temporary. If the Hardhat node is stopped, the blockchain state is lost.
 
 When restarting from scratch:
 
-1. start Hardhat node,
-2. rerun `bootstrapPortalDemo.ts`,
-3. copy generated environment files,
-4. restart gateway and portal backend,
-5. use the new generated student values from `portalDemoBlockchain.json`.
+1. Start the Hardhat node.
+2. Rerun `npm run demo:bootstrap`.
+3. Copy `gateway/.env.demo-chain` to `gateway/.env`.
+4. Recreate `portal-backend/.env` from `.env.example`.
+5. Fill in the database/authentication values.
+6. Append the new `portal-backend/.env.demo-chain` values.
+7. Rerun the portal backend database setup and seed commands.
+8. Restart gateway, portal backend, portal, and mobile app.
 
 Do not commit generated local secret/demo files:
 
