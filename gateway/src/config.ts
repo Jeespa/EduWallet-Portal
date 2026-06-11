@@ -51,3 +51,10 @@ export const PAYMASTER_ADDRESS = required("PAYMASTER_ADDRESS");
  * Defaults to 31337, which is the common ID for local development chains.
  */
 export const CHAIN_ID = Number(process.env.CHAIN_ID ?? "31337");
+
+/**
+ * Public IPFS gateway used when converting certificate hashes to URLs.
+ * Defaults to the public ipfs.io gateway for local demo usage.
+ */
+export const IPFS_GATEWAY_URL =
+  process.env.IPFS_GATEWAY_URL ?? "https://ipfs.io/ipfs/";
