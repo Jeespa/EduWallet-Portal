@@ -25,7 +25,7 @@ app.get("/health", (_req, res) => {
 if (!isProduction) {
   app.get("/debug/config", (_req, res) => {
     res.json({
-      studentSource: process.env.STUDENT_SOURCE ?? "mock",
+      studentSource: process.env.STUDENT_SOURCE ?? "demo",
       port: String(port),
     });
   });
