@@ -8,6 +8,13 @@ import { STUDENT_SEEDS } from "./demo/studentSeeds";
 import { createDemoStudent } from "./demo/students";
 import type { GeneratedStudent } from "./demo/types";
 
+/**
+ * Creates the full local blockchain state used by the portal and mobile demos.
+ *
+ * The script intentionally keeps orchestration here and delegates the details to
+ * smaller files under scripts/demo. The generated data is tied to the current
+ * Hardhat node and must be regenerated when the node is restarted.
+ */
 async function main() {
   console.log("Bootstrapping EduWallet portal demo blockchain...");
 

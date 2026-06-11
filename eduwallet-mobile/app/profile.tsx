@@ -1,7 +1,7 @@
 // app/profile.tsx
 import React, { useState } from "react";
 import { View, Text, StyleSheet, ScrollView, Modal, Pressable } from "react-native";
-import { useStudent } from "../context/StudentContext";
+import { useStudent } from "../src/context/StudentContext";
 import { router } from "expo-router";
 
 function shortenIdentifier(value?: string | null) {

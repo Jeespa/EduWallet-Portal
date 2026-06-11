@@ -1,6 +1,9 @@
 import type { Wallet } from "ethers";
 
 export type PermissionLevel = "none" | "read" | "write";
+
+// Registering organizations can create students and issue course results.
+// Access organizations are the portal organizations used for request/verification tasks.
 export type RegisteringOrganization = "ntnu" | "tbs" | "uio";
 export type AccessOrganization = "ntnu" | "nordicHiring";
 

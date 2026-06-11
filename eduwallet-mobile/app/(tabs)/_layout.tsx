@@ -2,7 +2,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { useStudent } from "../../context/StudentContext";
+import { useStudent } from "../../src/context/StudentContext";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**

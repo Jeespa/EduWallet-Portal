@@ -1,6 +1,6 @@
 // app/_layout.tsx
 import { Stack } from "expo-router";
-import { StudentProvider } from "../context/StudentContext";
+import { StudentProvider } from "../src/context/StudentContext";
 import { View } from "react-native";
 
 export default function RootLayout() {

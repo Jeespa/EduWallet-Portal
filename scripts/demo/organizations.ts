@@ -21,6 +21,13 @@ export type PreparedOrganizations = OrganizationWallets &
     issuerWallets: Record<RegisteringOrganization, Wallet>;
   };
 
+/**
+ * Registers the demo organizations on-chain and returns the wallets needed by
+ * later bootstrap steps.
+ *
+ * NTNU, Trondheim Business School, and UiO act as registering institutions.
+ * NTNU and Nordic Hiring also act as access-requesting portal organizations.
+ */
 export async function prepareDemoOrganizations(input: {
   deployer: {
     sendTransaction: (tx: {
@@ -35,6 +42,8 @@ export async function prepareDemoOrganizations(input: {
   const tbsWallet = new ethers.Wallet(TRONDHEIM_BUSINESS_SCHOOL_PRIVATE_KEY, ethers.provider);
   const uioWallet = new ethers.Wallet(UIO_PRIVATE_KEY, ethers.provider);
 
+  // The wallets are deterministic demo identities. They are funded from the
+  // Hardhat deployer account so they can register organizations and write data.
   for (const wallet of [ntnuWallet, nordicHiringWallet, tbsWallet, uioWallet]) {
     await (
       await input.deployer.sendTransaction({

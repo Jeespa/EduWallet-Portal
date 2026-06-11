@@ -9,14 +9,14 @@ import {
   Pressable,
   ScrollView,
 } from "react-native";
-import { useStudent } from "../../context/StudentContext";
+import { useStudent } from "../../src/context/StudentContext";
 import {
   getPermissionsWithSession,
   revokePermissionWithSession,
   grantPermissionWithSession,
   getFriendlyApiErrorMessage,
-} from "../../lib/api";
-import type { PermissionStatus } from "../../types";
+} from "../../src/lib/api";
+import type { PermissionStatus } from "../../src/types";
 
 type PermissionAction = "refresh" | "revoke" | "grant-view" | "grant-update" | null;
 

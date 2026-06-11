@@ -8,6 +8,13 @@ export type DeployedDemoContracts = {
   paymaster: any;
 };
 
+/**
+ * Deploys the contract set required by the local EduWallet demo.
+ *
+ * The returned contract instances are passed to the organization and student
+ * setup steps. The loose `any` types keep this demo script independent of
+ * generated TypeChain names, which makes it easier to rerun after fresh installs.
+ */
 export async function deployDemoContracts(): Promise<DeployedDemoContracts> {
   const EntryPointFactory = await ethers.getContractFactory("EntryPoint");
   const entryPoint = await EntryPointFactory.deploy();
@@ -33,6 +40,8 @@ export async function deployDemoContracts(): Promise<DeployedDemoContracts> {
   const paymaster = await PaymasterFactory.deploy(await entryPoint.getAddress());
   await paymaster.waitForDeployment();
 
+  // The demo paymaster sponsors account-abstraction operations, so it must hold
+  // enough local ETH for the seeded interactions used by the portal and mobile app.
   await (
     await entryPoint.depositTo(await paymaster.getAddress(), {
       value: ethers.parseEther("1000000"),

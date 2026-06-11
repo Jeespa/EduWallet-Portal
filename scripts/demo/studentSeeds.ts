@@ -1,5 +1,12 @@
 import type { StudentSeed } from "./types";
 
+/**
+ * Fixed demo scenarios used by the portal and mobile usability tests.
+ *
+ * The actual student IDs and passwords are generated at bootstrap time, but the
+ * names, courses, and intended access states are kept stable so the test tasks
+ * remain predictable.
+ */
 export const STUDENT_SEEDS: StudentSeed[] = [
   {
     name: "Anna",

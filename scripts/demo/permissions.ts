@@ -5,6 +5,12 @@ import { askForPermission, PermissionType } from "../../sdk/dist";
 import { STUDENT_PERMISSION_ABI } from "./constants";
 import type { PermissionLevel } from "./types";
 
+/**
+ * Seeds an already-approved permission directly on a student smart account.
+ *
+ * This uses Hardhat impersonation because the demo needs fixed starting access
+ * states without requiring a student UI interaction for every seeded student.
+ */
 export async function grantPermissionLocally(input: {
   studentSca: string;
   organizationSmartAccount: string;
@@ -43,6 +49,10 @@ export async function grantPermissionLocally(input: {
   }
 }
 
+/**
+ * Seeds a pending access request using the same SDK flow as a portal organization.
+ * The student still has to approve the request in the mobile app.
+ */
 export async function requestPermissionLocally(input: {
   studentSca: string;
   organizationWallet: Wallet;

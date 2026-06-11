@@ -2,7 +2,7 @@
 import React from "react";
 import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { useStudent } from "../../context/StudentContext";
+import { useStudent } from "../../src/context/StudentContext";
 
 /**
  * Detail screen for a single course.

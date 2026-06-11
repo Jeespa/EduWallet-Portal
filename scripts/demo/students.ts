@@ -16,6 +16,10 @@ function getSeededPermissions(
   return Object.keys(permissions) as AccessOrganization[];
 }
 
+/**
+ * Registers one demo student and prepares the on-chain state needed by the test
+ * plan: course results, initial access, and pending access requests.
+ */
 export async function createDemoStudent(input: {
   student: StudentSeed;
   issuerWallet: Wallet;
@@ -38,6 +42,8 @@ export async function createDemoStudent(input: {
 
   const ownerWallet = new ethers.Wallet(ownerPrivateKey, ethers.provider);
 
+  // The generated owner EOA is funded so the student account can participate in
+  // local account-abstraction flows during the mobile app access test.
   await (
     await input.deployerSendTransaction({
       to: ownerWallet.address,

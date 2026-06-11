@@ -13,6 +13,13 @@ import {
 } from "./constants";
 import type { GeneratedStudent, OrganizationSmartAccounts, OrganizationWallets } from "./types";
 
+/**
+ * Writes the generated demo data that the gateway, portal backend, and tester
+ * need after bootstrapping a new Hardhat chain.
+ *
+ * The files contain local demo private keys and generated student passwords.
+ * They are intentionally generated at runtime and should not be committed.
+ */
 export async function writeDemoFiles(input: {
   generatedStudents: GeneratedStudent[];
   organizationWallets: OrganizationWallets;
@@ -78,6 +85,9 @@ export async function writeDemoFiles(input: {
     JSON.stringify(demoOutput, null, 2),
   );
 
+  // Only portal organizations with seeded portal users need private keys here.
+  // Trondheim Business School is included in the JSON metadata as an issuer, but
+  // it is not used as a login organization in the portal demo.
   const envSnippet = [
     `EDUWALLET_ORG_PRIVATE_KEYS={"${NTNU_ORG_NUMBER}":"${NTNU_PRIVATE_KEY}","${NORDIC_HIRING_ORG_NUMBER}":"${NORDIC_HIRING_PRIVATE_KEY}","${UIO_ORG_NUMBER}":"${UIO_PRIVATE_KEY}"}`,
     `PORTAL_DEMO_STUDENTS_FILE=src/demo/portalDemoBlockchain.json`,
@@ -122,5 +132,5 @@ export function printDemoSummary() {
   console.log("UiO: Maya write");
   console.log("Maya Eide is registered by University of Oslo and reserved for mobile testing.");
   console.log("");
-  console.log("Copy the contents of portal-backend/.env.demo-chain into portal-backend/.env");
+  console.log("Append portal-backend/.env.demo-chain to portal-backend/.env.");
 }

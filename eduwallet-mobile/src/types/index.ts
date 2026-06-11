@@ -12,4 +12,4 @@ export type {
   PermissionStatus,
   ErrorResponse,
   AllPermissionsForStudent,
-} from "../../shared/apiTypes";
+} from "../../../shared/apiTypes";

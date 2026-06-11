@@ -10,11 +10,11 @@ import {
   Linking,
   Pressable,
 } from "react-native";
-import { useStudent } from "../../context/StudentContext";
-import type { CredentialsResponse } from "../../types";
+import { useStudent } from "../../src/context/StudentContext";
+import type { CredentialsResponse } from "../../src/types";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
-import { login } from "../../lib/api";
+import { login } from "../../src/lib/api";
 
 /**
  * Main tab screen.
