@@ -1,50 +1,166 @@
-# Welcome to your Expo app 👋
+# EduWallet Portal
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+EduWallet Portal is the web interface used by universities, organizations, and external verifiers in the EduWallet prototype. It is separate from the student-facing mobile app and browser extension.
 
-## Get started
+The portal is used to search for students, request access to student records, check academic results, and issue new results when the logged-in organization has the required permission.
 
-1. Install dependencies
+## Current scope
 
-   ```bash
-   npm install
-   ```
+The portal currently supports:
 
-2. Start the app
+- login for seeded university and organization users
+- dashboard overview of the current portal session and recent access requests
+- student search and student detail cards
+- access request creation
+- result verification/checking
+- result issuance for students where the organization has update access
+- frontend terminology that maps to the EduWallet permission model:
+  - **View access** = read permission
+  - **Update access** = write permission
 
-   ```bash
-   npx expo start
-   ```
+The portal does not currently implement public organization registration. In the thesis prototype, organizations and users are seeded through the portal backend.
 
-In the output, you'll find options to open the app in a
+## Tech stack
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- Expo
+- React Native / React Native Web
+- Expo Router
+- TypeScript
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Project structure
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+eduwallet-portal/
+  app/
+    (auth)/          # login routes
+    (dashboard)/     # portal pages after login
+    _layout.tsx
+    index.tsx
+  constants/         # shared frontend constants/theme values
+  lib/               # portal API client and helpers
+  src/               # reusable portal code
+  assets/            # images and static assets
+  package.json
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Configuration
 
-## Learn more
+The portal talks to `portal-backend` through an environment variable.
 
-To learn more about developing your project with Expo, look at the following resources:
+Create `eduwallet-portal/.env`:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```env
+EXPO_PUBLIC_PORTAL_BACKEND_BASE_URL=http://localhost:4000
+```
 
-## Join the community
+When running through a tunnel or deployed proxy, replace the URL with the public backend URL.
 
-Join our community of developers creating universal apps.
+## Setup
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+From `eduwallet-portal/`:
+
+```bash
+npm install
+```
+
+From the repository root, the same install can be run with:
+
+```bash
+npm run deps:portal
+```
+
+## Running the portal locally
+
+Start the portal backend first:
+
+```bash
+cd ../portal-backend
+npm run dev
+```
+
+Then start the portal web app:
+
+```bash
+cd ../eduwallet-portal
+npm run web
+```
+
+From the repository root, this can also be started with:
+
+```bash
+npm run dev:portal
+```
+
+The Expo web server will print the local URL in the terminal.
+
+## Demo login users
+
+The portal users are created by the portal backend seed script. The most relevant demo users are:
+
+```text
+NTNU University
+  ingrid@ntnu.no / password123
+
+Nordic Hiring AS
+  emma@nordichiring.no / password123
+```
+
+Other seeded users may exist for role-specific backend testing. For the usability-test flow, Ingrid and Emma are the main accounts.
+
+## Running with the full local demo
+
+The portal is normally used together with:
+
+- a local Hardhat node
+- the EduWallet demo bootstrap script
+- PostgreSQL
+- `portal-backend`
+
+A typical full-system flow is:
+
+```bash
+# terminal 1, from repository root
+npm run hardhat:node
+
+# terminal 2, from repository root
+npm run demo:bootstrap
+npm run portal:prisma:generate
+npm run portal:prisma:migrate
+npm run portal:seed
+npm run dev:portal-backend
+
+# terminal 3, from repository root
+npm run dev:portal
+```
+
+The bootstrap script writes generated demo-chain environment files. Copy the relevant values into the backend `.env` files before starting the services.
+
+## Exporting the web build
+
+To export the portal as a static web build:
+
+```bash
+npm run export:web
+```
+
+For a demo/proxy setup where the backend is served under `/api`:
+
+```bash
+npm run export:web:demo
+```
+
+The exported files are written to the Expo output directory.
+
+## Linting
+
+```bash
+npm run lint
+```
+
+## Notes and limitations
+
+- The portal is a thesis prototype, not a production identity or organization-registration system.
+- Portal users and organizations are seeded locally.
+- The portal backend stores portal-side state in PostgreSQL.
+- Academic records and permission operations are handled through the EduWallet smart contracts and SDK integration in the backend.
+- The portal backend is separate from the student-facing gateway. The gateway is used by student clients, while `portal-backend` supports portal workflows.

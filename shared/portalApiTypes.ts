@@ -75,6 +75,16 @@ export type CreateVerificationBody = {
   courseCode?: string;
 };
 
+export type VerificationCourseDto = {
+  code: string;
+  name?: string;
+  degreeCourse?: string;
+  ects?: number | string;
+  grade?: string;
+  evaluationDate?: string | null;
+  certificateHash?: string | null;
+};
+
 export type VerificationDto = {
   id: string;
   verificationType?: string;
@@ -84,6 +94,7 @@ export type VerificationDto = {
   studentSca?: string;
   certificateCid?: string | null;
   courseCode?: string | null;
+  course?: VerificationCourseDto | null;
   createdAt?: string | Date;
 };
 

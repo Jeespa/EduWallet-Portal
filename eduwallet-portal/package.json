@@ -10,7 +10,7 @@
     "lint": "expo lint",
     "export:web": "npx expo export -p web",
     "export:web:demo": "set EXPO_PUBLIC_PORTAL_BACKEND_BASE_URL=/api&& npx expo export -p web",
-    "demo:web": "npm run export:web:demo && npm run serve:demo"
+    "demo:web": "npm run export:web:demo"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

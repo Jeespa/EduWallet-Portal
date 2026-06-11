@@ -1,176 +1,214 @@
 # EduWallet Mobile App
 
-React Native / Expo application that provides a mobile student
-interface to EduWallet. The app talks to the **EduWallet gateway**
-instead of the blockchain directly and reuses the shared TypeScript
-types and HTTP client.
+The EduWallet mobile app is the student-facing mobile client for EduWallet. It is built with Expo and React Native.
 
-> **Platform note**  
-> The app is built with Expo and React Native and is therefore
-> platform-agnostic. It has been **developed and tested on Android**.  
-> In principle, the same code can run on iOS (via Expo Go or a standalone
-> build) as long as the gateway URL is reachable from the device.  
-> This thesis only documents and evaluates the Android setup.
+The app does not interact with the blockchain directly. It calls the EduWallet gateway, which performs student login, reads wallet data, and submits permission changes through the existing EduWallet smart contracts.
 
----
+> **Platform note**
+> The app was developed and tested on Android with Expo Go. The same Expo project can also run on iOS, but the thesis prototype only documents and evaluates the Android setup.
 
-## ✨ Features
+## Role in the system
 
-- Login using **ID + password** via the gateway (`POST /auth/login`).
-- Wallet view that shows:
-  - student name and basic profile
-  - total ECTS balance
-  - list of courses with grade, ECTS, degree programme and university
-  - links to course certificates (IPFS / HTTP URLs)
-- Course details screen with evaluation date and full university info.
-- Permissions screen that lets the student:
-  - review per-university read/write permissions
-  - see pending requests
-  - accept read/write requests
-  - revoke existing permissions
-- Profile screen with personal details and smart account address.
-- Shared state via a `StudentContext` so all screens see the same
-  logged-in student.
+The mobile app is used by students. It allows a student to:
 
----
+- log in with the student ID and password generated during registration,
+- view academic results and course details,
+- see which organizations have access to their EduWallet records,
+- approve pending access requests,
+- remove existing access,
+- view basic profile and EduWallet account information.
 
-## 📁 Structure
+In the thesis prototype, students approve access requests in the mobile app. The EduWallet Portal is used by universities and organizations to request access, verify records, and issue results.
 
-    eduwallet-mobile/
-    ├── app/
-    │   ├── _layout.tsx         # Root layout with StudentProvider + Stack
-    │   ├── (tabs)/             # Tabbed main UI (wallet + permissions)
-    │   │   ├── _layout.tsx     # Tab bar configuration
-    │   │   ├── index.tsx       # Home / wallet screen
-    │   │   └── permissions.tsx # Permissions screen
-    │   ├── course/
-    │   │   ├── _layout.tsx     # Course stack
-    │   │   └── [index].tsx     # Course details screen
-    │   └── profile.tsx         # Profile screen
-    ├── context/
-    │   └── StudentContext.tsx  # StudentProvider + useStudent hook
-    ├── lib/
-    │   └── api.ts              # Gateway HTTP wrapper (uses shared/clientApi.ts)
-    └── types/
-        └── index.ts            # Re-exports shared/apiTypes.ts for the app
+## Project structure
 
-The app uses **Expo Router** for navigation and a dedicated
-`StudentContext` to store:
+```text
+eduwallet-mobile/
+  app/
+    _layout.tsx              Root layout and StudentProvider
+    (tabs)/
+      _layout.tsx            Main tab layout
+      index.tsx              Wallet screen
+      permissions.tsx        Access screen route
+    course/
+      _layout.tsx
+      [index].tsx            Course detail screen
+    profile.tsx              Profile screen
+  context/
+    StudentContext.tsx       Logged-in student/session state
+  lib/
+    api.ts                   Mobile wrapper around shared/clientApi.ts
+  types/
+    index.ts                 Mobile type re-exports
+```
 
-- `id` – student ID
-- `sca` – student smart account address
-- `data` – full `CredentialsResponse` from the gateway
+The file `app/(tabs)/permissions.tsx` is still named after the underlying permission model. In the user interface, this is presented as **Access**.
 
----
+## Gateway integration
 
-## 🔗 Gateway integration
+The app uses the shared gateway client from `shared/clientApi.ts` and shared payload types from `shared/apiTypes.ts`.
 
-All HTTP calls go through `app/lib/api.ts`, which in turn uses the
-shared HTTP client:
+The gateway base URL is read from:
 
-- `shared/clientApi.ts` – common HTTP client used by both frontends
-- `shared/apiTypes.ts` – shared TypeScript types for all payloads
+```text
+EXPO_PUBLIC_GATEWAY_BASE_URL
+```
 
-The base URL is configured via an Expo env variable:
+Create `eduwallet-mobile/.env` if you need to override it:
 
-    // app/lib/api.ts
-    export const API_BASE_URL =
-      process.env.EXPO_PUBLIC_GATEWAY_BASE_URL ?? "http://localhost:3000";
+```text
+EXPO_PUBLIC_GATEWAY_BASE_URL=http://10.0.2.2:3000
+```
 
-> **Important**  
-> When running the app on a **device** or emulator, `localhost`
-> refers to the device itself, not your development machine.  
-> You usually need to override this with a LAN/emulator URL.
+Common values:
 
-Examples:
+```text
+Android emulator:  http://10.0.2.2:3000
+Physical device:   http://<your-laptop-LAN-ip>:3000
+Remote testing:    https://<your-ngrok-url>
+```
 
-- Android emulator (tested): `http://10.0.2.2:3000`
-- iOS simulator (in principle): `http://127.0.0.1:3000`
-- Physical device (Android or iOS): `http://<your-laptop-LAN-ip>:3000`
+When using a physical phone, `localhost` points to the phone itself. The phone must be able to reach the gateway URL.
 
-Create a `.env` file in `eduwallet-mobile/`:
+## Student session flow
 
-    EXPO_PUBLIC_GATEWAY_BASE_URL=http://10.0.2.2:3000
+The app logs in through the gateway endpoint:
 
-and restart Expo so the new value is picked up.
+```text
+POST /auth/login
+```
 
----
+The gateway response contains the student payload, smart account address, current access state, and a temporary session token. The app uses this token for refresh, approve, and remove-access actions. This avoids asking the test user to re-enter the long student password for each action.
 
-## ✅ Prerequisites
+The temporary session is a prototype mechanism. It is kept in the gateway process and expires after a configured time. It should be replaced by a stronger authentication or delegated-signing model in a production system.
 
-- Node.js (LTS)
-- `npm` or `yarn`
-- Expo tooling (`npx expo` is fine)
-- A running **EduWallet gateway** (see `gateway/README.md`)
-- Contracts deployed and test data set up via the CLI
+## Prerequisites
 
----
+- Node.js and npm
+- Expo Go on the test device, or an Android emulator
+- A running local Hardhat chain
+- A running EduWallet gateway
+- Demo data generated with `scripts/bootstrapPortalDemo.ts`
 
-## 🚀 Running the app
+For the complete demo setup, use the root README first. This README only covers the mobile app itself.
+
+## Installation
 
 From the repository root:
 
-    cd eduwallet-mobile
+```cmd
+cd eduwallet-mobile
+npm install
+```
 
-    # install dependencies
-    npm install   # or: yarn
+## Running locally
 
-    # (optional) configure API base URL in .env
-    # EXPO_PUBLIC_GATEWAY_BASE_URL=http://10.0.2.2:3000
+Start the app:
 
-    # start Expo
-    npx expo start
-    # or: npm run start (depending on package.json)
+```cmd
+npm run start
+```
 
-Then, using the Expo CLI:
+or clear the Expo cache first:
 
-- press `a` to open the **Android emulator** (this is the tested path),
-- or `i` to open the **iOS simulator** (in principle supported, not tested),
-- or scan the QR code with the Expo Go app on a physical device (Android or iOS),
-  making sure the device can reach the gateway URL over the network.
+```cmd
+npx expo start -c
+```
 
-Once the app and gateway are running, you can:
+Then choose one of the Expo options:
 
-1. Log in with a test student ID/password set up via the CLI.
-2. Browse the wallet (total ECTS + course list).
-3. Tap a course to open the course details screen.
-4. Open the **Permissions** tab to view and manage university permissions.
-5. Open the **Profile** screen for personal details and the smart account.
+```text
+a  Open Android emulator
+w  Open web version
+Scan QR code with Expo Go on a physical device
+```
 
----
+The Android emulator path is the tested setup.
 
-## 🧱 State management
+## Running on a physical phone on the same network
 
-The `StudentProvider` in `context/StudentContext.tsx` wraps the
-entire navigation tree. It provides:
+Set the gateway URL to your laptop's LAN address:
 
-- `id`, `sca`, `data` – current student info
-- `setStudent(id, sca, data)` – called after successful login
-- `clearStudent()` – called on logout
+```text
+EXPO_PUBLIC_GATEWAY_BASE_URL=http://<your-laptop-LAN-ip>:3000
+```
 
-Screens use the `useStudent()` hook to access this state.
+Then restart Expo and scan the QR code with Expo Go.
 
----
+The phone and laptop must be on the same network. The gateway must also allow connections from the phone.
 
-## 📸 Screenshots
+## Remote mobile testing
 
-The `figures/` folder contains static screenshots of the app used in
-the thesis:
+For remote testing, two separate connections matter:
 
-- `Login.jpg`, `Login Filled.jpg`
-- `Wallet.jpg`
-- `Course Graded.jpg`, `Course Ungraded.jpg`
-- `Permissions 1.jpg`, `Permissions 2.jpg`
-- `Profile.jpg`
+1. Expo must deliver the app bundle to the phone.
+2. The app must reach the local EduWallet gateway.
 
-They are not required for running the app, but are useful in
-documentation and the thesis.
+A practical setup is:
 
----
+```cmd
+cd eduwallet-mobile
+npx expo start -c --tunnel
+```
 
-## 🔗 Related components
+and, in another terminal:
 
-- `gateway/` – the HTTP gateway that this app talks to
-- `browser-extension/` – alternative student client in the browser
-- `shared/` – shared types and HTTP client (`apiTypes.ts`,
-  `clientApi.ts`) reused across all frontends.
+```cmd
+ngrok http 3000
+```
+
+Then set:
+
+```text
+EXPO_PUBLIC_GATEWAY_BASE_URL=https://<your-ngrok-url>
+```
+
+Restart Expo after changing the environment variable.
+
+## Main screens
+
+### Wallet
+
+Shows the student's academic records, total ECTS, and course list.
+
+### Course details
+
+Shows course metadata, grade, evaluation date, issuing university, and certificate link when available.
+
+### Access
+
+Shows current organization access and pending access requests. Students can approve requests or remove existing access.
+
+The UI uses friendly terms:
+
+```text
+View access   = read permission
+Update access = write permission
+```
+
+### Profile
+
+Shows personal details, course summary, and expandable technical EduWallet details.
+
+## Useful commands
+
+```cmd
+npm run start
+npm run android
+npm run web
+npm run lint
+```
+
+The root package also provides:
+
+```cmd
+npm run dev:mobile
+npm run dev:mobile:tunnel
+```
+
+## Related components
+
+- `gateway/` — student-client API used by the mobile app.
+- `shared/` — shared TypeScript types and gateway HTTP client.
+- `eduwallet-portal/` — organization/university portal.
+- `portal-backend/` — backend for the portal. It is separate from the student gateway.

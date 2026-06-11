@@ -9,9 +9,7 @@ function createStudentSource(): StudentSource {
       return new DemoStudentSource();
 
     default:
-      throw new Error(
-        `Unsupported STUDENT_SOURCE "${sourceType}". Supported values: demo.`,
-      );
+      throw new Error(`Unsupported STUDENT_SOURCE "${sourceType}". Supported values: demo.`);
   }
 }
 

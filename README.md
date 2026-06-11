@@ -1,384 +1,346 @@
-# EduWallet
-
-## Table of Contents
-
-- [EduWallet](#eduwallet)
-  - [Table of Contents](#table-of-contents)
-  - [🧭 Overview](#-overview)
-  - [📁 Project Structure](#-project-structure)
-    - [browser-extension](#browser-extension)
-    - [gateway](#gateway)
-    - [eduwallet-mobile](#eduwallet-mobile)
-    - [shared](#shared)
-    - [cli](#cli)
-    - [contracts](#contracts)
-    - [sdk](#sdk)
-    - [hardhat.config.ts](#hardhatconfigts)
-    - [package.json](#packagejson)
-  - [📦 Installation and Setup Instructions](#-installation-and-setup-instructions)
-    - [Initial project setup](#initial-project-setup)
-    - [Run a local blockchain and deploy contracts](#run-a-local-blockchain-and-deploy-contracts)
-    - [Run the gateway](#run-the-gateway)
-    - [Run the browser extension](#run-the-browser-extension)
-    - [Run the mobile app](#run-the-mobile-app)
-
-## 🧭 Overview
-
-EduWallet is a blockchain-based academic registry system that allows universities
-to issue, and students to manage, their academic records using Ethereum smart
-contracts and account abstraction.
-
-In the updated architecture, student-facing clients (browser extension and
-mobile app) no longer talk directly to Ethereum JSON–RPC. Instead they use a
-shared HTTP gateway, which wraps the original SDK-style logic in a server-side
-`EduWalletClient`. A small set of shared TypeScript types and a thin HTTP
-client are reused by both clients.
-
-## 📁 Project Structure
-
-    eduwallet/
-    ├── browser-extension/      # React + Vite student client (browser extension)
-    ├── eduwallet-mobile/       # Expo / React Native mobile app
-    ├── gateway/                # Node.js / Express HTTP gateway
-    ├── shared/                 # Shared TypeScript types + HTTP client
-    ├── cli/                    # CLI tooling (university / admin side)
-    ├── contracts/              # Solidity smart contracts
-    ├── sdk/                    # Original SDK library (used by CLI / gateway)
-    ├── ...
-    ├── hardhat.config.ts
-    └── package.json
-
-Each project folder contains (or should contain) a README that describes the
-corresponding component in more detail.
+# EduWallet V3.0
 
-### browser-extension
+EduWallet is a blockchain-based academic credential prototype. It uses Ethereum smart contracts, account abstraction, and off-chain certificate storage to let students control access to their academic records.
 
-React-based web application that serves as the student interface for the
-EduWallet system in the browser. It is structured as a modern Chrome/Firefox
-extension and talks to the HTTP gateway using the shared client in
-`shared/clientApi.ts`.
+This repository contains the original EduWallet blockchain core and SDK, the student-facing gateway from the preparatory work, and the EduWallet Portal developed for the master thesis. The current demo setup is intended for local development and usability testing.
 
-Main responsibilities:
+## Repository structure
 
-- Student login via the gateway (`POST /auth/login`).
-- Display of wallet information, courses and ECTS.
-- Display and management of university permissions, using the multi-university
-  permissions view exposed by the gateway.
-- Linking to IPFS-hosted course certificates where available.
+```text
+EduWallet-V3.0/
+├── contracts/              # Solidity smart contracts
+├── sdk/                    # EduWallet SDK used by university-side tooling
+├── cli/                    # Command-line tooling from the original prototype
+├── gateway/                # Student-client HTTP API layer
+├── shared/                 # Shared API types and HTTP helpers
+├── browser-extension/      # Student browser extension
+├── eduwallet-mobile/       # Student mobile app built with Expo
+├── portal-backend/         # Backend for EduWallet Portal
+├── eduwallet-portal/       # EduWallet Portal frontend
+├── scripts/                # Local deployment and demo bootstrap scripts
+├── docs/                   # Extra notes and development documentation
+├── hardhat.config.ts       # Hardhat configuration
+└── package.json            # Root scripts for setup, builds and demo commands
+```
 
-### gateway
+## Architecture overview
 
-Node.js / Express HTTP gateway that exposes a small REST API to student clients.
-It:
+EduWallet has two main backend entry points:
 
-- Reconstructs the student’s owner key from ID + password.
-- Uses the `EduWalletClient` (from `gateway/src/eduwalletClient.ts`) to talk to
-  the smart contracts via account abstraction.
-- Returns JSON responses typed by the shared `shared/apiTypes.ts` module.
-- Handles errors so that clients receive friendly messages instead of raw
-  stack traces. For example, invalid login credentials result in a 401 status
-  with a clean JSON error:
-  `{ "error": "Authentication failed. Check your credentials." }`.
+- `gateway` is the student-client API layer. It is used by the mobile app and browser extension. It exposes student login, record retrieval, access overview, and student-approved access changes.
+- `portal-backend` is the API layer for EduWallet Portal. It is used by universities, organizations, and external verifiers. It uses the EduWallet SDK/contracts for portal-side actions such as requesting access, verifying records, and issuing results.
 
-Main endpoints (documented in detail in the thesis and in `gateway/src/index.ts`):
+The portal backend does not reuse the student gateway. They are separate services with different users and responsibilities.
 
-- `POST /auth/login`
-- `POST /students/:studentSca/permissions`
-- `POST /students/:studentSca/permissions/revoke`
-- `POST /students/:studentSca/permissions/grant`
-- `GET  /health`
+The student clients are:
 
-In this version, the gateway is typically run in development mode:
+- `eduwallet-mobile`, the mobile student client used in the master thesis usability test.
+- `browser-extension`, the earlier student browser extension, updated during preparatory work to use the gateway.
 
-- Development: `npm run dev` (TypeScript via ts-node or a similar runner).
+The organization-facing client is:
 
-A more production-like setup would add `build` and `start` scripts to the
-gateway’s own `package.json` and run:
+- `eduwallet-portal`, the web portal for universities and organizations.
 
-- `npm run build` to emit JavaScript into `dist/`.
-- `npm start` to serve the compiled code.
-
-### eduwallet-mobile
+## Prerequisites
 
-Expo / React Native implementation of the student client. It mirrors the
-extension’s features:
+Install the following before running the demo:
 
-- Login and wallet screen (ECTS total + course list).
-- Course detail screen.
-- Permissions screen backed by the multi-university permissions view.
-- Profile screen with basic student and wallet info.
+- Node.js LTS, preferably Node 20 or Node 22.
+- npm.
+- Git.
+- PostgreSQL for the portal backend database.
+- Expo Go on a phone, or an Android/iOS emulator, if testing the mobile app.
+- Optional: ngrok for remote mobile tests where the phone is not on the same network as the development machine.
 
-The app uses:
+The commands below are written for Windows `cmd.exe`, because the project has mainly been developed and tested on Windows. They can be adapted for macOS/Linux by replacing `copy` with `cp`.
 
-- The shared HTTP client (`shared/clientApi.ts`).
-- The common types from `shared/apiTypes.ts`.
+## Fresh installation
 
-The mobile app is normally run via the Expo development server (see
-[Run the mobile app](#run-the-mobile-app)); there is no dedicated `npm run build`
-script at the root for producing a native binary.
+Clone the repository and install dependencies:
 
-### shared
+```cmd
+git clone https://github.com/Jeespa/EduWallet-V3.0.git
+cd EduWallet-V3.0
+npm install
+npm run deps:all
+```
 
-Small shared TypeScript library that contains:
+Build the core packages once:
 
-- `apiTypes.ts`: common data structures such as `CredentialsResponse`,
-  `StudentPayload`, `CourseResult`, `AllPermissionsForStudent`,
-  `UniversityPermissionEntry`, etc.
-- `clientApi.ts`: a tiny factory (`createGatewayClient`) that wraps the gateway
-  REST API and centralises JSON/error handling.
+```cmd
+npm run compile
+npm run build-sdk
+npm run build-cli
+npm run build:gateway
+npm run build:portal-backend
+```
 
-Both the browser extension and the mobile app import from this folder so their
-network code stays in sync and consistent with the gateway.
+The full root build can also be run with:
 
-### cli
+```cmd
+npm run build
+```
 
-Command-line interface tool mainly used on the university side to test the SDK
-and manage data. It provides functionality for managing academic credentials,
-universities and student records (e.g. registering students, issuing course
-results).
+The mobile app and portal frontend are normally run through Expo during development, so they do not need a native build for the local demo.
 
-The CLI uses the same SDK that backs the gateway, but interacts with it
-directly via Hardhat rather than via HTTP.
+## Running the local demo
 
-### contracts
+The demo uses a local Hardhat blockchain. The bootstrap script deploys the contracts, creates demo organizations and students, and writes local configuration files.
 
-Solidity smart contracts that form the blockchain foundation of the EduWallet
-system:
+### 1. Start the local blockchain
 
-- `StudentsRegister`, `Student`, `University`, etc.
-- Account abstraction components such as the `EntryPoint` and paymaster
-  contracts (as in the original prototype).
+Open a terminal in the repository root:
 
-Contracts are compiled and tested via Hardhat (see `hardhat.config.ts`).
+```cmd
+npm run hardhat:node
+```
 
-### sdk
+Keep this terminal running.
 
-TypeScript library that provides a programmatic API for interacting with the
-EduWallet contracts. It abstracts away low-level blockchain details and
-implements account abstraction flows.
+### 2. Bootstrap the EduWallet demo chain
 
-The gateway embeds this logic through its `EduWalletClient` instead of having
-this complexity in the front-end.
+Open a second terminal in the repository root:
 
-The SDK is bundled with `tsup` into both ESM and CJS builds, and emits
-TypeScript declaration files for downstream consumers.
+```cmd
+npm run build-sdk
+npm run demo:bootstrap
+```
 
-### hardhat.config.ts
+The bootstrap script writes:
 
-Configures the Hardhat development environment for the project. Key aspects
-include:
+```text
+gateway/.env.demo-chain
+portal-backend/.env.demo-chain
+portal-backend/src/demo/portalDemoBlockchain.json
+```
 
-- Solidity compiler settings:
-  - Solidity version `0.8.28` (latest version fully supported by Hardhat at the
-    time of writing).
-  - Optimisation enabled with 1,000 runs to reduce bytecode size and keep
-    contracts below the 24,576-byte limit.
-  - Targets the `cancun` EVM version to make use of recent Ethereum features.
+It also prints the recommended demo students and expected access states.
 
-- Network configurations:
-  - `hardhat`: in-memory development network with preset test accounts, used
-    to deploy smart contracts and act as system administrator.
-  - `localhost`: connection to a local Ethereum node
-    (`http://127.0.0.1:8545`).
+### 3. Copy generated environment files
 
-### package.json
+Copy the generated gateway configuration:
 
-The root `package.json` ties the monorepo together. Typical scripts include:
+```cmd
+copy gateway\.env.demo-chain gateway\.env
+```
 
-- `deps:sdk` – install dependencies for the SDK package.
-- `deps:cli` – install dependencies for the CLI.
-- `deps:ext` – install dependencies for the browser extension.
-- `deps:gateway` – install dependencies for the gateway.
-- `deps:mobile` – install dependencies for the mobile app.
-- `dependencies` – convenience script that runs the individual `deps:*`
-  scripts. In practice it is safest to:
-  1. run `npm install` once at the root, and
-  2. then run the `deps:*` scripts.
-- `build-sdk` – builds the SDK (ESM + CJS bundles and type declarations).
-- `build-cli` – builds the CLI.
-- `build` – compiles the smart contracts and then builds the SDK, CLI and
-  browser extension. Depending on how the subprojects are configured, the
-  gateway and mobile app may still be run primarily in development mode.
+Copy the generated portal backend blockchain configuration:
 
-There is also a `cli` script that runs the CLI entrypoint via Hardhat on a
-local network.
+```cmd
+copy portal-backend\.env.demo-chain portal-backend\.env
+```
 
-## 📦 Installation and Setup Instructions
+The portal backend also needs database and authentication settings. Add these values to `portal-backend/.env`:
 
-Prerequisites:
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/eduwallet_portal
+JWT_SECRET=dev-secret-change-me
+PORT=4000
+STUDENT_SOURCE=demo
+```
 
-- Node.js LTS (recommended: Node 20 or Node 22).  
-  This project has been validated with Node 22; newer major versions (such as
-  Node 24) may cause issues with Hardhat or its dependencies.
-- npm (bundled with Node).
-- Chrome browser for browser extension.
-- A local Ethereum node (Hardhat, Anvil or Ganache). Examples below assume
-  Hardhat.
-- Optional: a Filebase or other IPFS pinning service account if you want to
-  issue and pin new certificates. Existing certificates can be read through any
-  public IPFS gateway.
+Adjust the `DATABASE_URL` to match your local PostgreSQL setup.
 
-On Windows, all the commands below can be run from `cmd.exe`. You do not need
-to enable PowerShell script execution.
+### 4. Prepare the portal backend database
 
-### Initial project setup
+Create the PostgreSQL database if it does not already exist. For example:
 
-These steps prepare the whole monorepo for development.
+```cmd
+createdb eduwallet_portal
+```
 
-1. Clone the repository
+Then run the portal backend database setup:
 
-   ```bash
-   git clone <this-repo-url>
-   cd eduwallet  (or the folder name you cloned into)
-   ```
+```cmd
+npm run portal:prisma:generate
+npm run portal:prisma:migrate
+npm run portal:seed
+```
 
-2. Install root-level dependencies
+The seed script creates demo portal users and clears old portal-side logs. Academic records and access state are read from the EduWallet demo chain and the generated `portalDemoBlockchain.json` file.
 
-   From the project root:
+### 5. Start the gateway
 
-   ```bash
-   npm install
-   ```
+Open a terminal in the repository root:
 
-   or
+```cmd
+npm run dev:gateway
+```
 
-   ```bash
-   npm install deps:root
-   ```
+The gateway normally runs on:
 
-   This installs Hardhat, TypeScript tooling and shared top-level dependencies.
-
-3. Install dependencies in all component directories
+```text
+http://localhost:3001
+```
 
-   From the project root, run the per-folder scripts:
-
-   ```bash
-   npm run deps:sdk
-   npm run deps:cli
-   npm run deps:ext
-   npm run deps:gateway
-   npm run deps:mobile
-   ```
+### 6. Start the portal backend
 
-   or
+Open another terminal in the repository root:
 
-   ```bash
-   npm run deps:all
-   ```
+```cmd
+npm run dev:portal-backend
+```
 
-4. (Optional) Build the core components once
+The portal backend normally runs on:
 
-   To ensure the toolchain compiles correctly:
+```text
+http://localhost:4000
+```
 
-   ```bash
-   npm run build
-   ```
-
-   This will:
-
-   - Compile the smart contracts via Hardhat.
-   - Build the SDK.
-   - Build the CLI.
-   - Build the browser extension.
-   - Build the gateway
-
-### Run a local blockchain and deploy contracts
-
-1. Start a local Hardhat chain from the project root:
-   ```bash
-   npx hardhat node
-   ```
-2. In a separate terminal, deploy the contracts using the CLI or dedicated
-   deployment scripts (see the documentation in `cli/` and `contracts/`).
-   Deployment will print the addresses of:
-
-   - `StudentsRegister`
-   - `EntryPoint`
-   - The paymaster
-   - Any sample universities/students created as part of the deployment
-
-3. Record these addresses; they are used when configuring the gateway.
-
-### Run the gateway
-
-1. Configure the gateway using environment variables (for example in
-   `gateway/.env`):
-   ```
-   PORT=3000
-   RPC_URL=http://localhost:8545
-   STUDENTS_REGISTER_ADDRESS=0x...
-   ENTRY_POINT_ADDRESS=0x...
-   PAYMASTER_ADDRESS=0x...
-   CHAIN_ID=31337
-   ```
-2. Install dependencies (if not already done) and start the gateway in
-   development mode:
-   ```bash
-   cd gateway
-   npm install
-   npm run dev
-   ```
-   The HTTP API should now be reachable at:
-   ```
-   http://localhost:3000
-   ```
-   On authentication failure (e.g. wrong ID/password), the gateway responds
-   with a clean JSON error (HTTP 401) so that the mobile app and browser
-   extension can show a user-friendly message instead of an internal stack
-   trace.
-
-### Run the browser extension
-
-1. Ensure backend components are running:
-
-   - Local blockchain via Hardhat:
-     ```
-     npx hardhat node
-     ```
-   - Gateway:
-     ```bash
-     cd gateway
-     npm run dev
-     ```
-
-2. Configure the extension’s gateway base URL via environment variable, e.g.
-   in `browser-extension/.env`:
-   ```
-   VITE_GATEWAY_BASE_URL=http://localhost:3000
-   ```
-3. Build the extension:
-
-   ```bash
-   cd browser-extension
-   npm install
-   npm run build
-   ```
-
-   This produces a `dist/` folder with the packaged extension.
-
-4. Load the unpacked extension in your browser:
-
-   - In Chrome: open `chrome://extensions`, enable Developer Mode, click
-     “Load unpacked” and select the `dist/` folder.
-
-### Run the mobile app
-
-1. Configure the Expo app to point at the gateway, e.g. in
-   `eduwallet-mobile/.env`:
-   ```
-   EXPO_PUBLIC_GATEWAY_BASE_URL=http://localhost:3000
-   ```
-2. Install dependencies (if not already done) and start the Expo dev server:
-   ```bash
-   cd eduwallet-mobile
-   npm install
-   npm run start
-   (or: npx expo start)
-   ```
-3. Open the app with an Android emulator, an iOS simulator, or a physical
-   device using the Expo Go client.
-
-   Note: This app has primarily been tested on Android. iOS support is
-   therefore not guaranteed.
-
----
+### 7. Start the EduWallet Portal
+
+Open another terminal in the repository root:
+
+```cmd
+npm run dev:portal
+```
+
+The portal frontend will open through Expo web. It uses `http://localhost:4000` as the default portal backend URL.
+
+### 8. Start the mobile app
+
+Open another terminal in the repository root:
+
+```cmd
+npm run dev:mobile
+```
+
+Open the QR code in Expo Go, or run it in an emulator.
+
+By default, the mobile app uses the gateway URL configured by `EXPO_PUBLIC_GATEWAY_BASE_URL`. If no value is set, it falls back to a local development URL. For a physical phone, make sure the URL is reachable from the phone.
+
+## Demo portal accounts
+
+The portal seed creates these users with the password `password123`:
+
+```text
+ingrid@ntnu.no              NTNU University admin
+marius@ntnu.no              NTNU requester
+sofie@ntnu.no               NTNU verifier
+lars@ntnu.no                NTNU issuer
+
+emma@nordichiring.no        Nordic Hiring admin
+oliver@nordichiring.no      Nordic Hiring verifier
+```
+
+For usability testing, the recommended portal accounts are:
+
+```text
+emma@nordichiring.no / password123
+ingrid@ntnu.no / password123
+```
+
+## Demo student accounts
+
+Student credentials are generated every time the demo chain is bootstrapped. Do not hard-code old student credentials in the README.
+
+After running:
+
+```cmd
+npm run demo:bootstrap
+```
+
+open:
+
+```text
+portal-backend/src/demo/portalDemoBlockchain.json
+```
+
+Use the generated `studentId` and `password` values from that file.
+
+Recommended demo students:
+
+```text
+Anna Berg       Nordic Hiring requests view access
+Jonas Holm      Nordic Hiring verifies an existing result
+Emil Nilsen     NTNU requests update access
+Sara Lund       NTNU issues a new result
+Nora Solheim    Backup verification student
+Maya Eide       Mobile app test student
+```
+
+Maya Eide is registered by University of Oslo and is reserved for the mobile app test. The bootstrap script creates a pending NTNU view request for her.
+
+## Remote mobile testing
+
+For local testing on the same Wi-Fi, the normal Expo QR code is usually enough.
+
+For remote testing, use:
+
+```cmd
+npm run dev:mobile:tunnel
+```
+
+The app itself can then be loaded through Expo tunnel.
+
+The mobile app must still reach the gateway. If the gateway is running locally on your machine, expose it with ngrok:
+
+```cmd
+ngrok http 3001
+```
+
+Then set the mobile app gateway URL to the ngrok HTTPS URL before starting Expo:
+
+```cmd
+set EXPO_PUBLIC_GATEWAY_BASE_URL=https://your-ngrok-url.ngrok-free.app
+npm run dev:mobile:tunnel
+```
+
+If the portal is tested remotely, expose the portal backend in the same way and set:
+
+```cmd
+set EXPO_PUBLIC_PORTAL_BACKEND_BASE_URL=https://your-portal-backend-url.ngrok-free.app
+npm run dev:portal
+```
+
+## Useful root scripts
+
+```cmd
+npm run compile                 # Compile smart contracts
+npm run hardhat:node            # Start local Hardhat chain
+npm run demo:bootstrap          # Deploy demo chain and generate demo data
+
+npm run deps:all                # Install dependencies in all subprojects
+npm run build                   # Build core packages
+npm run format                  # Format the repository with Prettier
+npm run format:check            # Check formatting
+
+npm run dev:gateway             # Start student gateway
+npm run dev:portal-backend      # Start portal backend
+npm run dev:portal              # Start EduWallet Portal
+npm run dev:mobile              # Start mobile app
+npm run dev:mobile:tunnel       # Start mobile app through Expo tunnel
+
+npm run portal:prisma:generate  # Generate Prisma client
+npm run portal:prisma:migrate   # Run portal backend migrations
+npm run portal:seed             # Seed portal backend demo users
+```
+
+## Generated files
+
+The following files are generated during local setup and should not be committed:
+
+```text
+gateway/.env
+gateway/.env.demo-chain
+portal-backend/.env
+portal-backend/.env.demo-chain
+portal-backend/src/demo/portalDemoBlockchain.json
+portal-backend/src/generated/prisma/
+```
+
+The generated blockchain files are tied to the current Hardhat chain. If the Hardhat node is restarted, rerun the bootstrap script and copy the new environment values again.
+
+## Notes and limitations
+
+This repository is a research prototype. The local demo is designed for development and usability testing, not production deployment.
+
+Important limitations:
+
+- The local Hardhat blockchain state is temporary.
+- Demo private keys and generated credentials are for local testing only.
+- The portal registration flow is out of scope. Organizations are seeded as demo accounts.
+- The student gateway uses a temporary in-memory session token for mobile access actions.
+- The mobile app has mainly been tested with Expo Go on Android.
+- The portal backend uses PostgreSQL through Prisma.
+- Production deployment would need stronger authentication, secure secret management, HTTPS, persistent blockchain infrastructure, and a reviewed session/signing model.
