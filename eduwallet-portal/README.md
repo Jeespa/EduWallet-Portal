@@ -40,6 +40,7 @@ eduwallet-portal/
   lib/               # portal API client and helpers
   src/               # reusable portal code
   assets/            # images and static assets
+  demo-server.mjs    # static demo server with /api proxy for remote tests
   package.json
 ```
 
@@ -47,13 +48,13 @@ eduwallet-portal/
 
 The portal talks to `portal-backend` through an environment variable.
 
-Create `eduwallet-portal/.env`:
+Create `eduwallet-portal/.env` for normal local development:
 
 ```env
 EXPO_PUBLIC_PORTAL_BACKEND_BASE_URL=http://localhost:4000
 ```
 
-When running through a tunnel or deployed proxy, replace the URL with the public backend URL.
+When using the remote demo server, the exported portal is configured to call `/api`. The local demo server then proxies `/api` to the portal backend. This makes it possible to share one public portal URL with test users.
 
 ## Setup
 
@@ -93,6 +94,53 @@ npm run dev:portal
 
 The Expo web server will print the local URL in the terminal.
 
+## Sharing the portal with remote test users
+
+For usability tests where participants open the portal on their own computers, use the static demo server.
+
+The demo server serves the exported portal frontend and proxies API calls from `/api` to the local portal backend. It is not a mock backend. The real `portal-backend` must still be running locally.
+
+First, make sure the full local demo is running:
+
+```bash
+npm run hardhat:node
+npm run dev:portal-backend
+```
+
+Then start the portal demo server from another terminal:
+
+```bash
+cd eduwallet-portal
+npm run demo:web
+```
+
+The demo server normally runs on:
+
+```text
+http://localhost:8080
+```
+
+Expose that server with ngrok:
+
+```bash
+ngrok http 8080
+```
+
+Send the ngrok HTTPS URL to portal test users. They should only need that one URL.
+
+By default, the demo server proxies `/api` to:
+
+```text
+http://localhost:4000
+```
+
+If the portal backend is running somewhere else, set `PORTAL_BACKEND_URL` before starting the demo server:
+
+```cmd
+set PORTAL_BACKEND_URL=http://localhost:4000
+npm run demo:web
+```
+
 ## Demo login users
 
 The portal users are created by the portal backend seed script. The most relevant demo users are:
@@ -116,7 +164,7 @@ The portal is normally used together with:
 - PostgreSQL
 - `portal-backend`
 
-A typical full-system flow is:
+The root `README.md` is the source of truth for the full setup. In short, the local demo requires these steps:
 
 ```bash
 # terminal 1, from repository root
@@ -133,7 +181,7 @@ npm run dev:portal-backend
 npm run dev:portal
 ```
 
-The bootstrap script writes generated demo-chain environment files. Copy the relevant values into the backend `.env` files before starting the services.
+The bootstrap script writes generated demo-chain environment files. The portal backend also needs a local `.env` file with PostgreSQL and JWT settings. See the root `README.md` for the complete `.env` flow.
 
 ## Exporting the web build
 
@@ -143,13 +191,19 @@ To export the portal as a static web build:
 npm run export:web
 ```
 
-For a demo/proxy setup where the backend is served under `/api`:
+For the remote demo/proxy setup, export the portal so that backend requests go to `/api`:
 
 ```bash
 npm run export:web:demo
 ```
 
-The exported files are written to the Expo output directory.
+To export the portal and start the static demo server in one command:
+
+```bash
+npm run demo:web
+```
+
+The exported files are written to `dist/`.
 
 ## Linting
 
@@ -164,3 +218,4 @@ npm run lint
 - The portal backend stores portal-side state in PostgreSQL.
 - Academic records and permission operations are handled through the EduWallet smart contracts and SDK integration in the backend.
 - The portal backend is separate from the student-facing gateway. The gateway is used by student clients, while `portal-backend` supports portal workflows.
+- The remote demo server is only a local testing utility. It serves the exported frontend and proxies `/api` to the local portal backend.
