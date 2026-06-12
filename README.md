@@ -50,7 +50,7 @@ Install the following before running the demo:
 - Git.
 - PostgreSQL for the portal backend database.
 - Expo Go on a phone, or an Android/iOS emulator, if testing the mobile app.
-- Optional: ngrok for remote mobile tests where the phone is not on the same network as the development machine.
+- Optional: ngrok for remote portal or mobile tests where the computer/phone is not on the same network as the development machine.
 
 The commands below are written for Windows `cmd.exe`, because the project has mainly been developed and tested on Windows. They can be adapted for macOS/Linux by replacing `copy` with `cp`, and `type ... >> ...` with `cat ... >> ...`.
 
