@@ -199,7 +199,7 @@ Use the reset command with care. It deletes local portal backend data.
 
 After running `npm run seed`, the following demo users are available.
 
-### NTNU University
+### NTNU
 
 ```text
 ingrid@ntnu.no / password123   ADMIN

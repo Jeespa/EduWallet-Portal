@@ -146,7 +146,7 @@ npm run demo:web
 The portal users are created by the portal backend seed script. The most relevant demo users are:
 
 ```text
-NTNU University
+NTNU
   ingrid@ntnu.no / password123
 
 Nordic Hiring AS

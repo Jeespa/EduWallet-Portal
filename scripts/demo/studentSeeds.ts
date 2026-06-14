@@ -14,7 +14,7 @@ export const STUDENT_SEEDS: StudentSeed[] = [
     birthDate: "2000-04-12",
     birthPlace: "Trondheim",
     country: "Norway",
-    homeInstitution: "NTNU University",
+    homeInstitution: "NTNU",
     registeredBy: "ntnu",
     initialAccess: {
       nordicHiring: "none",
@@ -45,7 +45,7 @@ export const STUDENT_SEEDS: StudentSeed[] = [
     birthDate: "1999-09-03",
     birthPlace: "Oslo",
     country: "Norway",
-    homeInstitution: "NTNU University",
+    homeInstitution: "NTNU",
     registeredBy: "ntnu",
     initialAccess: {
       nordicHiring: "read",
@@ -108,7 +108,7 @@ export const STUDENT_SEEDS: StudentSeed[] = [
     birthDate: "2001-01-18",
     birthPlace: "Bergen",
     country: "Norway",
-    homeInstitution: "NTNU University",
+    homeInstitution: "NTNU",
     registeredBy: "ntnu",
     initialAccess: {
       nordicHiring: "none",

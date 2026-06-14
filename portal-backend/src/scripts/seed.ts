@@ -13,10 +13,10 @@ async function main() {
       organizationNumber: "974767880",
     },
     update: {
-      name: "NTNU University",
+      name: "NTNU",
     },
     create: {
-      name: "NTNU University",
+      name: "NTNU",
       organizationNumber: "974767880",
     },
   });

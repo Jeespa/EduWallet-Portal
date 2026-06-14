@@ -54,7 +54,7 @@ export async function prepareDemoOrganizations(input: {
   }
 
   await (
-    await input.studentsRegister.subscribe(ntnuWallet.address, "NTNU University", "Norway", "NTNU")
+    await input.studentsRegister.subscribe(ntnuWallet.address, "NTNU", "Norway", "NTNU")
   ).wait();
 
   await (

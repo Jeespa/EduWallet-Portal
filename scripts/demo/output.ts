@@ -32,7 +32,7 @@ export async function writeDemoFiles(input: {
     organizations: {
       ntnu: {
         organizationNumber: NTNU_ORG_NUMBER,
-        name: "NTNU University",
+        name: "NTNU",
         privateKey: NTNU_PRIVATE_KEY,
         address: input.organizationWallets.ntnuWallet.address,
         smartAccountAddress: input.organizationSmartAccounts.ntnuSmartAccountAddress,
@@ -72,7 +72,7 @@ export async function writeDemoFiles(input: {
       backup: {
         verification: "Nora Solheim",
         mobileAppTest: "Maya Eide",
-        mobilePendingRequest: "NTNU University view request for Maya Eide",
+        mobilePendingRequest: "NTNU view request for Maya Eide",
       },
     },
   };

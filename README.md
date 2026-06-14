@@ -238,7 +238,7 @@ By default, the mobile app uses the gateway URL configured by `EXPO_PUBLIC_GATEW
 The portal seed creates these users with the password `password123`:
 
 ```text
-ingrid@ntnu.no              NTNU University admin
+ingrid@ntnu.no              NTNU admin
 marius@ntnu.no              NTNU requester
 sofie@ntnu.no               NTNU verifier
 lars@ntnu.no                NTNU issuer
