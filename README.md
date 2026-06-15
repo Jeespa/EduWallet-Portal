@@ -1,4 +1,4 @@
-# EduWallet V3.0
+# EduWallet Portal
 
 EduWallet is a blockchain-based academic credential prototype. It uses Ethereum smart contracts, account abstraction, and off-chain certificate storage to let students control access to their academic records.
 
@@ -7,7 +7,7 @@ This repository contains the original EduWallet blockchain core and SDK, the stu
 ## Repository structure
 
 ```text
-EduWallet-V3.0/
+EduWallet-Portal/
 ├── contracts/              # Solidity smart contracts
 ├── sdk/                    # EduWallet SDK used by university-side tooling
 ├── cli/                    # Command-line tooling from the original prototype
@@ -28,7 +28,7 @@ EduWallet-V3.0/
 EduWallet has two main backend entry points:
 
 - `gateway` is the student-client API layer. It is used by the mobile app and browser extension. It exposes student login, record retrieval, access overview, and student-approved access changes.
-- `portal-backend` is the API layer for EduWallet Portal. It is used by universities, organizations, and external verifiers. It uses the EduWallet SDK/contracts for portal-side actions such as requesting access, verifying records, and issuing results.
+- `portal-backend` is the API layer for EduWallet Portal. It is used by universities, organizations, and external verifiers. It uses the EduWallet SDK/contracts for portal-side actions such as requesting access, checking records, and issuing results.
 
 The portal backend does not reuse the student gateway. They are separate services with different users and responsibilities.
 
@@ -59,7 +59,7 @@ The commands below are written for Windows `cmd.exe`, because the project has ma
 Clone the repository and install dependencies:
 
 ```cmd
-git clone https://github.com/Jeespa/EduWallet-V3.0.git
+git clone https://github.com/Jeespa/EduWallet-Portal.git
 cd <repo-root>
 npm install
 npm run deps:all
@@ -276,10 +276,10 @@ Recommended demo students:
 
 ```text
 Anna Berg       Nordic Hiring requests view access
-Jonas Holm      Nordic Hiring verifies an existing result
+Jonas Holm      Nordic Hiring checks an existing result
 Emil Nilsen     NTNU requests update access
 Sara Lund       NTNU issues a new result
-Nora Solheim    Backup verification student
+Nora Solheim    Backup record-checking student
 Maya Eide       Mobile app test student
 ```
 
